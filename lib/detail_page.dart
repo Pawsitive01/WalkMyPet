@@ -29,7 +29,7 @@ class DetailPage extends StatelessWidget {
               ),
               background: Hero(
                 tag: person.imageUrl,
-                child: Image.network(
+                child: Image.asset(
                   person.imageUrl,
                   fit: BoxFit.cover,
                   color: Colors.black.withAlpha(102),
@@ -51,14 +51,14 @@ class DetailPage extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 16, height: 1.5),
                   ),
                   const SizedBox(height: 24),
-                  _buildInfoRow(context, Icons.location_on, person.location),
-                  const SizedBox(height: 16),
                   _buildInfoRow(context, Icons.star, '${person.rating} (${person.reviews} reviews)'),
                   const SizedBox(height: 16),
                   _buildInfoRow(context, Icons.directions_walk, '${person.completedWalks} completed walks'),
                   if (isWalker) ...[
                     const SizedBox(height: 16),
                     _buildInfoRow(context, Icons.attach_money, '\$${(person as Walker).hourlyRate}/hr'),
+                     const SizedBox(height: 16),
+                    _buildInfoRow(context, Icons.location_on, (person as Walker).location),
                   ],
                 ],
               ),

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "830819672498",
+    "project_id": "walkmypet-dff4e",
+    "storage_bucket": "walkmypet-dff4e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:830819672498:android:ab70ae04eb47954b4c04ab",
+        "android_client_info": {
+          "package_name": "com.walkmypet.myapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDAuAH15j5txXTqccjKOoBTYvi3E5i4bIQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

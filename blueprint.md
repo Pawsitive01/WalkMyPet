@@ -1,31 +1,30 @@
-# Project Blueprint
+# Walk My Pet - A Pet-Walking Service App
 
 ## Overview
 
-This document outlines the plan, style, design, and features of the Flutter application. The goal is to create a visually appealing and intuitive app for pet owners and walkers.
+Walk My Pet is a mobile application that connects pet owners with reliable pet walkers in their area. The app provides a platform for owners to find and hire walkers, and for walkers to offer their services. The app features a clean, modern design with a focus on user experience and ease of use.
+
+## Style, Design, and Features
+
+### Theming and Styling
+
+- **Color Palette**: The app uses a vibrant and modern color palette with a primary color of "Blurple" (`#5865F2`).
+- **Typography**: The app uses a combination of Google Fonts for a clean and readable look:
+    - **Oswald**: Used for headings and titles, providing a bold and impactful look.
+    - **Roboto**: Used for body text and labels, ensuring readability.
+    - **Open Sans**: Used for body text.
+- **Dark/Light Mode**: The app supports both light and dark themes, with a toggle in the app bar.
+
+### Navigation
+
+- **Tabbed Navigation**: The main screen uses a `TabBar` to switch between a list of pet walkers and a list of pet owners.
+
+### Core Features
+
+- **Pet Walker and Owner Lists**: The app displays separate lists for pet walkers and pet owners.
+- **Detailed Profiles**: Users can tap on a walker or owner to view a detailed profile page.
+- **Local Image Assets**: The app uses locally stored images for walkers and owners, ensuring fast loading times and a professional look.
 
 ## Current Plan
 
-The current goal is to refine the application's visual design by giving the `AppBar` a more modern and appealing look with smooth, rounded edges.
-
-### Steps:
-
-1.  **Modify AppBar Theme:**
-    *   Adjust the `AppBarTheme` in `lib/main.dart` for both light and dark themes.
-    *   Increase the `borderRadius` of the `RoundedRectangleBorder` to `30` to create a more pronounced rounded effect on the bottom edge of the `AppBar`.
-
-## Style and Design
-
-*   **Theme:** Material 3 with an elegant, purple-based color scheme.
-*   **AppBar:** A customized `AppBar` with smooth, rounded bottom edges for a modern look.
-*   **Visual Effects:** Cards have soft, deep drop shadows to create a multi-layered effect and a strong sense of depth.
-*   **Iconography:** Modern icons are used for menus and actions to enhance user understanding.
-*   **Interactivity:** A main menu and a new Floating Action Button provide clear, interactive pathways for users.
-*   **Fonts:** `google_fonts` are used for expressive and clean typography.
-
-## Features
-
-*   **Theme Toggle:** A settings option allows users to switch between light and dark modes.
-*   **Login Option:** A placeholder for future user login functionality, now accessible via the main menu and a new FAB.
-*   **Tabbed Navigation:** Users can easily switch between "Pet Walkers" and "Pet Owners."
-*   **Walker & Owner Profiles:** Information is presented in visually enhanced cards.
+- Save the project to Git.

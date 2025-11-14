@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -5,7 +6,13 @@ import 'package:myapp/models.dart';
 import 'package:myapp/detail_page.dart';
 import 'package:flutter/services.dart';
 
-void main() {
+import 'firebase_options.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(
     ChangeNotifierProvider(
       create: (context) => ThemeProvider(),
@@ -208,7 +215,7 @@ class WalkerList extends StatelessWidget {
         hourlyRate: 25,
         location: 'Adelaide, Australia',
         completedWalks: 150,
-        imageUrl: 'https://i.pravatar.cc/150?img=68',
+        imageUrl: 'assets/images/walker1.jpg',
         bio: 'I am a dog lover and I have been walking dogs for 5 years. I am very responsible and I will take good care of your dog.',
       ),
       const Walker(
@@ -218,7 +225,7 @@ class WalkerList extends StatelessWidget {
         hourlyRate: 30,
         location: 'Los Angeles, CA',
         completedWalks: 250,
-        imageUrl: 'https://i.pravatar.cc/150?img=47',
+        imageUrl: 'assets/images/walker2.jpg',
         bio: 'I am a certified dog walker and I have been working with dogs for over 10 years. I am also a certified dog trainer.',
       ),
       const Walker(
@@ -228,7 +235,7 @@ class WalkerList extends StatelessWidget {
         hourlyRate: 22,
         location: 'Adelaide, Australia',
         completedWalks: 120,
-        imageUrl: 'https://i.pravatar.cc/150?img=11',
+        imageUrl: 'assets/images/walker3.jpg',
         bio: 'I am a student and I love dogs. I am available for walks in the afternoon and on weekends.',
       ),
     ];
@@ -255,7 +262,7 @@ class OwnerList extends StatelessWidget {
         rating: 4.8,
         reviews: 80,
         completedWalks: 100,
-        imageUrl: 'https://i.pravatar.cc/150?img=32',
+        imageUrl: 'assets/images/owner1.jpg',
         bio: 'My dog, Max, is a very friendly and energetic Golden Retriever. He loves to play fetch and go for long walks.',
       ),
        const Owner(
@@ -265,7 +272,7 @@ class OwnerList extends StatelessWidget {
         rating: 4.9,
         reviews: 95,
         completedWalks: 120,
-        imageUrl: 'https://i.pravatar.cc/150?img=31',
+        imageUrl: 'assets/images/owner2.jpg',
         bio: 'Bella is a sweet and playful French Bulldog. She is very good with other dogs and loves to cuddle.',
       ),
       const Owner(
@@ -275,7 +282,7 @@ class OwnerList extends StatelessWidget {
         rating: 4.2,
         reviews: 60,
         completedWalks: 80,
-        imageUrl: 'https://i.pravatar.cc/150?img=12',
+        imageUrl: 'assets/images/owner3.jpg',
         bio: 'Buddy is a calm and gentle Labrador. He is very well-behaved and loves to go for walks in the park.',
       ),
     ];
@@ -340,7 +347,7 @@ class WalkerCard extends StatelessWidget {
                 tag: walker.imageUrl,
                 child: CircleAvatar(
                   radius: 40,
-                  backgroundImage: NetworkImage(walker.imageUrl),
+                  backgroundImage: AssetImage(walker.imageUrl),
                 ),
               ),
               const SizedBox(width: 16),
@@ -427,7 +434,7 @@ class OwnerCard extends StatelessWidget {
                 tag: owner.imageUrl,
                 child: CircleAvatar(
                   radius: 40,
-                  backgroundImage: NetworkImage(owner.imageUrl),
+                  backgroundImage: AssetImage(owner.imageUrl),
                 ),
               ),
               const SizedBox(width: 16),
