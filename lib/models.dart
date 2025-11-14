@@ -23,6 +23,7 @@ class Walker {
 
 class Owner {
   final String name;
+  final String dogName;
   final int dogAge;
   final String dogBreed;
   final double rating;
@@ -33,6 +34,7 @@ class Owner {
 
   const Owner({
     required this.name,
+    required this.dogName,
     required this.dogAge,
     required this.dogBreed,
     required this.rating,

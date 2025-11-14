@@ -257,16 +257,18 @@ class OwnerList extends StatelessWidget {
     final owners = [
       const Owner(
         name: 'Richard Roe',
+        dogName: 'Max',
         dogAge: 3,
         dogBreed: 'Golden Retriever',
         rating: 4.8,
         reviews: 80,
         completedWalks: 100,
         imageUrl: 'assets/images/owner1.jpg',
-        bio: 'My dog, Max, is a very friendly and energetic Golden Retriever. He loves to play fetch and go for long walks.',
+        bio: 'Max is a very friendly and energetic Golden Retriever. He loves to play fetch and go for long walks.',
       ),
        const Owner(
         name: 'Mary Major',
+        dogName: 'Bella',
         dogAge: 2,
         dogBreed: 'French Bulldog',
         rating: 4.9,
@@ -277,6 +279,7 @@ class OwnerList extends StatelessWidget {
       ),
       const Owner(
         name: 'Peter Jones',
+        dogName: 'Buddy',
         dogAge: 5,
         dogBreed: 'Labrador',
         rating: 4.2,
@@ -451,7 +454,7 @@ class OwnerCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${owner.dogAge}-year-old ${owner.dogBreed}',
+                      'Dog: ${owner.dogName}, ${owner.dogAge}-year-old ${owner.dogBreed}',
                       style: const TextStyle(fontSize: 16),
                     ),
                     const SizedBox(height: 4),
