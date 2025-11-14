@@ -4,7 +4,7 @@ import 'package:myapp/models.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class DetailPage extends StatelessWidget {
-  final dynamic person;
+  final Person person;
 
   const DetailPage({super.key, required this.person});
 
@@ -16,26 +16,36 @@ class DetailPage extends StatelessWidget {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 300.0,
+            expandedHeight: 350.0,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
             pinned: true,
+            stretch: true,
             flexibleSpace: FlexibleSpaceBar(
+              background: Hero(
+                tag: 'image_${person.imageUrl}',
+                child: Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage(person.imageUrl),
+                      fit: BoxFit.cover,
+                      colorFilter: ColorFilter.mode(
+                        Colors.black.withOpacity(0.4),
+                        BlendMode.darken,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               title: Text(
                 person.name,
-                style: GoogleFonts.oswald(
+                style: GoogleFonts.poppins(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
-              background: Hero(
-                tag: person.imageUrl,
-                child: Image.asset(
-                  person.imageUrl,
-                  fit: BoxFit.cover,
-                  color: Colors.black.withAlpha(102),
-                  colorBlendMode: BlendMode.darken,
-                ),
-              ),
+              titlePadding: const EdgeInsets.only(left: 20, bottom: 20),
             ),
           ),
           SliverToBoxAdapter(
@@ -44,22 +54,20 @@ class DetailPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionTitle(context, 'Bio'),
-                  const SizedBox(height: 8),
+                  _buildSectionTitle(context, 'About ${person.name}'),
+                  const SizedBox(height: 16),
                   Text(
                     person.bio,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 16, height: 1.5),
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      height: 1.6,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8),
+                    ),
                   ),
                   const SizedBox(height: 24),
-                  _buildInfoRow(context, Icons.star, '${person.rating} (${person.reviews} reviews)'),
-                  const SizedBox(height: 16),
-                  _buildInfoRow(context, Icons.directions_walk, '${person.completedWalks} completed walks'),
-                  if (isWalker) ...[
-                    const SizedBox(height: 16),
-                    _buildInfoRow(context, Icons.attach_money, '\$${(person as Walker).hourlyRate}/hr'),
-                     const SizedBox(height: 16),
-                    _buildInfoRow(context, Icons.location_on, (person as Walker).location),
-                  ],
+                  Divider(color: Colors.grey.withOpacity(0.2)),
+                  const SizedBox(height: 24),
+                  _buildStatsSection(context, isWalker),
                 ],
               ),
             ),
@@ -67,27 +75,13 @@ class DetailPage extends StatelessWidget {
         ],
       ),
       floatingActionButton: isWalker
-          ? Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                FloatingActionButton.extended(
-                  onPressed: () {
-                    // Placeholder for booking logic
-                  },
-                  label: const Text('Book a Walk'),
-                  icon: const Icon(Icons.calendar_today),
-                  heroTag: 'book_walk',
-                ),
-                const SizedBox(height: 16),
-                FloatingActionButton.extended(
-                  onPressed: () {
-                    // Placeholder for messaging logic
-                  },
-                  label: Text('Message ${person.name}'),
-                  icon: const Icon(Icons.message),
-                  heroTag: 'message_user',
-                ),
-              ],
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                // Placeholder for booking logic
+              },
+              label: const Text('Book a Walk'),
+              icon: const Icon(Icons.calendar_today),
+              heroTag: 'book_walk',
             )
           : null,
     );
@@ -96,23 +90,93 @@ class DetailPage extends StatelessWidget {
   Widget _buildSectionTitle(BuildContext context, String title) {
     return Text(
       title,
-      style: GoogleFonts.oswald(
-        fontSize: 28,
+      style: GoogleFonts.poppins(
+        fontSize: 22,
         fontWeight: FontWeight.bold,
+        letterSpacing: -0.5,
         color: Theme.of(context).colorScheme.primary,
       ),
+    );
+  }
+
+  Widget _buildStatsSection(BuildContext context, bool isWalker) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle(context, 'Statistics'),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildInfoChip(context, Icons.star_rounded, '${person.rating}', 'Rating'),
+            _buildInfoChip(context, Icons.reviews_rounded, '${person.reviews}', 'Reviews'),
+            _buildInfoChip(
+              context,
+              Icons.directions_walk_rounded,
+              '${person.completedWalks}',
+              'Walks',
+            ),
+            if (isWalker)
+              _buildInfoChip(
+                context,
+                Icons.attach_money_rounded,
+                '${(person as Walker).hourlyRate}',
+                '/hr',
+              ),
+          ],
+        ),
+         if (isWalker) ...[
+          const SizedBox(height: 24),
+          _buildInfoRow(context, Icons.location_on, (person as Walker).location),
+         ],
+          if (person is Owner) ...[
+            const SizedBox(height: 24),
+            _buildSectionTitle(context, 'Pet Details'),
+            const SizedBox(height: 16),
+            _buildInfoRow(context, Icons.pets, 'Name: ${(person as Owner).dogName}'),
+            const SizedBox(height: 12),
+            _buildInfoRow(context, Icons.cake, 'Age: ${(person as Owner).dogAge} years'),
+            const SizedBox(height: 12),
+            _buildInfoRow(context, Icons.category, 'Breed: ${(person as Owner).dogBreed}'),
+          ]
+      ],
+    );
+  }
+
+    Widget _buildInfoChip(BuildContext context, IconData icon, String value, String label) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    return Column(
+      children: [
+        Icon(icon, color: Theme.of(context).colorScheme.primary, size: 28),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : Colors.black87,
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildInfoRow(BuildContext context, IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, color: Theme.of(context).colorScheme.secondary, size: 24),
-        const SizedBox(width: 12),
+        Icon(icon, color: Theme.of(context).colorScheme.secondary, size: 20),
+        const SizedBox(width: 16),
         Expanded(
           child: Text(
             text,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 18),
+            style: GoogleFonts.inter(fontSize: 16),
           ),
         ),
       ],
