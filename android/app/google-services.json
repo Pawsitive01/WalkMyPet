@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:830819672498:android:ab70ae04eb47954b4c04ab",
+        "mobilesdk_app_id": "1:830819672498:android:85d440cad23fde384c04ab",
         "android_client_info": {
-          "package_name": "com.walkmypet.myapp"
+          "package_name": "com.WalkMyPet.walkmypet"
         }
       },
       "oauth_client": [],

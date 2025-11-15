@@ -25,10 +25,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for windows - '
@@ -47,18 +44,17 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAGR7OrLSL1yW47Ep7jzg5T5Ex7lBfuzCI',
-    appId: '1:830819672498:web:9a0cb1438c889ac64c04ab',
-    messagingSenderId: '830819672498',
-    projectId: 'walkmypet-dff4e',
-    authDomain: 'walkmypet-dff4e.firebaseapp.com',
-    storageBucket: 'walkmypet-dff4e.firebasestorage.app',
-    measurementId: 'G-G66C0KFLDH',
+    apiKey: 'YOUR_WEB_API_KEY',
+    appId: 'YOUR_WEB_APP_ID',
+    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+    projectId: 'YOUR_PROJECT_ID',
+    authDomain: 'YOUR_AUTH_DOMAIN',
+    storageBucket: 'YOUR_STORAGE_BUCKET',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDAuAH15j5txXTqccjKOoBTYvi3E5i4bIQ',
-    appId: '1:830819672498:android:ab70ae04eb47954b4c04ab',
+    appId: '1:830819672498:android:85d440cad23fde384c04ab',
     messagingSenderId: '830819672498',
     projectId: 'walkmypet-dff4e',
     storageBucket: 'walkmypet-dff4e.firebasestorage.app',
@@ -66,10 +62,19 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBouinu6HhkApZsR3jCqH2usQ1OJRhDBAU',
-    appId: '1:830819672498:ios:3e383d2b787750264c04ab',
+    appId: '1:830819672498:ios:a988adce52abc3eb4c04ab',
     messagingSenderId: '830819672498',
     projectId: 'walkmypet-dff4e',
     storageBucket: 'walkmypet-dff4e.firebasestorage.app',
-    iosBundleId: 'com.example.myapp',
+    iosBundleId: 'com.walkmypet.walkmypet',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'YOUR_MACOS_API_KEY',
+    appId: 'YOUR_MACOS_APP_ID',
+    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+    projectId: 'YOUR_PROJECT_ID',
+    storageBucket: 'YOUR_STORAGE_BUCKET',
+    iosBundleId: 'com.walkmypet.myapp',
   );
 }
