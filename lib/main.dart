@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:walkmypet/models.dart';
 import 'package:walkmypet/detail_page.dart';
+import 'package:walkmypet/booking_login_page.dart';
 import 'package:flutter/services.dart';
 
 import 'firebase_options.dart';
@@ -852,453 +853,388 @@ class _WalkerCardState extends State<WalkerCard> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
 
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isHovered = true),
-      onTapUp: (_) => setState(() => _isHovered = false),
-      onTapCancel: () => setState(() => _isHovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: _isHovered
-                  ? const Color(0xFF6366F1).withAlpha((0.15 * 255).round())
-                  : Colors.black.withAlpha((0.05 * 255).round()),
-              blurRadius: _isHovered ? 10 : 6,
-              spreadRadius: 0,
-              offset: Offset(0, _isHovered ? 3 : 2),
+    return Center(
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DetailPage(person: widget.walker),
             ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Main Content
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header Row: Avatar, Name & Price
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Hero(
-                        tag: 'image_${widget.walker.imageUrl}',
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+          );
+        },
+        onTapDown: (_) => setState(() => _isHovered = true),
+        onTapUp: (_) => setState(() => _isHovered = false),
+        onTapCancel: () => setState(() => _isHovered = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          constraints: BoxConstraints(
+            maxWidth: screenWidth > 500 ? 420 : double.infinity,
+          ),
+          margin: EdgeInsets.symmetric(
+            horizontal: screenWidth > 500 ? 0 : 24,
+            vertical: 8,
+          ),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: _isHovered
+                    ? const Color(0xFF6366F1).withAlpha((0.12 * 255).round())
+                    : Colors.black.withAlpha((0.04 * 255).round()),
+                blurRadius: _isHovered ? 12 : 8,
+                spreadRadius: 0,
+                offset: Offset(0, _isHovered ? 4 : 2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Main Content
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Compact Header with Avatar & Name
+                    Row(
+                      children: [
+                        Hero(
+                          tag: 'image_${widget.walker.imageUrl}',
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(0xFF6366F1).withAlpha((0.3 * 255).round()),
+                                width: 2,
+                              ),
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF6366F1).withAlpha((0.25 * 255).round()),
-                                blurRadius: 6,
-                                spreadRadius: 0,
+                            child: CircleAvatar(
+                              radius: 28,
+                              backgroundImage: AssetImage(widget.walker.imageUrl),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.walker.name,
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: -0.3,
+                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  height: 1.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.location_on,
+                                    size: 13,
+                                    color: isDark ? Colors.grey[500] : Colors.grey[600],
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Expanded(
+                                    child: Text(
+                                      widget.walker.location,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: isDark ? Colors.grey[500] : Colors.grey[600],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                          padding: const EdgeInsets.all(3),
-                          child: CircleAvatar(
-                            radius: 32,
-                            backgroundImage: AssetImage(widget.walker.imageUrl),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Compact Info Grid
+                    Row(
+                      children: [
+                        // Rating
+                        Expanded(
+                          child: _buildInfoChip(
+                            icon: Icons.star,
+                            label: '${widget.walker.rating}',
+                            sublabel: '${widget.walker.reviews} reviews',
+                            color: const Color(0xFFFBBF24),
+                            isDark: isDark,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.walker.name,
-                              style: TextStyle(
-                                fontSize: 19,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: -0.3,
-                                color: isDark ? Colors.white : const Color(0xFF1E293B),
-                                height: 1.2,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                        const SizedBox(width: 8),
+                        // Walks
+                        Expanded(
+                          child: _buildInfoChip(
+                            icon: Icons.pets,
+                            label: '${widget.walker.completedWalks}',
+                            sublabel: 'walks',
+                            color: const Color(0xFF6366F1),
+                            isDark: isDark,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Price
+                        Expanded(
+                          child: _buildInfoChip(
+                            icon: Icons.payments,
+                            label: '\$${widget.walker.hourlyRate}',
+                            sublabel: 'per hour',
+                            color: const Color(0xFF10B981),
+                            isDark: isDark,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Compact Badges
+                    if (widget.walker.hasPoliceClearance) ...[
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          _buildMicroBadge(
+                            icon: Icons.verified,
+                            label: 'Verified',
+                            isDark: isDark,
+                          ),
+                          const SizedBox(width: 6),
+                          if (widget.walker.hasPoliceClearance)
+                            _buildMicroBadge(
+                              icon: Icons.shield,
+                              label: 'Background Check',
+                              isDark: isDark,
                             ),
-                            const SizedBox(height: 6),
-                            Row(
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              // Divider
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: isDark
+                    ? Colors.white.withAlpha((0.08 * 255).round())
+                    : Colors.black.withAlpha((0.06 * 255).round()),
+              ),
+
+              // Action Buttons
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: Row(
+                  children: [
+                    // About Button
+                    Expanded(
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DetailPage(person: widget.walker),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white.withAlpha((0.05 * 255).round())
+                                  : const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isDark
+                                    ? Colors.white.withAlpha((0.15 * 255).round())
+                                    : Colors.black.withAlpha((0.1 * 255).round()),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
-                                  Icons.location_on,
-                                  size: 14,
-                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                  Icons.info_outline,
+                                  color: isDark ? Colors.grey[400] : Colors.grey[700],
+                                  size: 16,
                                 ),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    widget.walker.location,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                const SizedBox(width: 5),
+                                Text(
+                                  'About',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.grey[400] : Colors.grey[700],
                                   ),
                                 ),
                               ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      // Price Badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF10B981), Color(0xFF059669)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Book Button
+                    Expanded(
+                      flex: 2,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BookingLoginPage(
+                                  personName: widget.walker.name,
+                                  isWalker: true,
+                                ),
+                              ),
+                            );
+                          },
                           borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF10B981).withAlpha((0.3 * 255).round()),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF6366F1),
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF6366F1).withAlpha((0.3 * 255).round()),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Text(
-                                  '\$',
+                                Icon(
+                                  Icons.calendar_today,
+                                  color: Colors.white,
+                                  size: 15,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Book Walker',
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
-                                    height: 1.3,
-                                  ),
-                                ),
-                                Text(
-                                  '${widget.walker.hourlyRate}',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    height: 1,
                                   ),
                                 ),
                               ],
                             ),
-                            Text(
-                              'per hour',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white.withAlpha((0.85 * 255).round()),
-                                height: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Stats Row with Rating
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? const Color(0xFF0F172A).withAlpha((0.5 * 255).round())
-                                : const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: isDark
-                                  ? Colors.white.withAlpha((0.08 * 255).round())
-                                  : Colors.black.withAlpha((0.06 * 255).round()),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.star_rounded, color: Color(0xFFFBBF24), size: 16),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${widget.walker.rating}',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : const Color(0xFF1E293B),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '(${widget.walker.reviews})',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                                ),
-                              ),
-                            ],
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF6366F1).withAlpha((0.1 * 255).round()),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: const Color(0xFF6366F1).withAlpha((0.2 * 255).round()),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.directions_walk_rounded,
-                              color: Color(0xFF6366F1),
-                              size: 16,
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              '${widget.walker.completedWalks}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF6366F1),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Badges
-                  if (widget.walker.hasPoliceClearance) ...[
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        _buildCompactBadge(
-                          icon: Icons.verified_rounded,
-                          label: 'Verified',
-                          color: const Color(0xFF3B82F6),
-                          isDark: isDark,
-                        ),
-                        if (widget.walker.hasPoliceClearance)
-                          _buildCompactBadge(
-                            icon: Icons.shield_rounded,
-                            label: 'Police Check',
-                            color: const Color(0xFF8B5CF6),
-                            isDark: isDark,
-                          ),
-                      ],
                     ),
                   ],
-                ],
-              ),
-            ),
-
-            // Action Bar at Bottom
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? [
-                          const Color(0xFF1E293B).withAlpha((0.5 * 255).round()),
-                          const Color(0xFF0F172A).withAlpha((0.8 * 255).round()),
-                        ]
-                      : [
-                          const Color(0xFFF8FAFC),
-                          const Color(0xFFF1F5F9),
-                        ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
-                ),
-                border: Border(
-                  top: BorderSide(
-                    color: isDark
-                        ? Colors.white.withAlpha((0.1 * 255).round())
-                        : Colors.black.withAlpha((0.06 * 255).round()),
-                    width: 1,
-                  ),
                 ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Row(
-                children: [
-                  // About Button
-                  Expanded(
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => DetailPage(person: widget.walker),
-                            ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.white.withAlpha((0.05 * 255).round())
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: const Color(0xFF6366F1).withAlpha((0.3 * 255).round()),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.info_outline_rounded,
-                                color: Color(0xFF6366F1),
-                                size: 18,
-                              ),
-                              SizedBox(width: 6),
-                              Text(
-                                'About',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF6366F1),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  // Book Now Button
-                  Expanded(
-                    flex: 1,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Booking ${widget.walker.name}...'),
-                              behavior: SnackBarBehavior.floating,
-                              backgroundColor: const Color(0xFF10B981),
-                            ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF10B981), Color(0xFF059669)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF10B981).withAlpha((0.3 * 255).round()),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.calendar_today_rounded,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                              SizedBox(width: 6),
-                              Text(
-                                'Book Now',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildCompactBadge({
+  Widget _buildInfoChip({
     required IconData icon,
     required String label,
+    required String sublabel,
     required Color color,
     required bool isDark,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withAlpha((0.12 * 255).round()),
-        borderRadius: BorderRadius.circular(8),
+        color: isDark
+            ? Colors.white.withAlpha((0.03 * 255).round())
+            : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: color.withAlpha((0.25 * 255).round()),
-          width: 1,
+          color: isDark
+              ? Colors.white.withAlpha((0.08 * 255).round())
+              : Colors.black.withAlpha((0.06 * 255).round()),
         ),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+            ),
+          ),
+          Text(
+            sublabel,
+            style: TextStyle(
+              fontSize: 9,
+              color: isDark ? Colors.grey[500] : Colors.grey[600],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMicroBadge({
+    required IconData icon,
+    required String label,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF10B981).withAlpha((0.15 * 255).round())
+            : const Color(0xFF10B981).withAlpha((0.1 * 255).round()),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 13),
-          const SizedBox(width: 4),
+          Icon(icon, color: const Color(0xFF10B981), size: 10),
+          const SizedBox(width: 3),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 11,
+            style: const TextStyle(
+              fontSize: 9,
               fontWeight: FontWeight.w600,
-              color: color,
+              color: Color(0xFF10B981),
             ),
           ),
         ],
       ),
     );
   }
+
 }
 
 class OwnerCard extends StatefulWidget {
@@ -1316,417 +1252,361 @@ class _OwnerCardState extends State<OwnerCard> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
 
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isHovered = true),
-      onTapUp: (_) => setState(() => _isHovered = false),
-      onTapCancel: () => setState(() => _isHovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: _isHovered
-                  ? const Color(0xFFEC4899).withAlpha((0.15 * 255).round())
-                  : Colors.black.withAlpha((0.05 * 255).round()),
-              blurRadius: _isHovered ? 10 : 6,
-              spreadRadius: 0,
-              offset: Offset(0, _isHovered ? 3 : 2),
+    return Center(
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DetailPage(person: widget.owner),
             ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Main Content
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header Row: Avatar, Owner Name & Dog Info
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Hero(
-                        tag: 'image_${widget.owner.imageUrl}',
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFEC4899), Color(0xFFF472B6)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+          );
+        },
+        onTapDown: (_) => setState(() => _isHovered = true),
+        onTapUp: (_) => setState(() => _isHovered = false),
+        onTapCancel: () => setState(() => _isHovered = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          constraints: BoxConstraints(
+            maxWidth: screenWidth > 500 ? 420 : double.infinity,
+          ),
+          margin: EdgeInsets.symmetric(
+            horizontal: screenWidth > 500 ? 0 : 24,
+            vertical: 8,
+          ),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: _isHovered
+                    ? const Color(0xFFEC4899).withAlpha((0.12 * 255).round())
+                    : Colors.black.withAlpha((0.04 * 255).round()),
+                blurRadius: _isHovered ? 12 : 8,
+                spreadRadius: 0,
+                offset: Offset(0, _isHovered ? 4 : 2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Main Content
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Compact Header with Avatar & Owner Name
+                    Row(
+                      children: [
+                        Hero(
+                          tag: 'image_${widget.owner.imageUrl}',
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(0xFFEC4899).withAlpha((0.3 * 255).round()),
+                                width: 2,
+                              ),
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFFEC4899).withAlpha((0.25 * 255).round()),
-                                blurRadius: 6,
-                                spreadRadius: 0,
+                            child: CircleAvatar(
+                              radius: 28,
+                              backgroundImage: AssetImage(widget.owner.imageUrl),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.owner.name,
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: -0.3,
+                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  height: 1.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.pets,
+                                    size: 13,
+                                    color: Color(0xFFEC4899),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Expanded(
+                                    child: Text(
+                                      '${widget.owner.dogName}, ${widget.owner.dogAge}y • ${widget.owner.dogBreed}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: isDark ? Colors.grey[500] : Colors.grey[600],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                          padding: const EdgeInsets.all(3),
-                          child: CircleAvatar(
-                            radius: 32,
-                            backgroundImage: AssetImage(widget.owner.imageUrl),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Compact Info Grid
+                    Row(
+                      children: [
+                        // Rating
+                        Expanded(
+                          flex: 2,
+                          child: _buildInfoChip(
+                            icon: Icons.star,
+                            label: '${widget.owner.rating}',
+                            sublabel: '${widget.owner.reviews} reviews',
+                            color: const Color(0xFFFBBF24),
+                            isDark: isDark,
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        // Walks
+                        Expanded(
+                          flex: 2,
+                          child: _buildInfoChip(
+                            icon: Icons.pets,
+                            label: '${widget.owner.completedWalks}',
+                            sublabel: 'walks done',
+                            color: const Color(0xFFEC4899),
+                            isDark: isDark,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Compact Badge
+                    if (widget.owner.hasPoliceClearance) ...[
+                      const SizedBox(height: 10),
+                      _buildMicroBadge(
+                        icon: Icons.shield,
+                        label: 'Background Check ✓',
+                        isDark: isDark,
                       ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.owner.name,
-                              style: TextStyle(
-                                fontSize: 19,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: -0.3,
-                                color: isDark ? Colors.white : const Color(0xFF1E293B),
-                                height: 1.2,
+                    ],
+                  ],
+                ),
+              ),
+
+              // Divider
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: isDark
+                    ? Colors.white.withAlpha((0.08 * 255).round())
+                    : Colors.black.withAlpha((0.06 * 255).round()),
+              ),
+
+              // Action Buttons
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: Row(
+                  children: [
+                    // About Button
+                    Expanded(
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DetailPage(person: widget.owner),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white.withAlpha((0.05 * 255).round())
+                                  : const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isDark
+                                    ? Colors.white.withAlpha((0.15 * 255).round())
+                                    : Colors.black.withAlpha((0.1 * 255).round()),
+                                width: 1,
+                              ),
                             ),
-                            const SizedBox(height: 6),
-                            Row(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(
-                                  Icons.pets,
-                                  size: 14,
-                                  color: Color(0xFFEC4899),
+                                Icon(
+                                  Icons.info_outline,
+                                  color: isDark ? Colors.grey[400] : Colors.grey[700],
+                                  size: 16,
                                 ),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    '${widget.owner.dogName}, ${widget.owner.dogAge} years old',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                const SizedBox(width: 5),
+                                Text(
+                                  'About',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.grey[400] : Colors.grey[700],
                                   ),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Dog Breed Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFEC4899), Color(0xFFDB2777)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFEC4899).withAlpha((0.3 * 255).round()),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.pets_rounded,
-                          color: Colors.white,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          widget.owner.dogBreed,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Stats Row with Rating
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? const Color(0xFF0F172A).withAlpha((0.5 * 255).round())
-                                : const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: isDark
-                                  ? Colors.white.withAlpha((0.08 * 255).round())
-                                  : Colors.black.withAlpha((0.06 * 255).round()),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.star_rounded, color: Color(0xFFFBBF24), size: 16),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${widget.owner.rating}',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : const Color(0xFF1E293B),
+                    const SizedBox(width: 8),
+                    // Book Button
+                    Expanded(
+                      flex: 2,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BookingLoginPage(
+                                  personName: widget.owner.dogName,
+                                  isWalker: false,
                                 ),
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '(${widget.owner.reviews})',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF6366F1).withAlpha((0.1 * 255).round()),
+                            );
+                          },
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: const Color(0xFF6366F1).withAlpha((0.2 * 255).round()),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEC4899),
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFEC4899).withAlpha((0.3 * 255).round()),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.calendar_today,
+                                  color: Colors.white,
+                                  size: 15,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Book Walk',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.directions_walk_rounded,
-                              color: Color(0xFF6366F1),
-                              size: 16,
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              '${widget.owner.completedWalks}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF6366F1),
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
-                    ],
-                  ),
-
-                  // Police Clearance Badge
-                  if (widget.owner.hasPoliceClearance) ...[
-                    const SizedBox(height: 10),
-                    _buildCompactBadge(
-                      icon: Icons.shield_rounded,
-                      label: 'Police Check',
-                      color: const Color(0xFF8B5CF6),
-                      isDark: isDark,
                     ),
                   ],
-                ],
-              ),
-            ),
-
-            // Action Bar at Bottom
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? [
-                          const Color(0xFF1E293B).withAlpha((0.5 * 255).round()),
-                          const Color(0xFF0F172A).withAlpha((0.8 * 255).round()),
-                        ]
-                      : [
-                          const Color(0xFFF8FAFC),
-                          const Color(0xFFF1F5F9),
-                        ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
-                ),
-                border: Border(
-                  top: BorderSide(
-                    color: isDark
-                        ? Colors.white.withAlpha((0.1 * 255).round())
-                        : Colors.black.withAlpha((0.06 * 255).round()),
-                    width: 1,
-                  ),
                 ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Row(
-                children: [
-                  // About Button
-                  Expanded(
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => DetailPage(person: widget.owner),
-                            ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.white.withAlpha((0.05 * 255).round())
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: const Color(0xFFEC4899).withAlpha((0.3 * 255).round()),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.info_outline_rounded,
-                                color: Color(0xFFEC4899),
-                                size: 18,
-                              ),
-                              SizedBox(width: 6),
-                              Text(
-                                'About',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFFEC4899),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  // Book Now Button
-                  Expanded(
-                    flex: 1,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Booking walk for ${widget.owner.dogName}...'),
-                              behavior: SnackBarBehavior.floating,
-                              backgroundColor: const Color(0xFFEC4899),
-                            ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF8B5CF6).withAlpha((0.3 * 255).round()),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.calendar_today_rounded,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                              SizedBox(width: 6),
-                              Text(
-                                'Book Now',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildCompactBadge({
+  Widget _buildInfoChip({
     required IconData icon,
     required String label,
+    required String sublabel,
     required Color color,
     required bool isDark,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withAlpha((0.12 * 255).round()),
-        borderRadius: BorderRadius.circular(8),
+        color: isDark
+            ? Colors.white.withAlpha((0.03 * 255).round())
+            : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: color.withAlpha((0.25 * 255).round()),
-          width: 1,
+          color: isDark
+              ? Colors.white.withAlpha((0.08 * 255).round())
+              : Colors.black.withAlpha((0.06 * 255).round()),
         ),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+            ),
+          ),
+          Text(
+            sublabel,
+            style: TextStyle(
+              fontSize: 9,
+              color: isDark ? Colors.grey[500] : Colors.grey[600],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMicroBadge({
+    required IconData icon,
+    required String label,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF10B981).withAlpha((0.15 * 255).round())
+            : const Color(0xFF10B981).withAlpha((0.1 * 255).round()),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 13),
-          const SizedBox(width: 4),
+          Icon(icon, color: const Color(0xFF10B981), size: 10),
+          const SizedBox(width: 3),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 11,
+            style: const TextStyle(
+              fontSize: 9,
               fontWeight: FontWeight.w600,
-              color: color,
+              color: Color(0xFF10B981),
             ),
           ),
         ],
