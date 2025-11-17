@@ -26,7 +26,7 @@ class DesignSystem {
 
   static List<BoxShadow> shadowSubtle(Color color) => [
     BoxShadow(
-      color: color.withOpacity(0.04),
+      color: color.withAlpha((0.04 * 255).round()),
       blurRadius: 8,
       offset: const Offset(0, 2),
     ),
@@ -34,7 +34,7 @@ class DesignSystem {
 
   static List<BoxShadow> shadowCard(Color color) => [
     BoxShadow(
-      color: color.withOpacity(0.08),
+      color: color.withAlpha((0.08 * 255).round()),
       blurRadius: 16,
       offset: const Offset(0, 4),
     ),
@@ -42,7 +42,7 @@ class DesignSystem {
 
   static List<BoxShadow> shadowElevated(Color color) => [
     BoxShadow(
-      color: color.withOpacity(0.12),
+      color: color.withAlpha((0.12 * 255).round()),
       blurRadius: 24,
       offset: const Offset(0, 8),
     ),
@@ -50,7 +50,7 @@ class DesignSystem {
 
   static List<BoxShadow> shadowFloat(Color color) => [
     BoxShadow(
-      color: color.withOpacity(0.16),
+      color: color.withAlpha((0.16 * 255).round()),
       blurRadius: 48,
       offset: const Offset(0, 16),
     ),
@@ -244,7 +244,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       child: Column(
         children: [
           Text(
-            _isSignUp ? 'Create Account to Book' : 'Sign in to Book',
+            widget.isWalker
+                ? (_isSignUp ? 'Create Account to Book' : 'Register as A Pet Walker ')
+                : 'Welcome to Walk My Pet',
             style: const TextStyle(
               fontSize: DesignSystem.caption,
               fontWeight: FontWeight.w600,
@@ -252,6 +254,19 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               letterSpacing: 1.2,
             ),
           ),
+          if (!widget.isWalker) ...[
+            const SizedBox(height: DesignSystem.space1),
+            const Text(
+              'Create a profile for your Pet to book a Pet Walker',
+              style: TextStyle(
+                fontSize: DesignSystem.small,
+                fontWeight: FontWeight.w500,
+                color: Colors.white70,
+                letterSpacing: 0.3,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
           const SizedBox(height: DesignSystem.space2),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -774,26 +789,24 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   Widget _buildGuestButton() {
     return TextButton.icon(
-      onPressed: () async {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Proceeding as guest...'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Color(0xFF10B981),
+      onPressed: () {
+        // Navigate to the opposite login page
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => LoginPage(
+              personName: widget.isWalker ? 'Pet Owner' : 'Pet Walker',
+              isWalker: !widget.isWalker, // Switch to opposite type
+            ),
           ),
         );
-        await Future.delayed(const Duration(milliseconds: 800));
-        if (mounted) {
-          Navigator.of(context).pop();
-        }
       },
       icon: Icon(
-        Icons.person_outline_rounded,
+        widget.isWalker ? Icons.person_outline_rounded : Icons.directions_walk_rounded,
         color: Colors.white.withAlpha((0.95 * 255).round()),
         size: 20,
       ),
       label: Text(
-        'Continue as Guest',
+        widget.isWalker ? 'Or Register as Pet Owner' : 'or Register as a Pet Walker',
         style: TextStyle(
           fontSize: DesignSystem.caption,
           fontWeight: FontWeight.w700,

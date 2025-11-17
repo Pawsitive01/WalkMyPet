@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:walkmypet/models.dart';
-import 'package:walkmypet/booking_login_page.dart';
+import 'package:walkmypet/login_page.dart';
 
 // Modern Design System Constants
 class DesignSystem {
@@ -32,7 +32,7 @@ class DesignSystem {
   // Modern Shadow System
   static List<BoxShadow> shadowSubtle(Color color) => [
     BoxShadow(
-      color: color.withOpacity(0.04),
+      color: color.withAlpha((0.04 * 255).round()),
       blurRadius: 8,
       offset: const Offset(0, 2),
     ),
@@ -40,7 +40,7 @@ class DesignSystem {
 
   static List<BoxShadow> shadowCard(Color color) => [
     BoxShadow(
-      color: color.withOpacity(0.08),
+      color: color.withAlpha((0.08 * 255).round()),
       blurRadius: 16,
       offset: const Offset(0, 4),
     ),
@@ -48,7 +48,7 @@ class DesignSystem {
 
   static List<BoxShadow> shadowElevated(Color color) => [
     BoxShadow(
-      color: color.withOpacity(0.12),
+      color: color.withAlpha((0.12 * 255).round()),
       blurRadius: 24,
       offset: const Offset(0, 8),
     ),
@@ -56,7 +56,7 @@ class DesignSystem {
 
   static List<BoxShadow> shadowFloat(Color color) => [
     BoxShadow(
-      color: color.withOpacity(0.16),
+      color: color.withAlpha((0.16 * 255).round()),
       blurRadius: 48,
       offset: const Offset(0, 16),
     ),
@@ -76,10 +76,18 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
   double _scrollOffset = 0.0;
   late AnimationController _statsAnimationController;
   late List<Animation<double>> _statAnimations;
+  String? _selectedService; // Track selected service for walkers
 
   @override
   void initState() {
     super.initState();
+
+    // Set default selected service for walkers
+    if (widget.person is Walker) {
+      final walker = widget.person as Walker;
+      _selectedService = walker.services.isNotEmpty ? walker.services.first : null;
+    }
+
     _scrollController.addListener(() {
       setState(() {
         _scrollOffset = _scrollController.offset;
@@ -117,183 +125,74 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  // Calculate dynamic values based on scroll
+  // Professional subtle shrinking animation - Instagram-level polish
   double get _headerHeight {
-    const maxHeight = 200.0;
-    const minHeight = 80.0;
-    final height = maxHeight - _scrollOffset;
+    const maxHeight = 240.0;
+    const minHeight = 200.0; // Only 40px shrink - very subtle
+    final height = maxHeight - (_scrollOffset * 0.15);
     return height.clamp(minHeight, maxHeight);
   }
 
   double get _imageSize {
-    const maxSize = 150.0;
-    const minSize = 50.0;
-    final size = maxSize - (_scrollOffset * 0.5);
+    const maxSize = 200.0; // Larger hero image
+    const minSize = 180.0; // Only 20px shrink
+    final size = maxSize - (_scrollOffset * 0.08);
     return size.clamp(minSize, maxSize);
   }
 
-  double get _imageTopPosition {
-    const maxTop = 100.0;
-    const minTop = 15.0;
-    final top = maxTop - (_scrollOffset * 0.5);
-    return top.clamp(minTop, maxTop);
+  double get _imageOffset {
+    // Image overlaps - half on header, half on content
+    return _headerHeight - (_imageSize / 2);
   }
 
-  double get _titleOpacity {
-    // Fade out title when scrolling
-    return (1.0 - (_scrollOffset / 100)).clamp(0.0, 1.0);
-  }
-
-  double get _appBarIconSize {
-    const maxSize = 48.0;
-    const minSize = 40.0;
-    final size = maxSize - (_scrollOffset * 0.04);
-    return size.clamp(minSize, maxSize);
+  double get _contentTopPadding {
+    // Content starts after image + name overlay (with extra spacing)
+    return _imageOffset + _imageSize + 80; // Added 80px for name overlay
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isWalker = widget.person is Walker;
-    
+
     return Scaffold(
       body: Stack(
         children: [
-          // Animated Header with Enhanced Gradient
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 100),
-            height: _headerHeight,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isWalker
-                    ? [
-                        const Color(0xFF5B5FF1),
-                        const Color(0xFF7B5CF6),
-                        const Color(0xFFA855F7),
-                      ]
-                    : [
-                        const Color(0xFFEC4899),
-                        const Color(0xFFDB2777),
-                        const Color(0xFFBE185D),
-                      ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                stops: const [0.0, 0.5, 1.0],
-              ),
-            ),
-          ),
-          
-          // Main Content with ScrollView
+          // Main Scrollable Content
           CustomScrollView(
             controller: _scrollController,
             slivers: [
-              // Space for header and image
+              // Space for fixed header
               SliverToBoxAdapter(
-                child: SizedBox(height: _headerHeight + (_imageSize / 2) - 20),
+                child: SizedBox(height: _contentTopPadding),
               ),
               
-              // Content Section
+              // Content Section - Professional Card-Based Layout
               SliverToBoxAdapter(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFFAFAFA),
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(24),
-                      topRight: Radius.circular(24),
+                      topLeft: Radius.circular(40),
+                      topRight: Radius.circular(40),
                     ),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(DesignSystem.space3),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Name and Location (fade in as you scroll)
-                        AnimatedOpacity(
-                          duration: const Duration(milliseconds: 200),
-                          opacity: 1.0 - _titleOpacity,
-                          child: Column(
-                            children: [
-                              Text(
-                                widget.person.name,
-                                style: TextStyle(
-                                  fontSize: DesignSystem.h1,
-                                  fontWeight: FontWeight.w800,
-                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                  letterSpacing: -1.0,
-                                  height: 1.1,
-                                ),
-                              ),
-                              const SizedBox(height: DesignSystem.space1),
-                              if (widget.person is Walker)
-                                Text(
-                                  (widget.person as Walker).location,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: isDark ? Colors.grey[400] : Colors.grey[600],
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: 0.2,
-                                  ),
-                                )
-                              else if (widget.person is Owner)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        (isWalker ? const Color(0xFF6366F1) : const Color(0xFFEC4899))
-                                            .withAlpha((0.12 * 255).round()),
-                                        (isWalker ? const Color(0xFF6366F1) : const Color(0xFFEC4899))
-                                            .withAlpha((0.06 * 255).round()),
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: (isWalker ? const Color(0xFF6366F1) : const Color(0xFFEC4899))
-                                          .withAlpha((0.25 * 255).round()),
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.pets_rounded,
-                                        color: isWalker ? const Color(0xFF6366F1) : const Color(0xFFEC4899),
-                                        size: 15,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        '${(widget.person as Owner).dogName}, ${(widget.person as Owner).dogAge}y • ${(widget.person as Owner).dogBreed}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: isWalker ? const Color(0xFF6366F1) : const Color(0xFFEC4899),
-                                          letterSpacing: 0.3,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: DesignSystem.space3),
-
+                  child: Column(
+                    children: [
+                      // Main Content Area - Clean start
+                      Padding(
+                        padding: const EdgeInsets.all(DesignSystem.space3),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
                         // Bio Section
                         _buildCompactBio(widget.person, isDark, isWalker),
 
                         const SizedBox(height: DesignSystem.space3),
 
-                        // Price Card for Walker
-                        if (widget.person is Walker) ...[
-                          _buildCompactPriceCard(widget.person as Walker, isDark),
-                          const SizedBox(height: DesignSystem.space3),
-                        ],
-
                         // Animated Stats Row with Modern Design
                         Container(
-                          padding: const EdgeInsets.all(DesignSystem.space3),
+                          padding: const EdgeInsets.all(DesignSystem.space2 + 4),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: isDark
@@ -311,8 +210,8 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                             borderRadius: BorderRadius.circular(DesignSystem.radiusLarge),
                             border: Border.all(
                               color: isDark
-                                  ? Colors.white.withOpacity(0.08)
-                                  : Colors.black.withOpacity(0.05),
+                                  ? Colors.white.withAlpha((0.08 * 255).round())
+                                  : Colors.black.withAlpha((0.05 * 255).round()),
                               width: 1,
                             ),
                             boxShadow: DesignSystem.shadowCard(Colors.black),
@@ -357,6 +256,13 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
 
                         const SizedBox(height: DesignSystem.space3),
 
+                        // Services Section (for Walkers)
+                        if (isWalker && (widget.person as Walker).services.isNotEmpty)
+                          _buildServicesSection(isDark, (widget.person as Walker).services),
+
+                        if (isWalker && (widget.person as Walker).services.isNotEmpty)
+                          const SizedBox(height: DesignSystem.space3),
+
                         // Availability
                         _buildCompactAvailability(isDark),
 
@@ -369,99 +275,369 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                       ],
                     ),
                   ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
-          
-          // Animated Profile Image
+
+          // Premium Header - Subtle gradient background
           Positioned(
+            top: 0,
             left: 0,
             right: 0,
-            top: _imageTopPosition,
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 100),
-              child: Hero(
-                tag: 'image_${widget.person.imageUrl}',
-                child: Center(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white,
-                        width: _imageSize > 80 ? 5 : 3,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha((0.2 * 255).round()),
-                          blurRadius: _imageSize > 80 ? 24 : 12,
-                          spreadRadius: 0,
-                          offset: Offset(0, _imageSize > 80 ? 4 : 2),
-                        ),
-                      ],
-                    ),
-                    child: CircleAvatar(
-                      radius: _imageSize / 2,
-                      backgroundImage: AssetImage(widget.person.imageUrl),
-                    ),
-                  ),
+              duration: const Duration(milliseconds: 200),
+              height: _headerHeight,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isWalker
+                      ? [
+                          const Color(0xFF6366F1),
+                          const Color(0xFF8B5CF6),
+                        ]
+                      : [
+                          const Color(0xFFEC4899),
+                          const Color(0xFFDB2777),
+                        ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
               ),
             ),
           ),
+
+          // Hero Image - Large, overlapping design (Instagram-style)
+          Positioned(
+            top: _imageOffset,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Column(
+                children: [
+                  Hero(
+                    tag: 'image_${widget.person.imageUrl}',
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          width: 6,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha((0.15 * 255).round()),
+                            blurRadius: 40,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 15),
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withAlpha((0.1 * 255).round()),
+                            blurRadius: 80,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 25),
+                          ),
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        radius: _imageSize / 2,
+                        backgroundImage: AssetImage(widget.person.imageUrl),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Name & Location Overlay - Always visible
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: (isDark ? Colors.black : Colors.white).withAlpha((0.9 * 255).round()),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(
+                        color: (isDark ? Colors.white : Colors.black).withAlpha((0.1 * 255).round()),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha((0.1 * 255).round()),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Name
+                        Text(
+                          widget.person.name,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            letterSpacing: -0.8,
+                            height: 1.1,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        // Location & Verification (for Walker)
+                        if (widget.person is Walker)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.location_on_rounded,
+                                size: 16,
+                                color: isDark ? Colors.grey[400] : Colors.grey[600],
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                (widget.person as Walker).location,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 0.1,
+                                ),
+                              ),
+                              if ((widget.person as Walker).hasPoliceClearance) ...[
+                                const SizedBox(width: 8),
+                                const Icon(
+                                  Icons.verified_rounded,
+                                  size: 16,
+                                  color: Color(0xFF10B981),
+                                ),
+                              ],
+                            ],
+                          ),
+                        // Pet Info for Owner
+                        if (widget.person is Owner)
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.pets_rounded,
+                                    color: Color(0xFFEC4899),
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '${(widget.person as Owner).dogName}, ${(widget.person as Owner).dogAge}y • ${(widget.person as Owner).dogBreed}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? Colors.grey[300] : Colors.grey[700],
+                                      letterSpacing: -0.1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.favorite,
+                                    color: Color(0xFFEF4444),
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${(widget.person as Owner).likes} likes',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                      letterSpacing: -0.1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           
-          // Animated AppBar with title that appears on scroll
+          // Floating Hourly Rate Badge - Premium positioning
+          if (widget.person is Walker)
+            Positioned(
+              top: _headerHeight - 40,
+              right: 20,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.95, end: 1.0),
+                  duration: const Duration(milliseconds: 1500),
+                  curve: Curves.easeInOut,
+                  builder: (context, scale, child) {
+                    return Transform.scale(
+                      scale: scale,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: DesignSystem.space2,
+                          vertical: DesignSystem.space1 + 2,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFF10B981),
+                              Color(0xFF059669),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(DesignSystem.radiusFull),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF10B981).withAlpha((0.4 * 255).round()),
+                              blurRadius: 20,
+                              spreadRadius: 2,
+                              offset: const Offset(0, 4),
+                            ),
+                            BoxShadow(
+                              color: const Color(0xFF10B981).withAlpha((0.2 * 255).round()),
+                              blurRadius: 40,
+                              spreadRadius: 0,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                          border: Border.all(
+                            color: Colors.white.withAlpha((0.3 * 255).round()),
+                            width: 2,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withAlpha((0.25 * 255).round()),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.attach_money_rounded,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _selectedService ?? 'Service',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white.withAlpha((0.85 * 255).round()),
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    const Text(
+                                      '\$',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                        height: 1.1,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${_selectedService != null ? (widget.person as Walker).getServicePrice(_selectedService!) : (widget.person as Walker).hourlyRate}',
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.white,
+                                        height: 1,
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                    const Text(
+                                      '/hr',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  onEnd: () {
+                    // Restart animation for pulse effect
+                    Future.delayed(const Duration(milliseconds: 100), () {
+                      if (mounted) {
+                        setState(() {});
+                      }
+                    });
+                  },
+                ),
+              ),
+            ),
+
+          // App Bar with Back Button
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: SafeArea(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 100),
-                height: _appBarIconSize,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 100),
+                    Container(
                       decoration: BoxDecoration(
-                        color: Colors.black.withAlpha((0.25 * 255).round()),
-                        borderRadius: BorderRadius.circular(10),
+                        color: Colors.black.withAlpha((0.3 * 255).round()),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withAlpha((0.3 * 255).round()),
+                          width: 1,
+                        ),
                       ),
                       child: IconButton(
                         icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
                         onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(12),
                         constraints: const BoxConstraints(),
                       ),
                     ),
-                    
-                    // Title that appears when scrolled
-                    AnimatedOpacity(
-                      duration: const Duration(milliseconds: 200),
-                      opacity: 1.0 - _titleOpacity,
-                      child: Text(
-                        widget.person.name,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withAlpha((0.3 * 255).round()),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withAlpha((0.3 * 255).round()),
+                          width: 1,
                         ),
                       ),
-                    ),
-                    
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 100),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withAlpha((0.25 * 255).round()),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
                       child: IconButton(
-                        icon: const Icon(Icons.more_horiz, color: Colors.white, size: 22),
+                        icon: const Icon(Icons.favorite_border, color: Colors.white, size: 22),
                         onPressed: () {},
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(12),
                         constraints: const BoxConstraints(),
                       ),
                     ),
@@ -592,11 +768,13 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => BookingLoginPage(
+                                    builder: (context) => LoginPage(
                                       personName: isWalker
                                           ? widget.person.name
                                           : (widget.person as Owner).dogName,
                                       isWalker: isWalker,
+                                      rating: widget.person.rating,
+                                      personImage: widget.person.imageUrl,
                                     ),
                                   ),
                                 );
@@ -632,16 +810,16 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
-                                    Icon(
+                                  children: [
+                                    const Icon(
                                       Icons.calendar_today_rounded,
                                       size: 18,
                                       color: Colors.white,
                                     ),
-                                    SizedBox(width: DesignSystem.space1),
+                                    const SizedBox(width: DesignSystem.space1),
                                     Text(
-                                      'Book Walk',
-                                      style: TextStyle(
+                                      isWalker ? 'Book Walk' : 'Add Your Pet',
+                                      style: const TextStyle(
                                         fontWeight: FontWeight.w800,
                                         fontSize: DesignSystem.caption,
                                         color: Colors.white,
@@ -696,12 +874,12 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                   children: [
                     // Icon with gradient background
                     Container(
-                      padding: const EdgeInsets.all(DesignSystem.space2),
+                      padding: const EdgeInsets.all(DesignSystem.space1 + 4),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            color.withOpacity(0.2),
-                            color.withOpacity(0.1),
+                            color.withAlpha((0.2 * 255).round()),
+                            color.withAlpha((0.1 * 255).round()),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -709,35 +887,35 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: color.withOpacity(0.3),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
+                            color: color.withAlpha((0.25 * 255).round()),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
                           ),
                         ],
                       ),
-                      child: Icon(icon, color: color, size: 24),
+                      child: Icon(icon, color: color, size: 22),
                     ),
                     const SizedBox(height: DesignSystem.space1),
                     // Value
                     Text(
                       value,
                       style: TextStyle(
-                        fontSize: DesignSystem.h3,
+                        fontSize: 18,
                         fontWeight: FontWeight.w800,
                         color: isDark ? Colors.white : const Color(0xFF0F172A),
-                        height: 1,
-                        letterSpacing: -0.8,
+                        height: 1.1,
+                        letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     // Label
                     Text(
                       label,
                       style: TextStyle(
-                        fontSize: DesignSystem.small,
+                        fontSize: 11,
                         color: isDark ? Colors.grey[400] : Colors.grey[600],
                         fontWeight: FontWeight.w600,
-                        letterSpacing: 0.3,
+                        letterSpacing: 0.2,
                       ),
                     ),
                   ],
@@ -750,154 +928,31 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildCompactPriceCard(Walker walker, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(DesignSystem.space3),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF10B981), Color(0xFF059669), Color(0xFF047857)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(DesignSystem.radiusLarge),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF10B981).withOpacity(0.35),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-            spreadRadius: 0,
-          ),
-          BoxShadow(
-            color: const Color(0xFF10B981).withOpacity(0.15),
-            blurRadius: 40,
-            offset: const Offset(0, 16),
-            spreadRadius: 0,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(DesignSystem.radiusLarge),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            padding: const EdgeInsets.all(DesignSystem.space2),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white.withOpacity(0.15),
-                  Colors.white.withOpacity(0.05),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(DesignSystem.radiusLarge),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
-                width: 1.5,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'HOURLY RATE',
-                        style: TextStyle(
-                          fontSize: DesignSystem.small,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white.withOpacity(0.9),
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: DesignSystem.space1),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Icon(
-                            Icons.attach_money_rounded,
-                            color: Colors.white,
-                            size: 32,
-                          ),
-                          Text(
-                            '${walker.hourlyRate}',
-                            style: const TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              height: 1,
-                              letterSpacing: -1.5,
-                            ),
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.only(bottom: 4, left: 2),
-                            child: Text(
-                              '/hr',
-                              style: TextStyle(
-                                fontSize: DesignSystem.body,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                letterSpacing: 0,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(DesignSystem.space2),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.25),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.payments_rounded,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildCompactBio(Person person, bool isDark, bool isWalker) {
+    // Primary color based on user type
+    final primaryColor = isWalker ? const Color(0xFF6366F1) : const Color(0xFFEC4899);
+
     return Container(
       padding: const EdgeInsets.all(DesignSystem.space3),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
               ? [
-                  const Color(0xFF1E293B).withAlpha((0.5 * 255).round()),
-                  const Color(0xFF0F172A).withAlpha((0.3 * 255).round()),
+                  primaryColor.withAlpha((0.15 * 255).round()),
+                  primaryColor.withAlpha((0.08 * 255).round()),
                 ]
               : [
-                  const Color(0xFFFAFAFA),
-                  const Color(0xFFF5F5F5),
+                  primaryColor.withAlpha((0.08 * 255).round()),
+                  primaryColor.withAlpha((0.04 * 255).round()),
                 ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(DesignSystem.radiusLarge),
         border: Border.all(
-          color: isDark
-              ? Colors.white.withAlpha((0.08 * 255).round())
-              : Colors.black.withAlpha((0.04 * 255).round()),
-          width: 1,
+          color: primaryColor.withAlpha((0.2 * 255).round()),
+          width: 1.5,
         ),
       ),
       child: Column(
@@ -928,10 +983,10 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
               Text(
                 isWalker ? 'About Me' : 'About ${(person as Owner).dogName}',
                 style: TextStyle(
-                  fontSize: DesignSystem.h3,
+                  fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: isDark ? Colors.white : const Color(0xFF0F172A),
-                  letterSpacing: -0.5,
+                  letterSpacing: -0.3,
                 ),
               ),
             ],
@@ -1002,12 +1057,12 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
               ),
               const SizedBox(width: DesignSystem.space2),
               Text(
-                'Availability',
+                (widget.person is Owner) ? 'Mostly Walks On' : 'Availability',
                 style: TextStyle(
-                  fontSize: DesignSystem.h3,
+                  fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: isDark ? Colors.white : const Color(0xFF0F172A),
-                  letterSpacing: -0.5,
+                  letterSpacing: -0.3,
                 ),
               ),
             ],
@@ -1049,36 +1104,38 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
               );
             }).toList(),
           ),
-          const SizedBox(height: DesignSystem.space2),
-          Container(
-            padding: const EdgeInsets.all(DesignSystem.space2),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? const Color(0xFF0F172A).withAlpha((0.5 * 255).round())
-                  : Colors.white.withAlpha((0.5 * 255).round()),
-              borderRadius: BorderRadius.circular(DesignSystem.radiusSmall),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.schedule_rounded,
-                  size: 16,
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                ),
-                const SizedBox(width: DesignSystem.space1),
-                Expanded(
-                  child: Text(
-                    'Last Minute: Yes • Cancellation: 2-days Notice',
-                    style: TextStyle(
-                      fontSize: DesignSystem.small,
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                      fontWeight: FontWeight.w500,
+          if (widget.person is Walker) ...[
+            const SizedBox(height: DesignSystem.space2),
+            Container(
+              padding: const EdgeInsets.all(DesignSystem.space2),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF0F172A).withAlpha((0.5 * 255).round())
+                    : Colors.white.withAlpha((0.5 * 255).round()),
+                borderRadius: BorderRadius.circular(DesignSystem.radiusSmall),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.schedule_rounded,
+                    size: 16,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                  const SizedBox(width: DesignSystem.space1),
+                  Expanded(
+                    child: Text(
+                      'Last Minute: Yes • Cancellation: 2-days Notice',
+                      style: TextStyle(
+                        fontSize: DesignSystem.small,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -1122,10 +1179,10 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
             Text(
               'Reviews',
               style: TextStyle(
-                fontSize: DesignSystem.h3,
+                fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: isDark ? Colors.white : const Color(0xFF0F172A),
-                letterSpacing: -0.5,
+                letterSpacing: -0.3,
               ),
             ),
             TextButton(
@@ -1308,6 +1365,201 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildServicesSection(bool isDark, List<String> services) {
+    return Container(
+      padding: const EdgeInsets.all(DesignSystem.space3),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [
+                  const Color(0xFF6366F1).withAlpha((0.15 * 255).round()),
+                  const Color(0xFF6366F1).withAlpha((0.08 * 255).round()),
+                ]
+              : [
+                  const Color(0xFF6366F1).withAlpha((0.08 * 255).round()),
+                  const Color(0xFF6366F1).withAlpha((0.04 * 255).round()),
+                ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(DesignSystem.radiusLarge),
+        border: Border.all(
+          color: const Color(0xFF6366F1).withAlpha((0.2 * 255).round()),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(DesignSystem.space1),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF6366F1).withAlpha((0.2 * 255).round()),
+                      const Color(0xFF6366F1).withAlpha((0.1 * 255).round()),
+                    ],
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.star_rounded,
+                  color: Color(0xFF6366F1),
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: DesignSystem.space2),
+              Text(
+                'Services Offered',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: DesignSystem.space2),
+          Wrap(
+            spacing: DesignSystem.space1 + 4,
+            runSpacing: DesignSystem.space1 + 4,
+            children: services.map((service) {
+              IconData serviceIcon;
+              Color serviceColor;
+              String serviceDescription;
+
+              switch (service) {
+                case 'Walking':
+                  serviceIcon = Icons.directions_walk_rounded;
+                  serviceColor = const Color(0xFF6366F1);
+                  serviceDescription = 'Professional dog walking';
+                  break;
+                case 'Grooming':
+                  serviceIcon = Icons.cleaning_services_rounded;
+                  serviceColor = const Color(0xFF8B5CF6);
+                  serviceDescription = 'Full grooming services';
+                  break;
+                case 'Sitting':
+                  serviceIcon = Icons.home_work_rounded;
+                  serviceColor = const Color(0xFFF59E0B);
+                  serviceDescription = 'In-home pet sitting';
+                  break;
+                default:
+                  serviceIcon = Icons.pets_rounded;
+                  serviceColor = const Color(0xFF6366F1);
+                  serviceDescription = service;
+              }
+
+              final isSelected = _selectedService == service;
+              final walker = widget.person as Walker;
+              final price = walker.getServicePrice(service);
+
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedService = service;
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: DesignSystem.space2,
+                    vertical: DesignSystem.space1 + 2,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isSelected
+                          ? [
+                              serviceColor,
+                              serviceColor.withAlpha((0.8 * 255).round()),
+                            ]
+                          : [
+                              serviceColor.withAlpha((0.15 * 255).round()),
+                              serviceColor.withAlpha((0.08 * 255).round()),
+                            ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(DesignSystem.radiusSmall),
+                    border: Border.all(
+                      color: isSelected
+                          ? serviceColor
+                          : serviceColor.withAlpha((0.3 * 255).round()),
+                      width: isSelected ? 2 : 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: serviceColor.withAlpha(((isSelected ? 0.3 : 0.15) * 255).round()),
+                        blurRadius: isSelected ? 12 : 8,
+                        offset: Offset(0, isSelected ? 4 : 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        serviceIcon,
+                        color: isSelected ? Colors.white : serviceColor,
+                        size: 24,
+                      ),
+                      const SizedBox(height: DesignSystem.space1),
+                      Text(
+                        service,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: isSelected ? Colors.white : serviceColor,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        serviceDescription,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: isSelected
+                              ? Colors.white.withAlpha((0.9 * 255).round())
+                              : (isDark ? Colors.grey[400] : Colors.grey[600]),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: DesignSystem.space1),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? Colors.white.withAlpha((0.2 * 255).round())
+                              : const Color(0xFF10B981).withAlpha((0.15 * 255).round()),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '\$$price/hr',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: isSelected ? Colors.white : const Color(0xFF10B981),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 }

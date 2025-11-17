@@ -19,8 +19,10 @@ class Person {
 }
 
 class Walker extends Person {
-  final int hourlyRate;
+  final int hourlyRate; // Base hourly rate (for Walking service)
   final String location;
+  final List<String> services; // e.g., ['Walking', 'Grooming', 'Sitting']
+  final Map<String, int> servicePrices; // Prices for each service
 
   const Walker({
     required super.name,
@@ -32,13 +34,21 @@ class Walker extends Person {
     required super.hasPoliceClearance,
     required this.hourlyRate,
     required this.location,
+    this.services = const ['Walking'],
+    this.servicePrices = const {},
   });
+
+  // Get price for a specific service, fallback to hourlyRate
+  int getServicePrice(String service) {
+    return servicePrices[service] ?? hourlyRate;
+  }
 }
 
 class Owner extends Person {
   final String dogName;
   final int dogAge;
   final String dogBreed;
+  final int likes;
 
   const Owner({
     required super.name,
@@ -51,5 +61,6 @@ class Owner extends Person {
     required this.dogName,
     required this.dogAge,
     required this.dogBreed,
+    required this.likes,
   });
 }

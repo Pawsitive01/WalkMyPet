@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:walkmypet/models.dart';
 import 'package:walkmypet/detail_page.dart';
-import 'package:walkmypet/booking_login_page.dart';
+import 'package:walkmypet/login_page.dart';
+import 'package:walkmypet/about_us_page.dart';
+import 'package:walkmypet/register_page.dart';
 import 'package:flutter/services.dart';
 
 import 'firebase_options.dart';
@@ -581,27 +583,6 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
   }
 }
 
-class AboutUsPage extends StatelessWidget {
-  const AboutUsPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('About Us Page'),
-    );
-  }
-}
-
-class RegisterPage extends StatelessWidget {
-  const RegisterPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Register Page'),
-    );
-  }
-}
 
 class WalkerList extends StatefulWidget {
   const WalkerList({super.key});
@@ -625,6 +606,11 @@ class _WalkerListState extends State<WalkerList> with SingleTickerProviderStateM
       imageUrl: 'assets/images/walker1.jpg',
       bio: 'I am a dog lover and I have been walking dogs for 5 years. I am very responsible and I will take good care of your dog.',
       hasPoliceClearance: true,
+      services: ['Walking', 'Sitting'],
+      servicePrices: {
+        'Walking': 25,
+        'Sitting': 35,
+      },
     ),
     Walker(
       name: 'Jane Smith',
@@ -636,6 +622,12 @@ class _WalkerListState extends State<WalkerList> with SingleTickerProviderStateM
       imageUrl: 'assets/images/walker2.jpg',
       bio: 'I am a certified dog walker and I have been working with dogs for over 10 years. I am also a certified dog trainer.',
       hasPoliceClearance: false,
+      services: ['Walking', 'Grooming', 'Sitting'],
+      servicePrices: {
+        'Walking': 30,
+        'Grooming': 45,
+        'Sitting': 40,
+      },
     ),
     Walker(
       name: 'Sam Wilson',
@@ -647,6 +639,10 @@ class _WalkerListState extends State<WalkerList> with SingleTickerProviderStateM
       imageUrl: 'assets/images/walker3.jpg',
       bio: 'I am a student and I love dogs. I am available for walks in the afternoon and on weekends.',
       hasPoliceClearance: true,
+      services: ['Walking'],
+      servicePrices: {
+        'Walking': 22,
+      },
     ),
   ];
 
@@ -732,6 +728,7 @@ class _OwnerListState extends State<OwnerList> with SingleTickerProviderStateMix
       imageUrl: 'assets/images/owner1.jpg',
       bio: 'Max is a very friendly and energetic Golden Retriever. He loves to play fetch and go for long walks.',
       hasPoliceClearance: true,
+      likes: 245,
     ),
     Owner(
       name: 'Mary Major',
@@ -744,6 +741,7 @@ class _OwnerListState extends State<OwnerList> with SingleTickerProviderStateMix
       imageUrl: 'assets/images/owner2.jpg',
       bio: 'Bella is a sweet and playful French Bulldog. She is very good with other dogs and loves to cuddle.',
       hasPoliceClearance: false,
+      likes: 312,
     ),
     Owner(
       name: 'Peter Jones',
@@ -756,6 +754,7 @@ class _OwnerListState extends State<OwnerList> with SingleTickerProviderStateMix
       imageUrl: 'assets/images/owner3.jpg',
       bio: 'Buddy is a calm and gentle Labrador. He is very well-behaved and loves to go for walks in the park.',
       hasPoliceClearance: true,
+      likes: 178,
     ),
   ];
 
@@ -1004,6 +1003,29 @@ class _WalkerCardState extends State<WalkerCard> {
                       ],
                     ),
 
+                    // Services
+                    if (widget.walker.services.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: widget.walker.services.map((service) {
+                          final IconData serviceIcon = service == 'Walking'
+                              ? Icons.directions_walk_rounded
+                              : service == 'Grooming'
+                                  ? Icons.cleaning_services_rounded
+                                  : Icons.home_work_rounded;
+                          final int price = widget.walker.getServicePrice(service);
+                          return _buildServiceBadge(
+                            icon: serviceIcon,
+                            label: service,
+                            price: price,
+                            isDark: isDark,
+                          );
+                        }).toList(),
+                      ),
+                    ],
+
                     // Compact Badges
                     if (widget.walker.hasPoliceClearance) ...[
                       const SizedBox(height: 10),
@@ -1016,9 +1038,9 @@ class _WalkerCardState extends State<WalkerCard> {
                           ),
                           const SizedBox(width: 6),
                           if (widget.walker.hasPoliceClearance)
-                            _buildMicroBadge(
+                            _buildPoliceClearanceBadge(
                               icon: Icons.shield,
-                              label: 'Background Check',
+                              label: 'Police Clearance',
                               isDark: isDark,
                             ),
                         ],
@@ -1104,9 +1126,11 @@ class _WalkerCardState extends State<WalkerCard> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => BookingLoginPage(
+                                builder: (context) => LoginPage(
                                   personName: widget.walker.name,
                                   isWalker: true,
+                                  rating: widget.walker.rating,
+                                  personImage: widget.walker.imageUrl,
                                 ),
                               ),
                             );
@@ -1228,6 +1252,87 @@ class _WalkerCardState extends State<WalkerCard> {
               fontSize: 9,
               fontWeight: FontWeight.w600,
               color: Color(0xFF10B981),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServiceBadge({
+    required IconData icon,
+    required String label,
+    required int price,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF6366F1).withAlpha((0.15 * 255).round()),
+            const Color(0xFF6366F1).withAlpha((0.08 * 255).round()),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: const Color(0xFF6366F1).withAlpha((0.3 * 255).round()),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: const Color(0xFF6366F1), size: 12),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF6366F1),
+              letterSpacing: 0.2,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '\$$price/hr',
+            style: const TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF10B981),
+              letterSpacing: 0.1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPoliceClearanceBadge({
+    required IconData icon,
+    required String label,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF6366F1).withAlpha((0.15 * 255).round())
+            : const Color(0xFF6366F1).withAlpha((0.1 * 255).round()),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: const Color(0xFF6366F1), size: 10),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF6366F1),
             ),
           ),
         ],
@@ -1397,9 +1502,9 @@ class _OwnerCardState extends State<OwnerCard> {
                     // Compact Badge
                     if (widget.owner.hasPoliceClearance) ...[
                       const SizedBox(height: 10),
-                      _buildMicroBadge(
+                      _buildPoliceClearanceBadge(
                         icon: Icons.shield,
-                        label: 'Background Check ✓',
+                        label: 'Police Clearance',
                         isDark: isDark,
                       ),
                     ],
@@ -1483,9 +1588,11 @@ class _OwnerCardState extends State<OwnerCard> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => BookingLoginPage(
+                                builder: (context) => LoginPage(
                                   personName: widget.owner.dogName,
                                   isWalker: false,
+                                  rating: widget.owner.rating,
+                                  personImage: widget.owner.imageUrl,
                                 ),
                               ),
                             );
@@ -1508,13 +1615,13 @@ class _OwnerCardState extends State<OwnerCard> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
-                                  Icons.calendar_today,
+                                  Icons.pets,
                                   color: Colors.white,
                                   size: 15,
                                 ),
                                 SizedBox(width: 6),
                                 Text(
-                                  'Book Walk',
+                                  'Add your Pet',
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
@@ -1607,6 +1714,37 @@ class _OwnerCardState extends State<OwnerCard> {
               fontSize: 9,
               fontWeight: FontWeight.w600,
               color: Color(0xFF10B981),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPoliceClearanceBadge({
+    required IconData icon,
+    required String label,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF6366F1).withAlpha((0.15 * 255).round())
+            : const Color(0xFF6366F1).withAlpha((0.1 * 255).round()),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: const Color(0xFF6366F1), size: 10),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF6366F1),
             ),
           ),
         ],
