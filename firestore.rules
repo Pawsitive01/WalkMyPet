@@ -1,0 +1,64 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Walkers collection
+    match /walkers/{walkerId} {
+      // Anyone can read walker profiles
+      allow read: if true;
+
+      // Allow writes for development (restrict in production)
+      // TODO: In production, change to: allow create: if isAuthenticated();
+      allow write: if true;
+    }
+
+    // Owners collection
+    match /owners/{ownerId} {
+      // Anyone can read owner/pet profiles
+      allow read: if true;
+
+      // Allow writes for development (restrict in production)
+      // TODO: In production, change to: allow create: if isAuthenticated();
+      allow write: if true;
+    }
+
+    // Bookings collection
+    match /bookings/{bookingId} {
+      // Allow all access for development (restrict in production)
+      // TODO: In production, implement proper access control
+      allow read, write: if true;
+    }
+
+    // Reviews collection
+    match /reviews/{reviewId} {
+      // Anyone can read reviews
+      allow read: if true;
+
+      // Allow writes for development (restrict in production)
+      // TODO: In production, implement proper access control
+      allow write: if true;
+    }
+
+    // Users collection (private user data)
+    match /users/{userId} {
+      // Allow all access for development (restrict in production)
+      // TODO: In production, only allow users to access their own data
+      allow read, write: if true;
+    }
+
+    // Default: allow all for development (restrict in production)
+    // TODO: In production, change to: allow read, write: if false;
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

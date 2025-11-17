@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:walkmypet/models.dart';
 import 'package:walkmypet/detail_page.dart';
-import 'package:walkmypet/login_page.dart';
+import 'package:walkmypet/authentication_page.dart';
 import 'package:walkmypet/about_us_page.dart';
-import 'package:walkmypet/register_page.dart';
+import 'package:walkmypet/user_type_selection_page.dart' as user_type;
+import 'package:walkmypet/services/firebase_emulator_config.dart';
 import 'package:flutter/services.dart';
 
 import 'firebase_options.dart';
@@ -32,6 +33,9 @@ void main() async {
     );
     firebaseInitialized = true;
     print('✅ Firebase initialized successfully');
+
+    // Connect to Firebase Emulators in debug mode
+    await FirebaseEmulatorConfig.connectToEmulators();
   } catch (e) {
     firebaseError = e.toString();
     print('❌ Firebase initialization error: $e');
@@ -325,7 +329,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
     WalkerList(),
     OwnerList(),
     AboutUsPage(),
-    RegisterPage(),
+    user_type.RegisterPage(),
   ];
 
   @override
@@ -1126,7 +1130,7 @@ class _WalkerCardState extends State<WalkerCard> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => LoginPage(
+                                builder: (context) => AuthenticationPage(
                                   personName: widget.walker.name,
                                   isWalker: true,
                                   rating: widget.walker.rating,
@@ -1588,7 +1592,7 @@ class _OwnerCardState extends State<OwnerCard> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => LoginPage(
+                                builder: (context) => AuthenticationPage(
                                   personName: widget.owner.dogName,
                                   isWalker: false,
                                   rating: widget.owner.rating,
@@ -1684,37 +1688,6 @@ class _OwnerCardState extends State<OwnerCard> {
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMicroBadge({
-    required IconData icon,
-    required String label,
-    required bool isDark,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF10B981).withAlpha((0.15 * 255).round())
-            : const Color(0xFF10B981).withAlpha((0.1 * 255).round()),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: const Color(0xFF10B981), size: 10),
-          const SizedBox(width: 3),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF10B981),
-            ),
           ),
         ],
       ),

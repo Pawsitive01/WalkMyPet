@@ -8,6 +8,8 @@
     pkgs.jdk21
     pkgs.unzip
     pkgs.cmake
+    pkgs.ninja
+    pkgs.clang
   ];
   # Sets environment variables in the workspace
   env = {};

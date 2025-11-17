@@ -48,4 +48,7 @@ dependencies {
     // Firebase products - when using the BoM, don't specify versions
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-firestore")
+
+    // AndroidX Startup for Firebase initialization
+    implementation("androidx.startup:startup-runtime:1.1.1")
 }

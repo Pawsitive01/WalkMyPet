@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:walkmypet/models.dart';
-import 'package:walkmypet/login_page.dart';
+import 'package:walkmypet/authentication_page.dart';
 
 // Modern Design System Constants
 class DesignSystem {
@@ -768,7 +768,7 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => LoginPage(
+                                    builder: (context) => AuthenticationPage(
                                       personName: isWalker
                                           ? widget.person.name
                                           : (widget.person as Owner).dogName,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:walkmypet/login_page.dart';
+import 'package:walkmypet/authentication_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -87,9 +87,11 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const LoginPage(
+                          builder: (context) => const AuthenticationPage(
                             personName: 'Pet Owner',
                             isWalker: false,
+                            rating: 0.0,
+                            personImage: 'assets/images/default_owner.jpg',
                           ),
                         ),
                       );
@@ -123,9 +125,11 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const LoginPage(
+                          builder: (context) => const AuthenticationPage(
                             personName: 'Pet Walker',
                             isWalker: true,
+                            rating: 0.0,
+                            personImage: 'assets/images/default_walker.jpg',
                           ),
                         ),
                       );

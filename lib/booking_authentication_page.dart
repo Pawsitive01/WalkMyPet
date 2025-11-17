@@ -1,25 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:walkmypet/services/auth_service.dart';
+import 'package:walkmypet/services/user_service.dart';
 
-class BookingLoginPage extends StatefulWidget {
+class BookingAuthenticationPage extends StatefulWidget {
   final String personName;
   final bool isWalker;
 
-  const BookingLoginPage({
+  const BookingAuthenticationPage({
     super.key,
     required this.personName,
     required this.isWalker,
   });
 
   @override
-  State<BookingLoginPage> createState() => _BookingLoginPageState();
+  State<BookingAuthenticationPage> createState() => _BookingAuthenticationPageState();
 }
 
-class _BookingLoginPageState extends State<BookingLoginPage> {
+class _BookingAuthenticationPageState extends State<BookingAuthenticationPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isSignUp = false;
   bool _obscurePassword = true;
+  bool _isLoading = false;
+
+  final AuthService _authService = AuthService();
+  final UserService _userService = UserService();
 
   @override
   void dispose() {
@@ -212,26 +218,7 @@ class _BookingLoginPageState extends State<BookingLoginPage> {
 
                           // Submit Button
                           ElevatedButton(
-                            onPressed: () async {
-                              if (_formKey.currentState!.validate()) {
-                                // Show success and navigate back
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      _isSignUp
-                                          ? 'Account created! Proceeding to booking...'
-                                          : 'Logged in! Proceeding to booking...',
-                                    ),
-                                    behavior: SnackBarBehavior.floating,
-                                    backgroundColor: const Color(0xFF10B981),
-                                  ),
-                                );
-                                await Future.delayed(const Duration(seconds: 1));
-                                if (mounted) {
-                                  Navigator.pop(context);
-                                }
-                              }
-                            },
+                            onPressed: _isLoading ? null : _handleSubmit,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: widget.isWalker
                                   ? const Color(0xFF6366F1)
@@ -243,13 +230,22 @@ class _BookingLoginPageState extends State<BookingLoginPage> {
                               ),
                               elevation: 2,
                             ),
-                            child: Text(
-                              _isSignUp ? 'Sign Up & Continue' : 'Sign In & Continue',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : Text(
+                                    _isSignUp ? 'Sign Up & Continue' : 'Sign In & Continue',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                           ),
 
                           const SizedBox(height: 16),
@@ -310,5 +306,76 @@ class _BookingLoginPageState extends State<BookingLoginPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleSubmit() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        if (_isSignUp) {
+          // Sign up with email and password
+          final userCredential = await _authService.signUpWithEmail(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
+
+          if (userCredential != null) {
+            // Create user profile in Firestore
+            await _userService.createUser(
+              email: _emailController.text.trim(),
+              userType: widget.isWalker ? UserType.petWalker : UserType.petOwner,
+              displayName: widget.personName,
+            );
+          }
+        } else {
+          // Sign in with email and password
+          await _authService.signInWithEmail(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
+        }
+
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                _isSignUp
+                    ? '✓ Account created! Proceeding to booking...'
+                    : '✓ Signed in! Proceeding to booking...',
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF10B981),
+            ),
+          );
+
+          await Future.delayed(const Duration(milliseconds: 800));
+
+          if (mounted) {
+            Navigator.pop(context);
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString()),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFFEF4444),
+            ),
+          );
+        }
+      }
+    }
   }
 }
