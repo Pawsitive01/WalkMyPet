@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:walkmypet/models.dart';
 import 'package:walkmypet/detail_page.dart';
-import 'package:walkmypet/authentication_page.dart';
+import 'package:walkmypet/booking_authentication_page.dart';
 import 'package:walkmypet/about_us_page.dart';
 import 'package:walkmypet/user_type_selection_page.dart' as user_type;
 import 'package:walkmypet/services/firebase_emulator_config.dart';
@@ -994,20 +994,28 @@ class _WalkerCardState extends State<WalkerCard> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        // Price
+                        // Police Clearance (NEW - replaces rate)
                         Expanded(
-                          child: _buildInfoChip(
-                            icon: Icons.payments,
-                            label: '\$${widget.walker.hourlyRate}',
-                            sublabel: 'per hour',
-                            color: const Color(0xFF10B981),
-                            isDark: isDark,
-                          ),
+                          child: widget.walker.hasPoliceClearance
+                              ? _buildInfoChip(
+                                  icon: Icons.shield_outlined,
+                                  label: 'Verified',
+                                  sublabel: 'Police Check',
+                                  color: const Color(0xFF10B981),
+                                  isDark: isDark,
+                                )
+                              : _buildInfoChip(
+                                  icon: Icons.info_outline,
+                                  label: 'Standard',
+                                  sublabel: 'Verified',
+                                  color: const Color(0xFF64748B),
+                                  isDark: isDark,
+                                ),
                         ),
                       ],
                     ),
 
-                    // Services
+                    // Services (without prices - cleaner)
                     if (widget.walker.services.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       Wrap(
@@ -1019,35 +1027,12 @@ class _WalkerCardState extends State<WalkerCard> {
                               : service == 'Grooming'
                                   ? Icons.cleaning_services_rounded
                                   : Icons.home_work_rounded;
-                          final int price = widget.walker.getServicePrice(service);
-                          return _buildServiceBadge(
+                          return _buildSimpleServiceBadge(
                             icon: serviceIcon,
                             label: service,
-                            price: price,
                             isDark: isDark,
                           );
                         }).toList(),
-                      ),
-                    ],
-
-                    // Compact Badges
-                    if (widget.walker.hasPoliceClearance) ...[
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          _buildMicroBadge(
-                            icon: Icons.verified,
-                            label: 'Verified',
-                            isDark: isDark,
-                          ),
-                          const SizedBox(width: 6),
-                          if (widget.walker.hasPoliceClearance)
-                            _buildPoliceClearanceBadge(
-                              icon: Icons.shield,
-                              label: 'Police Clearance',
-                              isDark: isDark,
-                            ),
-                        ],
                       ),
                     ],
                   ],
@@ -1130,11 +1115,9 @@ class _WalkerCardState extends State<WalkerCard> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => AuthenticationPage(
+                                builder: (context) => BookingAuthenticationPage(
                                   personName: widget.walker.name,
-                                  isWalker: true,
-                                  rating: widget.walker.rating,
-                                  personImage: widget.walker.imageUrl,
+                                  isWalker: false,
                                 ),
                               ),
                             );
@@ -1153,18 +1136,18 @@ class _WalkerCardState extends State<WalkerCard> {
                                 ),
                               ],
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.calendar_today,
                                   color: Colors.white,
                                   size: 15,
                                 ),
-                                SizedBox(width: 6),
+                                const SizedBox(width: 6),
                                 Text(
-                                  'Book Walker',
-                                  style: TextStyle(
+                                  'Book from \$${widget.walker.hourlyRate}/hr',
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
@@ -1263,6 +1246,47 @@ class _WalkerCardState extends State<WalkerCard> {
     );
   }
 
+  // Simplified service badge without price (mobile-first redesign)
+  Widget _buildSimpleServiceBadge({
+    required IconData icon,
+    required String label,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF6366F1).withAlpha((0.12 * 255).round()),
+            const Color(0xFF6366F1).withAlpha((0.06 * 255).round()),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: const Color(0xFF6366F1).withAlpha((0.25 * 255).round()),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: const Color(0xFF6366F1), size: 14),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF6366F1),
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Keep old method for backward compatibility (if needed elsewhere)
   Widget _buildServiceBadge({
     required IconData icon,
     required String label,
@@ -1592,11 +1616,9 @@ class _OwnerCardState extends State<OwnerCard> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => AuthenticationPage(
+                                builder: (context) => BookingAuthenticationPage(
                                   personName: widget.owner.dogName,
                                   isWalker: false,
-                                  rating: widget.owner.rating,
-                                  personImage: widget.owner.imageUrl,
                                 ),
                               ),
                             );

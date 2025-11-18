@@ -1,3 +1,4 @@
+
 {
   "project_info": {
     "project_number": "830819672498",
@@ -12,7 +13,20 @@
           "package_name": "com.WalkMyPet.walkmypet"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "830819672498-bcr0eq8gt3p019lrt1dckb2h4an5trjj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.WalkMyPet.walkmypet",
+            "certificate_hash": "3ef48c017402e9d2050ed12694ace9a1363646b7"
+          }
+        },
+        {
+          "client_id": "830819672498-tdds6igchpc9j5fq369e38ikqs6h2lkt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDAuAH15j5txXTqccjKOoBTYvi3E5i4bIQ"
@@ -20,7 +34,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "830819672498-tdds6igchpc9j5fq369e38ikqs6h2lkt.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "830819672498-itqqbrfir856gq330q3vnf1ls0mjhk00.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.walkmypet.walkmypet"
+              }
+            }
+          ]
         }
       }
     }

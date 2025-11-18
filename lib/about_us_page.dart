@@ -504,14 +504,6 @@ class _AboutUsPageState extends State<AboutUsPage> with SingleTickerProviderStat
             value: 'walkmypet.pawsitive@gmail.com',
             onTap: () => _launchEmail('walkmypet.pawsitive@gmail.com'),
           ),
-          const SizedBox(height: 12),
-          _buildContactItem(
-            isDark: isDark,
-            icon: Icons.phone_rounded,
-            label: 'Phone',
-            value: '+61 406 272 172',
-            onTap: () => _launchPhone('+61406272172'),
-          ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(16),

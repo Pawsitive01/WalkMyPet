@@ -84,6 +84,7 @@ class UserService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Create a new user document in Firestore
+  // Uses merge to avoid overwriting existing data
   Future<void> createUser({
     required String email,
     required UserType userType,
@@ -96,11 +97,39 @@ class UserService {
         throw 'No authenticated user found';
       }
 
+      // Check if user already exists
+      final existingDoc = await _firestore.collection('users').doc(user.uid).get();
+
+      if (existingDoc.exists) {
+        // User already exists, update only if necessary
+        final data = existingDoc.data() as Map<String, dynamic>;
+
+        // Update fields that might have changed (like photo from Google)
+        Map<String, dynamic> updates = {
+          'updatedAt': Timestamp.fromDate(DateTime.now()),
+        };
+
+        if (displayName != null && displayName != data['displayName']) {
+          updates['displayName'] = displayName;
+        }
+
+        if (photoURL != null && photoURL != data['photoURL']) {
+          updates['photoURL'] = photoURL;
+        }
+
+        if (updates.length > 1) { // More than just updatedAt
+          await _firestore.collection('users').doc(user.uid).update(updates);
+        }
+
+        return; // User already exists, no need to create
+      }
+
+      // Create new user
       final appUser = AppUser(
         id: user.uid,
         email: email,
-        displayName: displayName ?? email.split('@')[0],
-        photoURL: photoURL,
+        displayName: displayName ?? user.displayName ?? email.split('@')[0],
+        photoURL: photoURL ?? user.photoURL,
         userType: userType,
         createdAt: DateTime.now(),
       );
@@ -108,9 +137,53 @@ class UserService {
       await _firestore
           .collection('users')
           .doc(user.uid)
-          .set(appUser.toFirestore());
+          .set(appUser.toFirestore(), SetOptions(merge: true));
     } catch (e) {
       throw 'Failed to create user profile: $e';
+    }
+  }
+
+  // Create or update user (for seamless Google Sign-In)
+  Future<void> createOrUpdateUser({
+    required String email,
+    required UserType userType,
+    String? displayName,
+    String? photoURL,
+    Map<String, dynamic>? additionalData,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw 'No authenticated user found';
+      }
+
+      final userData = {
+        'email': email,
+        'displayName': displayName ?? user.displayName ?? email.split('@')[0],
+        'photoURL': photoURL ?? user.photoURL,
+        'userType': userType == UserType.petWalker ? 'petWalker' : 'petOwner',
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      };
+
+      // Add additional data if provided
+      if (additionalData != null) {
+        userData.addAll(additionalData);
+      }
+
+      // Check if document exists
+      final docRef = _firestore.collection('users').doc(user.uid);
+      final doc = await docRef.get();
+
+      if (doc.exists) {
+        // Update existing user
+        await docRef.update(userData);
+      } else {
+        // Create new user
+        userData['createdAt'] = Timestamp.fromDate(DateTime.now());
+        await docRef.set(userData);
+      }
+    } catch (e) {
+      throw 'Failed to create/update user profile: $e';
     }
   }
 
