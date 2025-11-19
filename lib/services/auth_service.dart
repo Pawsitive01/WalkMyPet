@@ -145,31 +145,33 @@ class AuthService {
     }
   }
 
-  // Handle Firebase Auth exceptions
+  // Handle Firebase Auth exceptions with professional messages
   String _handleAuthException(FirebaseAuthException e) {
     switch (e.code) {
       case 'weak-password':
-        return 'The password provided is too weak.';
+        return 'Password must be at least 6 characters with a mix of letters and numbers.';
       case 'email-already-in-use':
-        return 'An account already exists with this email.';
+        return 'This email is already registered. Please sign in or use forgot password.';
       case 'invalid-email':
-        return 'The email address is not valid.';
+        return 'Please enter a valid email address.';
+      case 'invalid-credential':
+        return 'Invalid email or password. Please check your credentials and try again.';
       case 'user-disabled':
-        return 'This account has been disabled.';
+        return 'This account has been disabled. Please contact support for assistance.';
       case 'user-not-found':
-        return 'No account found with this email.';
+        return 'No account found with this email. Please sign up to create an account.';
       case 'wrong-password':
-        return 'Incorrect password.';
+        return 'Incorrect password. Please try again or use forgot password.';
       case 'operation-not-allowed':
-        return 'This sign-in method is not enabled.';
+        return 'This sign-in method is currently unavailable. Please try another method.';
       case 'too-many-requests':
-        return 'Too many failed attempts. Please try again later.';
+        return 'Too many unsuccessful attempts. Please wait a few minutes and try again.';
       case 'requires-recent-login':
-        return 'Please sign in again to complete this action.';
+        return 'For security reasons, please sign in again to complete this action.';
       case 'network-request-failed':
-        return 'Network error. Please check your connection.';
+        return 'Network connection error. Please check your internet and try again.';
       default:
-        return e.message ?? 'An error occurred during authentication.';
+        return e.message ?? 'Unable to complete authentication. Please try again.';
     }
   }
 }

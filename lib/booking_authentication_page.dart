@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:walkmypet/services/auth_service.dart';
 import 'package:walkmypet/services/user_service.dart';
+import 'package:walkmypet/onboarding/owner_onboarding_page.dart';
+import 'package:walkmypet/onboarding/walker_onboarding_page.dart';
 
 class BookingAuthenticationPage extends StatefulWidget {
   final String personName;
@@ -80,11 +83,11 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.95),
+            color: Colors.white.withValues(alpha: 0.95),
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -199,15 +202,15 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
           child: Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               shape: BoxShape.circle,
               border: Border.all(
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha: 0.3),
                 width: 2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 24,
                   offset: const Offset(0, 8),
                 ),
@@ -246,7 +249,7 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w500,
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withValues(alpha: 0.9),
             letterSpacing: 0.1,
             height: 1.5,
           ),
@@ -261,16 +264,16 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
       padding: EdgeInsets.all(isSmallScreen ? 24 : 32),
       decoration: BoxDecoration(
         color: isDark
-            ? const Color(0xFF1E293B).withOpacity(0.95)
-            : Colors.white.withOpacity(0.98),
+            ? const Color(0xFF1E293B).withValues(alpha: 0.95)
+            : Colors.white.withValues(alpha: 0.98),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Colors.white.withOpacity(isDark ? 0.1 : 0.2),
+          color: Colors.white.withValues(alpha: isDark ? 0.1 : 0.2),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 32,
             offset: const Offset(0, 16),
             spreadRadius: -8,
@@ -314,15 +317,7 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {
-                    // TODO: Implement forgot password
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Password reset coming soon!'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
+                  onPressed: _handleForgotPassword,
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                     minimumSize: Size.zero,
@@ -390,8 +385,8 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(
             color: isDark
-                ? Colors.white.withOpacity(0.1)
-                : Colors.black.withOpacity(0.08),
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.08),
             width: 1.5,
           ),
         ),
@@ -399,8 +394,8 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(
             color: isDark
-                ? Colors.white.withOpacity(0.1)
-                : Colors.black.withOpacity(0.08),
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.08),
             width: 1.5,
           ),
         ),
@@ -429,7 +424,7 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
         ),
         filled: true,
         fillColor: isDark
-            ? const Color(0xFF0F172A).withOpacity(0.5)
+            ? const Color(0xFF0F172A).withValues(alpha: 0.5)
             : const Color(0xFFF8FAFC),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       ),
@@ -476,8 +471,8 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(
             color: isDark
-                ? Colors.white.withOpacity(0.1)
-                : Colors.black.withOpacity(0.08),
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.08),
             width: 1.5,
           ),
         ),
@@ -485,8 +480,8 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(
             color: isDark
-                ? Colors.white.withOpacity(0.1)
-                : Colors.black.withOpacity(0.08),
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.08),
             width: 1.5,
           ),
         ),
@@ -515,7 +510,7 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
         ),
         filled: true,
         fillColor: isDark
-            ? const Color(0xFF0F172A).withOpacity(0.5)
+            ? const Color(0xFF0F172A).withValues(alpha: 0.5)
             : const Color(0xFFF8FAFC),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       ),
@@ -553,7 +548,7 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
               BoxShadow(
                 color: (widget.isWalker
                     ? const Color(0xFF6366F1)
-                    : const Color(0xFFEC4899)).withOpacity(0.4),
+                    : const Color(0xFFEC4899)).withValues(alpha: 0.4),
                 blurRadius: 16,
                 offset: const Offset(0, 8),
                 spreadRadius: -4,
@@ -647,7 +642,7 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
               gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  Colors.white.withOpacity(0.3),
+                  Colors.white.withValues(alpha: 0.3),
                 ],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
@@ -660,10 +655,10 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 width: 1,
               ),
             ),
@@ -684,7 +679,7 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Colors.white.withOpacity(0.3),
+                  Colors.white.withValues(alpha: 0.3),
                   Colors.transparent,
                 ],
                 begin: Alignment.centerLeft,
@@ -707,16 +702,16 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.white.withOpacity(0.12)
-                : Colors.white.withOpacity(0.95),
+                ? Colors.white.withValues(alpha: 0.12)
+                : Colors.white.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withOpacity(isDark ? 0.2 : 0.4),
+              color: Colors.white.withValues(alpha: isDark ? 0.2 : 0.4),
               width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
               ),
@@ -778,10 +773,10 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withOpacity(0.25),
+              color: Colors.white.withValues(alpha: 0.25),
               width: 1.5,
             ),
           ),
@@ -829,10 +824,10 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withOpacity(0.25),
+              color: Colors.white.withValues(alpha: 0.25),
               width: 1.5,
             ),
           ),
@@ -937,7 +932,26 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
           await Future.delayed(const Duration(milliseconds: 800));
 
           if (mounted) {
-            Navigator.pop(context);
+            // Navigate to appropriate onboarding for new sign-ups
+            if (_isSignUp) {
+              if (widget.isWalker) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const WalkerOnboardingPage(),
+                  ),
+                );
+              } else {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const OwnerOnboardingPage(),
+                  ),
+                );
+              }
+            } else {
+              Navigator.pop(context);
+            }
           }
         }
       } catch (e) {
@@ -1031,7 +1045,34 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
           await Future.delayed(const Duration(milliseconds: 800));
 
           if (mounted) {
-            Navigator.pop(context);
+            // Check if user needs onboarding
+            final user = FirebaseAuth.instance.currentUser;
+            if (user != null) {
+              final userDoc = await _userService.getUser(user.uid);
+              final needsOnboarding = userDoc?.toFirestore()['onboardingComplete'] != true;
+
+              if (needsOnboarding) {
+                if (widget.isWalker) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const WalkerOnboardingPage(),
+                    ),
+                  );
+                } else {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const OwnerOnboardingPage(),
+                    ),
+                  );
+                }
+              } else {
+                Navigator.pop(context);
+              }
+            } else {
+              Navigator.pop(context);
+            }
           }
         }
       } else {
@@ -1081,6 +1122,91 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
         setState(() {
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  Future<void> _handleForgotPassword() async {
+    if (_emailController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.info_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Please enter your email address first',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF6366F1),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    try {
+      await _authService.resetPassword(_emailController.text.trim());
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Password reset email sent! Check your inbox.',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFF10B981),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    e.toString().replaceAll('Exception: ', ''),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFFEF4444),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
+          ),
+        );
       }
     }
   }

@@ -786,19 +786,4 @@ class _AboutUsPageState extends State<AboutUsPage> with SingleTickerProviderStat
       ),
     );
   }
-
-  void _launchPhone(String phone) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Phone: $phone'),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: const Color(0xFF6366F1),
-        action: SnackBarAction(
-          label: 'Copy',
-          textColor: Colors.white,
-          onPressed: () {},
-        ),
-      ),
-    );
-  }
 }

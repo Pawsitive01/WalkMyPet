@@ -7,6 +7,7 @@ import 'package:walkmypet/booking_authentication_page.dart';
 import 'package:walkmypet/about_us_page.dart';
 import 'package:walkmypet/user_type_selection_page.dart' as user_type;
 import 'package:walkmypet/services/firebase_emulator_config.dart';
+import 'package:walkmypet/services/user_service.dart';
 import 'package:flutter/services.dart';
 
 import 'firebase_options.dart';
@@ -598,8 +599,10 @@ class WalkerList extends StatefulWidget {
 class _WalkerListState extends State<WalkerList> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late List<Animation<double>> _itemAnimations;
+  final UserService _userService = UserService();
+  List<Walker> _walkers = [];
 
-  static const _walkers = [
+  static const _dummyWalkers = [
     Walker(
       name: 'John Doe',
       rating: 4.5,
@@ -658,22 +661,80 @@ class _WalkerListState extends State<WalkerList> with SingleTickerProviderStateM
       duration: const Duration(milliseconds: 600),
     );
 
-    // Create staggered animations for each item
-    _itemAnimations = List.generate(
-      _walkers.length,
-      (index) => Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(
-          parent: _controller,
-          curve: Interval(
-            index * 0.2,
-            0.6 + (index * 0.2),
-            curve: Curves.easeOutCubic,
-          ),
-        ),
-      ),
-    );
+    _loadWalkers();
+  }
 
-    _controller.forward();
+  Future<void> _loadWalkers() async {
+    try {
+      final users = await _userService.getPetWalkers();
+
+      final loadedWalkers = users.where((user) {
+        final data = user.toFirestore();
+        return data['onboardingComplete'] == true;
+      }).map((user) {
+        final data = user.toFirestore();
+        return Walker(
+          name: data['displayName'] ?? 'Unknown',
+          rating: (data['rating'] ?? 5.0).toDouble(),
+          reviews: data['reviews'] ?? 0,
+          hourlyRate: data['hourlyRate'] ?? 25,
+          location: data['location'] ?? 'Unknown',
+          completedWalks: data['completedWalks'] ?? 0,
+          imageUrl: data['photoURL'] ?? 'assets/images/default_walker.jpg',
+          bio: data['bio'] ?? 'No bio available',
+          hasPoliceClearance: data['hasPoliceClearance'] ?? false,
+          services: List<String>.from(data['services'] ?? ['Walking']),
+          servicePrices: Map<String, int>.from(data['servicePrices'] ?? {}),
+        );
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _walkers = loadedWalkers.isNotEmpty ? loadedWalkers : _dummyWalkers;
+        });
+
+        // Create staggered animations for each item
+        _itemAnimations = List.generate(
+          _walkers.length,
+          (index) => Tween<double>(begin: 0.0, end: 1.0).animate(
+            CurvedAnimation(
+              parent: _controller,
+              curve: Interval(
+                index * 0.2,
+                0.6 + (index * 0.2),
+                curve: Curves.easeOutCubic,
+              ),
+            ),
+          ),
+        );
+
+        _controller.forward();
+      }
+    } catch (e) {
+      print('Error loading walkers: $e');
+      if (mounted) {
+        setState(() {
+          _walkers = _dummyWalkers;
+        });
+
+        // Create staggered animations for each item
+        _itemAnimations = List.generate(
+          _walkers.length,
+          (index) => Tween<double>(begin: 0.0, end: 1.0).animate(
+            CurvedAnimation(
+              parent: _controller,
+              curve: Interval(
+                index * 0.2,
+                0.6 + (index * 0.2),
+                curve: Curves.easeOutCubic,
+              ),
+            ),
+          ),
+        );
+
+        _controller.forward();
+      }
+    }
   }
 
   @override
@@ -1215,37 +1276,6 @@ class _WalkerCardState extends State<WalkerCard> {
     );
   }
 
-  Widget _buildMicroBadge({
-    required IconData icon,
-    required String label,
-    required bool isDark,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF10B981).withAlpha((0.15 * 255).round())
-            : const Color(0xFF10B981).withAlpha((0.1 * 255).round()),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: const Color(0xFF10B981), size: 10),
-          const SizedBox(width: 3),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF10B981),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // Simplified service badge without price (mobile-first redesign)
   Widget _buildSimpleServiceBadge({
     required IconData icon,
@@ -1279,88 +1309,6 @@ class _WalkerCardState extends State<WalkerCard> {
               fontWeight: FontWeight.w600,
               color: Color(0xFF6366F1),
               letterSpacing: 0.2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Keep old method for backward compatibility (if needed elsewhere)
-  Widget _buildServiceBadge({
-    required IconData icon,
-    required String label,
-    required int price,
-    required bool isDark,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF6366F1).withAlpha((0.15 * 255).round()),
-            const Color(0xFF6366F1).withAlpha((0.08 * 255).round()),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: const Color(0xFF6366F1).withAlpha((0.3 * 255).round()),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: const Color(0xFF6366F1), size: 12),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF6366F1),
-              letterSpacing: 0.2,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '\$$price/hr',
-            style: const TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF10B981),
-              letterSpacing: 0.1,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPoliceClearanceBadge({
-    required IconData icon,
-    required String label,
-    required bool isDark,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF6366F1).withAlpha((0.15 * 255).round())
-            : const Color(0xFF6366F1).withAlpha((0.1 * 255).round()),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: const Color(0xFF6366F1), size: 10),
-          const SizedBox(width: 3),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF6366F1),
             ),
           ),
         ],
