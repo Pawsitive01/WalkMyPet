@@ -1,10 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 
 /// Configure Firebase to use local emulators in debug mode
 class FirebaseEmulatorConfig {
-  static const bool _useEmulators = kDebugMode; // Only use emulators in debug mode
+  static const bool _useEmulators = false; // Disabled - using production Firebase
 
   // Emulator hosts and ports
   // Use 10.0.2.2 for Android emulators to access host machine's localhost

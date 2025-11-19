@@ -44,12 +44,13 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'YOUR_WEB_API_KEY',
-    appId: 'YOUR_WEB_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    authDomain: 'YOUR_AUTH_DOMAIN',
-    storageBucket: 'YOUR_STORAGE_BUCKET',
+    apiKey: 'AIzaSyAGR7OrLSL1yW47Ep7jzg5T5Ex7lBfuzCI',
+    appId: '1:830819672498:web:63405f1dc4b8af514c04ab',
+    messagingSenderId: '830819672498',
+    projectId: 'walkmypet-dff4e',
+    authDomain: 'walkmypet-dff4e.firebaseapp.com',
+    storageBucket: 'walkmypet-dff4e.firebasestorage.app',
+    measurementId: 'G-0PEDJWGKRJ',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
