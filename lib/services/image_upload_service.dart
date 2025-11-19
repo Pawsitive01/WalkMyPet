@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
@@ -16,11 +17,12 @@ class ImageUploadService {
   }
 
   /// Pick an image from the camera
-  Future<File?> pickImageFromCamera() async {
+  /// Returns a map with 'bytes' and 'name' for cross-platform compatibility
+  Future<Map<String, dynamic>?> pickImageFromCamera() async {
     try {
-      // Camera is not available on desktop platforms
-      if (isDesktop) {
-        throw 'Camera is not available on desktop. Please choose from files.';
+      // Camera is not available on desktop or web platforms
+      if (isDesktop || kIsWeb) {
+        throw 'Camera is not available on desktop/web. Please choose from files.';
       }
 
       final XFile? image = await _picker.pickImage(
@@ -31,7 +33,11 @@ class ImageUploadService {
       );
 
       if (image != null) {
-        return File(image.path);
+        final bytes = await image.readAsBytes();
+        return {
+          'bytes': bytes,
+          'name': image.name,
+        };
       }
       return null;
     } catch (e) {
@@ -41,19 +47,37 @@ class ImageUploadService {
   }
 
   /// Pick an image from the gallery
-  Future<File?> pickImageFromGallery() async {
+  /// Returns a map with 'bytes' and 'name' for cross-platform compatibility
+  Future<Map<String, dynamic>?> pickImageFromGallery() async {
     try {
-      // Use file_picker for desktop platforms, image_picker for mobile
-      if (isDesktop) {
+      // Use file_picker for desktop and web platforms
+      if (isDesktop || kIsWeb) {
         final result = await FilePicker.platform.pickFiles(
           type: FileType.image,
           allowMultiple: false,
+          withData: true, // Important: Get bytes directly for web/desktop
         );
 
         if (result != null && result.files.isNotEmpty) {
-          final filePath = result.files.first.path;
-          if (filePath != null) {
-            return File(filePath);
+          final file = result.files.first;
+
+          // On web, bytes are always available and path is NOT available
+          // On desktop, bytes might be available or we need to read from path
+          if (file.bytes != null) {
+            // Web and some desktop: bytes are directly available
+            return {
+              'bytes': file.bytes!,
+              'name': file.name,
+              // Don't access path on web - it throws exception
+            };
+          } else if (!kIsWeb && file.path != null) {
+            // Desktop only (not web): read bytes from file path
+            final fileObj = File(file.path!);
+            final bytes = await fileObj.readAsBytes();
+            return {
+              'bytes': bytes,
+              'name': file.name,
+            };
           }
         }
         return null;
@@ -67,7 +91,11 @@ class ImageUploadService {
         );
 
         if (image != null) {
-          return File(image.path);
+          final bytes = await image.readAsBytes();
+          return {
+            'bytes': bytes,
+            'name': image.name,
+          };
         }
         return null;
       }
@@ -78,75 +106,120 @@ class ImageUploadService {
   }
 
   /// Upload image to Firebase Storage and return the download URL
-  Future<String> uploadProfileImage(File imageFile) async {
+  /// Takes a Map with 'bytes', 'name', and optional 'path' from picker methods
+  Future<String> uploadProfileImage(Map<String, dynamic> imageData) async {
     try {
+      print('═══════════════════════════════════════');
+      print('🚀 STARTING IMAGE UPLOAD DEBUG');
+      print('═══════════════════════════════════════');
+
       final user = _auth.currentUser;
       if (user == null) {
         throw Exception('No authenticated user found');
       }
+      print('✅ User authenticated: ${user.uid}');
 
-      // Verify file exists
-      if (!await imageFile.exists()) {
-        throw Exception('Image file does not exist at path: ${imageFile.path}');
-      }
+      // Get bytes from the image data
+      final Uint8List bytes = imageData['bytes'] as Uint8List;
+      final String? imageName = imageData['name'] as String?;
 
-      print('Starting upload for user: ${user.uid}');
-      print('File path: ${imageFile.path}');
-      print('File size: ${await imageFile.length()} bytes');
+      print('✅ Image data received');
+      print('   Name: $imageName');
+      print('   Size: ${bytes.length} bytes (${(bytes.length / 1024).toStringAsFixed(2)} KB)');
+      print('   Platform: Desktop=$isDesktop, Web=$kIsWeb');
+
+      // Check Firebase Storage instance
+      print('🔍 Checking Firebase Storage instance...');
+      print('   Storage bucket: ${_storage.bucket}');
 
       // Create a reference to the storage location
       final String fileName = 'profile_${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      print('📁 Storage path: profile_images/$fileName');
+
       final Reference storageRef = _storage.ref().child('profile_images/$fileName');
+      print('✅ Storage reference created: ${storageRef.fullPath}');
 
-      print('Storage path: profile_images/$fileName');
-
-      // Read file as bytes (fixes desktop platform issues with putFile)
-      final bytes = await imageFile.readAsBytes();
-      print('Read ${bytes.length} bytes from file');
-
-      // Upload the file using putData for desktop compatibility
-      final UploadTask uploadTask = storageRef.putData(
-        bytes,
-        SettableMetadata(
-          contentType: 'image/jpeg',
-          customMetadata: {
-            'userId': user.uid,
-            'uploadedAt': DateTime.now().toIso8601String(),
-          },
-        ),
+      // Create metadata
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        customMetadata: {
+          'userId': user.uid,
+          'uploadedAt': DateTime.now().toIso8601String(),
+          'platform': kIsWeb ? 'web' : (isDesktop ? 'desktop' : 'mobile'),
+          'originalName': imageName ?? 'unknown',
+        },
       );
+      print('✅ Metadata created');
+
+      print('📤 Starting upload with putData()...');
+      print('   Using Uint8List - works on ALL platforms (web, mobile, desktop)');
+
+      // Upload using putData() with Uint8List - universal cross-platform method
+      UploadTask uploadTask;
+      try {
+        uploadTask = storageRef.putData(bytes, metadata);
+        print('✅ Upload task created successfully');
+      } catch (e) {
+        print('❌ FAILED to create upload task');
+        print('   Error type: ${e.runtimeType}');
+        print('   Error message: $e');
+        print('   Stack trace: ${StackTrace.current}');
+        rethrow;
+      }
 
       // Monitor upload progress
+      print('👀 Setting up progress monitoring...');
       uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
         final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        print('Upload progress: ${progress.toStringAsFixed(2)}%');
+        print('📊 Upload progress: ${progress.toStringAsFixed(2)}% (${snapshot.bytesTransferred}/${snapshot.totalBytes} bytes)');
       });
 
       // Wait for upload to complete
+      print('⏳ Waiting for upload to complete...');
       final TaskSnapshot snapshot = await uploadTask;
-      print('Upload completed successfully');
+      print('✅ Upload completed successfully!');
+      print('   State: ${snapshot.state}');
+      print('   Bytes transferred: ${snapshot.bytesTransferred}');
 
       // Get download URL
+      print('🔗 Getting download URL...');
       final String downloadUrl = await snapshot.ref.getDownloadURL();
-      print('Download URL: $downloadUrl');
+      print('✅ Download URL obtained: $downloadUrl');
+      print('═══════════════════════════════════════');
+      print('🎉 IMAGE UPLOAD COMPLETE!');
+      print('═══════════════════════════════════════');
 
       return downloadUrl;
     } on FirebaseException catch (e) {
-      print('Firebase error uploading image: ${e.code} - ${e.message}');
+      print('═══════════════════════════════════════');
+      print('❌ FIREBASE ERROR');
+      print('═══════════════════════════════════════');
+      print('Error code: ${e.code}');
+      print('Error message: ${e.message}');
+      print('Error plugin: ${e.plugin}');
+      print('Stack trace: ${e.stackTrace}');
+      print('═══════════════════════════════════════');
 
       // Provide specific error messages
-      if (e.code == 'unauthorized') {
-        throw Exception('Permission denied. Please check Firebase Storage rules.');
+      if (e.code == 'unauthorized' || e.code == 'permission-denied') {
+        throw Exception('Permission denied. Firebase Storage may not be enabled or rules are blocking upload.');
       } else if (e.code == 'canceled') {
         throw Exception('Upload canceled');
       } else if (e.code == 'unknown') {
-        throw Exception('Network error. Please check your connection.');
+        throw Exception('Network error or Firebase Storage not configured. Please check your connection and Firebase Console.');
+      } else if (e.code == 'storage/object-not-found') {
+        throw Exception('Storage bucket not found. Please enable Firebase Storage in Firebase Console.');
       } else {
-        throw Exception('Firebase error: ${e.message}');
+        throw Exception('Firebase error [${e.code}]: ${e.message}');
       }
     } catch (e) {
-      print('Error uploading image: $e');
+      print('═══════════════════════════════════════');
+      print('❌ UNEXPECTED ERROR');
+      print('═══════════════════════════════════════');
+      print('Error: $e');
       print('Error type: ${e.runtimeType}');
+      print('Stack trace: ${StackTrace.current}');
+      print('═══════════════════════════════════════');
       throw Exception('Failed to upload image: ${e.toString()}');
     }
   }

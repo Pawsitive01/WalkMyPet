@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:walkmypet/services/user_service.dart';
 import 'package:walkmypet/services/auth_service.dart';
+import 'package:walkmypet/services/image_upload_service.dart';
 
 class WalkerProfilePage extends StatefulWidget {
   const WalkerProfilePage({super.key});
@@ -13,10 +14,12 @@ class WalkerProfilePage extends StatefulWidget {
 class _WalkerProfilePageState extends State<WalkerProfilePage> {
   final UserService _userService = UserService();
   final AuthService _authService = AuthService();
+  final ImageUploadService _imageUploadService = ImageUploadService();
 
   AppUser? _userProfile;
   bool _isLoading = true;
   bool _isEditing = false;
+  bool _isUploadingImage = false;
 
   // Edit controllers
   final TextEditingController _nameController = TextEditingController();
@@ -44,7 +47,18 @@ class _WalkerProfilePageState extends State<WalkerProfilePage> {
     if (user == null) return;
 
     try {
+      print('📥 Loading profile for user: ${user.uid}');
       final profile = await _userService.getUser(user.uid);
+
+      if (profile != null) {
+        print('✅ Profile loaded successfully');
+        print('   Display Name: ${profile.displayName}');
+        print('   Photo URL: ${profile.photoURL ?? "No photo"}');
+        print('   Photo URL length: ${profile.photoURL?.length ?? 0}');
+      } else {
+        print('⚠️ Profile is null');
+      }
+
       if (mounted) {
         setState(() {
           _userProfile = profile;
@@ -60,7 +74,7 @@ class _WalkerProfilePageState extends State<WalkerProfilePage> {
         }
       }
     } catch (e) {
-      print('Error loading profile: $e');
+      print('❌ Error loading profile: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -134,6 +148,157 @@ class _WalkerProfilePageState extends State<WalkerProfilePage> {
     }
   }
 
+  Future<void> _showImageSourceBottomSheet() async {
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Choose Photo Source',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                if (!_imageUploadService.isDesktop)
+                  ListTile(
+                    leading: const Icon(Icons.camera_alt, color: Color(0xFF6366F1)),
+                    title: const Text('Camera'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _handleImageUpload(fromCamera: true);
+                    },
+                  ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library, color: Color(0xFF6366F1)),
+                  title: Text(_imageUploadService.isDesktop ? 'Choose File' : 'Gallery'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _handleImageUpload(fromCamera: false);
+                  },
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleImageUpload({required bool fromCamera}) async {
+    try {
+      setState(() {
+        _isUploadingImage = true;
+      });
+
+      // Pick image - returns Map with bytes for cross-platform compatibility
+      Map<String, dynamic>? imageData;
+      if (fromCamera) {
+        imageData = await _imageUploadService.pickImageFromCamera();
+      } else {
+        imageData = await _imageUploadService.pickImageFromGallery();
+      }
+
+      if (imageData == null) {
+        if (mounted) {
+          setState(() {
+            _isUploadingImage = false;
+          });
+        }
+        return;
+      }
+
+      // Upload to Firebase Storage using Uint8List bytes
+      final downloadUrl = await _imageUploadService.uploadProfileImage(imageData);
+
+      // Update user profile in Firestore
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        print('💾 Saving image URL to Firestore...');
+        print('   URL: $downloadUrl');
+
+        // Update UI immediately with new image URL (don't wait for Firestore)
+        if (mounted && _userProfile != null) {
+          setState(() {
+            // Create updated user profile with new photo URL
+            _userProfile = AppUser(
+              id: _userProfile!.id,
+              email: _userProfile!.email,
+              displayName: _userProfile!.displayName,
+              photoURL: downloadUrl, // NEW IMAGE URL
+              userType: _userProfile!.userType,
+              createdAt: _userProfile!.createdAt,
+              updatedAt: _userProfile!.updatedAt,
+              dogName: _userProfile!.dogName,
+              dogBreed: _userProfile!.dogBreed,
+              dogAge: _userProfile!.dogAge,
+              hourlyRate: _userProfile!.hourlyRate,
+              bio: _userProfile!.bio,
+              availability: _userProfile!.availability,
+            );
+          });
+          print('✅ UI updated with new image immediately!');
+        }
+
+        // Save to Firestore in background
+        await _userService.updateUser(user.uid, {
+          'photoURL': downloadUrl,
+        });
+
+        print('✅ Image URL saved to Firestore');
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                  SizedBox(width: 12),
+                  Text(
+                    'Profile photo updated successfully!',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF10B981),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error uploading image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to upload image: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingImage = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -187,22 +352,78 @@ class _WalkerProfilePageState extends State<WalkerProfilePage> {
                       bottom: false,
                       child: Column(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: CircleAvatar(
-                              radius: 50,
-                              backgroundColor: const Color(0xFF6366F1),
-                              backgroundImage: _userProfile?.photoURL != null
-                                  ? NetworkImage(_userProfile!.photoURL!)
-                                  : null,
-                              child: _userProfile?.photoURL == null
-                                  ? const Icon(Icons.person, size: 50, color: Colors.white)
-                                  : null,
-                            ),
+                          Stack(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: CircleAvatar(
+                                  radius: 50,
+                                  backgroundColor: const Color(0xFF6366F1),
+                                  backgroundImage: _userProfile?.photoURL != null && _userProfile!.photoURL!.isNotEmpty
+                                      ? NetworkImage(_userProfile!.photoURL!)
+                                      : null,
+                                  onBackgroundImageError: _userProfile?.photoURL != null
+                                      ? (exception, stackTrace) {
+                                          print('Error loading profile image: $exception');
+                                        }
+                                      : null,
+                                  child: _userProfile?.photoURL == null || _userProfile!.photoURL!.isEmpty
+                                      ? (_isUploadingImage
+                                          ? const SizedBox(
+                                              width: 30,
+                                              height: 30,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 3,
+                                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                              ),
+                                            )
+                                          : const Icon(Icons.person, size: 50, color: Colors.white))
+                                      : _isUploadingImage
+                                          ? Container(
+                                              color: Colors.black54,
+                                              child: const SizedBox(
+                                                width: 30,
+                                                height: 30,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 3,
+                                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                                ),
+                                              ),
+                                            )
+                                          : null,
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: GestureDetector(
+                                  onTap: _isUploadingImage ? null : _showImageSourceBottomSheet,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF6366F1),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black26,
+                                          blurRadius: 4,
+                                          offset: Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(
+                                      Icons.camera_alt,
+                                      size: 20,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 16),
                           Text(

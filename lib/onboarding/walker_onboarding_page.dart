@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:walkmypet/services/user_service.dart';
@@ -33,7 +33,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
   Map<String, int> servicePrices = {};
   List<String> availability = [];
   String phoneNumber = '';
-  File? _profileImage;
+  Map<String, dynamic>? _profileImage;
   String? _profileImageUrl;
 
   bool _isLoading = false;
@@ -1192,7 +1192,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                 ),
                 image: _profileImage != null
                     ? DecorationImage(
-                        image: FileImage(_profileImage!),
+                        image: MemoryImage(_profileImage!['bytes'] as Uint8List),
                         fit: BoxFit.cover,
                       )
                     : null,

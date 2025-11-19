@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:walkmypet/services/user_service.dart';
@@ -35,9 +35,9 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
   String locationSuburb = '';
   String locationPostcode = '';
   String bio = '';
-  File? _profileImage;
+  Map<String, dynamic>? _profileImage;
   String? _profileImageUrl;
-  File? _petImage;
+  Map<String, dynamic>? _petImage;
   String? _petImageUrl;
 
   bool _isLoading = false;
@@ -915,7 +915,7 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
                 ),
                 image: _profileImage != null
                     ? DecorationImage(
-                        image: FileImage(_profileImage!),
+                        image: MemoryImage(_profileImage!['bytes'] as Uint8List),
                         fit: BoxFit.cover,
                       )
                     : null,

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -152,29 +151,55 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
 
       if (imageSource == null) return;
 
-      File? imageFile;
+      Map<String, dynamic>? imageData;
       if (imageSource == 'camera') {
-        imageFile = await _imageUploadService.pickImageFromCamera();
+        imageData = await _imageUploadService.pickImageFromCamera();
       } else {
-        imageFile = await _imageUploadService.pickImageFromGallery();
+        imageData = await _imageUploadService.pickImageFromGallery();
       }
 
-      if (imageFile == null) return;
+      if (imageData == null) return;
 
       setState(() => _isUploadingImage = true);
 
       // Upload image to Firebase Storage
-      final imageUrl = await _imageUploadService.uploadProfileImage(imageFile);
+      final imageUrl = await _imageUploadService.uploadProfileImage(imageData);
 
-      // Update user profile with new pet image URL
+      print('💾 Saving image URL to Firestore...');
+      print('   URL: $imageUrl');
+
+      // Update UI immediately with new image URL
+      if (mounted && _userProfile != null) {
+        setState(() {
+          _userProfile = AppUser(
+            id: _userProfile!.id,
+            email: _userProfile!.email,
+            displayName: _userProfile!.displayName,
+            photoURL: imageUrl, // NEW PROFILE PHOTO URL
+            userType: _userProfile!.userType,
+            createdAt: _userProfile!.createdAt,
+            updatedAt: _userProfile!.updatedAt,
+            dogName: _userProfile!.dogName,
+            dogBreed: _userProfile!.dogBreed,
+            dogAge: _userProfile!.dogAge,
+            hourlyRate: _userProfile!.hourlyRate,
+            bio: _userProfile!.bio,
+            availability: _userProfile!.availability,
+          );
+          _isUploadingImage = false;
+        });
+        print('✅ UI updated with new image immediately!');
+      }
+
+      // Update user profile with new profile photo URL (not pet image)
       await _userService.updateUser(user.uid, {
-        'petImageURL': imageUrl,
+        'photoURL': imageUrl,
       });
 
+      print('✅ Image URL saved to Firestore');
+
       if (mounted) {
-        setState(() => _isUploadingImage = false);
-        _showSuccessSnackBar('Pet photo updated successfully');
-        _loadProfile();
+        _showSuccessSnackBar('Profile photo updated successfully');
         Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
       }
     } catch (e) {
@@ -480,15 +505,15 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
 
   Widget _buildProfileHeader(bool isDark) {
     final data = _userProfile?.toFirestore() ?? {};
-    final petImageUrl = data['petImageURL'] as String?;
+    final profilePhotoUrl = data['photoURL'] as String?;
 
     return Column(
       children: [
-        // Pet Photo with upload button
+        // Profile Photo with upload button
         Stack(
           children: [
             Hero(
-              tag: 'pet-image',
+              tag: 'profile-image',
               child: Container(
                 width: 140,
                 height: 140,
@@ -514,11 +539,28 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
                             child: CircularProgressIndicator(color: Color(0xFFEC4899)),
                           ),
                         )
-                      : petImageUrl != null && petImageUrl.isNotEmpty
+                      : profilePhotoUrl != null && profilePhotoUrl.isNotEmpty
                           ? Image.network(
-                              petImageUrl,
+                              profilePhotoUrl,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => _buildDefaultPetAvatar(isDark),
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Container(
+                                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      color: const Color(0xFFEC4899),
+                                      value: loadingProgress.expectedTotalBytes != null
+                                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                          : null,
+                                    ),
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                print('Error loading profile image: $error');
+                                return _buildDefaultPetAvatar(isDark);
+                              },
                             )
                           : _buildDefaultPetAvatar(isDark),
                 ),
