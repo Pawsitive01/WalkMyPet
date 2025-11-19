@@ -1,7 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:walkmypet/models.dart';
 import 'package:walkmypet/booking_authentication_page.dart';
+import 'package:walkmypet/booking/booking_page.dart';
+import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
 
 // Modern Design System Constants
 class DesignSystem {
@@ -765,17 +768,43 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                             color: Colors.transparent,
                             child: InkWell(
                               onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => BookingAuthenticationPage(
-                                      personName: isWalker
-                                          ? widget.person.name
-                                          : (widget.person as Owner).dogName,
-                                      isWalker: !isWalker,
+                                final authProvider = Provider.of<app_auth.AuthProvider>(context, listen: false);
+
+                                // Check if user is authenticated and has completed onboarding
+                                if (authProvider.isAuthenticated && authProvider.hasCompletedOnboarding) {
+                                  // User is logged in - go directly to booking page
+                                  if (isWalker) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => BookingPage(
+                                          walker: widget.person as Walker,
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    // For owners, show message
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Only pet owners can book walkers'),
+                                        backgroundColor: Color(0xFFEF4444),
+                                      ),
+                                    );
+                                  }
+                                } else {
+                                  // User not logged in - go to authentication page
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => BookingAuthenticationPage(
+                                        personName: isWalker
+                                            ? widget.person.name
+                                            : (widget.person as Owner).dogName,
+                                        isWalker: !isWalker,
+                                      ),
                                     ),
-                                  ),
-                                );
+                                  );
+                                }
                               },
                               borderRadius: BorderRadius.circular(DesignSystem.radiusSmall),
                               child: Container(
@@ -1190,9 +1219,9 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                 minimumSize: const Size(0, 0),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Text(
+                  Text(
                     'View All',
                     style: TextStyle(
                       fontSize: DesignSystem.caption,
@@ -1200,8 +1229,8 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                       color: Color(0xFF6366F1),
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  const Icon(
+                  SizedBox(width: 4),
+                  Icon(
                     Icons.arrow_forward_ios_rounded,
                     size: 12,
                     color: Color(0xFF6366F1),

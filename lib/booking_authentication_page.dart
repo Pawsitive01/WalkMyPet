@@ -1130,11 +1130,11 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
     if (_emailController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
+          content: const Row(
             children: [
-              const Icon(Icons.info_rounded, color: Colors.white, size: 20),
-              const SizedBox(width: 12),
-              const Expanded(
+              Icon(Icons.info_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 12),
+              Expanded(
                 child: Text(
                   'Please enter your email address first',
                   style: TextStyle(fontWeight: FontWeight.w600),
@@ -1160,11 +1160,11 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
+            content: const Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                const Expanded(
+                Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                SizedBox(width: 12),
+                Expanded(
                   child: Text(
                     'Password reset email sent! Check your inbox.',
                     style: TextStyle(fontWeight: FontWeight.w600),

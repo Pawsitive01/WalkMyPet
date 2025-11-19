@@ -92,11 +92,11 @@ class _OwnerProfilePageState extends State<OwnerProfilePage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
+            content: const Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                const Text(
+                Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                SizedBox(width: 12),
+                Text(
                   'Profile updated successfully!',
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
@@ -179,8 +179,8 @@ class _OwnerProfilePageState extends State<OwnerProfilePage> {
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
                         colors: [Color(0xFFEC4899), Color(0xFFF472B6)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -192,7 +192,7 @@ class _OwnerProfilePageState extends State<OwnerProfilePage> {
                         children: [
                           Container(
                             padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               color: Colors.white,
                               shape: BoxShape.circle,
                             ),
@@ -399,12 +399,12 @@ class _OwnerProfilePageState extends State<OwnerProfilePage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.logout_rounded, color: Color(0xFFEF4444)),
-                          const SizedBox(width: 8),
-                          const Text(
+                          Icon(Icons.logout_rounded, color: Color(0xFFEF4444)),
+                          SizedBox(width: 8),
+                          Text(
                             'Sign Out',
                             style: TextStyle(
                               fontSize: 16,

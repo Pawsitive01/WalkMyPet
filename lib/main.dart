@@ -8,6 +8,9 @@ import 'package:walkmypet/about_us_page.dart';
 import 'package:walkmypet/user_type_selection_page.dart' as user_type;
 import 'package:walkmypet/services/firebase_emulator_config.dart';
 import 'package:walkmypet/services/user_service.dart';
+import 'package:walkmypet/providers/auth_provider.dart';
+import 'package:walkmypet/profile/redesigned_owner_profile_page.dart';
+import 'package:walkmypet/profile/redesigned_walker_profile_page.dart';
 import 'package:flutter/services.dart';
 
 import 'firebase_options.dart';
@@ -45,8 +48,11 @@ void main() async {
 
   print('🎨 Starting app UI...');
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => ThemeProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        ChangeNotifierProvider(create: (context) => AuthProvider()),
+      ],
       child: MyApp(
         firebaseInitialized: firebaseInitialized,
         firebaseError: firebaseError,
@@ -232,17 +238,17 @@ class _InitializationWrapperState extends State<InitializationWrapper> {
               end: Alignment.bottomRight,
             ),
           ),
-          child: Center(
+          child: const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
+                Icon(
                   Icons.pets,
                   size: 80,
                   color: Colors.white,
                 ),
-                const SizedBox(height: 24),
-                const Text(
+                SizedBox(height: 24),
+                Text(
                   'Walk My Pet',
                   style: TextStyle(
                     fontSize: 32,
@@ -251,12 +257,12 @@ class _InitializationWrapperState extends State<InitializationWrapper> {
                     letterSpacing: -0.8,
                   ),
                 ),
-                const SizedBox(height: 48),
-                const CircularProgressIndicator(
+                SizedBox(height: 48),
+                CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
-                const SizedBox(height: 16),
-                const Text(
+                SizedBox(height: 16),
+                Text(
                   'Loading...',
                   style: TextStyle(
                     fontSize: 16,
@@ -288,10 +294,10 @@ class _InitializationWrapperState extends State<InitializationWrapper> {
                     children: [
                       const Icon(Icons.warning, color: Colors.white, size: 20),
                       const SizedBox(width: 8),
-                      Expanded(
+                      const Expanded(
                         child: Text(
                           'Running in offline mode',
-                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                          style: TextStyle(color: Colors.white, fontSize: 12),
                         ),
                       ),
                       IconButton(
@@ -326,13 +332,6 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
   int _selectedIndex = 0;
   late AnimationController _animController;
 
-  static const List<Widget> _widgetOptions = <Widget>[
-    WalkerList(),
-    OwnerList(),
-    AboutUsPage(),
-    user_type.RegisterPage(),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -356,10 +355,41 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
     _animController.forward(from: 0);
   }
 
+  List<Widget> _getWidgetOptions(AuthProvider authProvider) {
+    final Widget fourthTab;
+
+    if (authProvider.isAuthenticated) {
+      // Show profile page for all authenticated users
+      // If user type is not set yet, default to owner profile
+      if (authProvider.userProfile != null) {
+        fourthTab = authProvider.isWalker
+            ? const RedesignedWalkerProfilePage()
+            : const RedesignedOwnerProfilePage();
+      } else {
+        // User is authenticated but profile not loaded yet
+        fourthTab = const Center(
+          child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+        );
+      }
+    } else {
+      // Show register page for unauthenticated users
+      fourthTab = const user_type.RegisterPage();
+    }
+
+    return <Widget>[
+      const WalkerList(),
+      const OwnerList(),
+      const AboutUsPage(),
+      fourthTab,
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context);
     final isDark = themeProvider.themeMode == ThemeMode.dark;
+    final widgetOptions = _getWidgetOptions(authProvider);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -385,22 +415,22 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
           ),
           Column(
             children: [
-              _buildModernAppBar(context, themeProvider, isDark),
+              _buildModernAppBar(context, themeProvider, authProvider, isDark),
               Expanded(
                 child: FadeTransition(
                   opacity: _animController,
-                  child: _widgetOptions.elementAt(_selectedIndex),
+                  child: widgetOptions.elementAt(_selectedIndex),
                 ),
               ),
             ],
           ),
         ],
       ),
-      bottomNavigationBar: _buildModernNavBar(context, isDark),
+      bottomNavigationBar: _buildModernNavBar(context, authProvider, isDark),
     );
   }
 
-  Widget _buildModernAppBar(BuildContext context, ThemeProvider themeProvider, bool isDark) {
+  Widget _buildModernAppBar(BuildContext context, ThemeProvider themeProvider, AuthProvider authProvider, bool isDark) {
     return Container(
       height: 150,
       decoration: BoxDecoration(
@@ -473,7 +503,9 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Find your perfect match',
+                            authProvider.isAuthenticated && authProvider.userProfile != null
+                                ? 'Welcome, ${authProvider.userProfile!.displayName ?? "User"}!'
+                                : 'Find your perfect match',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
@@ -494,18 +526,88 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                         width: 1.5,
                       ),
                     ),
-                    child: IconButton(
-                      icon: Icon(
-                        themeProvider.themeMode == ThemeMode.light
-                            ? Icons.dark_mode_rounded
-                            : Icons.light_mode_rounded,
+                    child: PopupMenuButton<String>(
+                      icon: const Icon(
+                        Icons.menu_rounded,
                         color: Colors.white,
                         size: 22,
                       ),
-                      onPressed: () {
-                        themeProvider.toggleTheme();
+                      tooltip: 'Menu',
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      offset: const Offset(0, 50),
+                      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                        PopupMenuItem<String>(
+                          value: 'profile',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.person_rounded,
+                                size: 20,
+                                color: isDark ? Colors.white : const Color(0xFF6366F1),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Profile',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'theme',
+                          child: Row(
+                            children: [
+                              Icon(
+                                themeProvider.themeMode == ThemeMode.light
+                                    ? Icons.dark_mode_rounded
+                                    : Icons.light_mode_rounded,
+                                size: 20,
+                                color: isDark ? Colors.white : const Color(0xFF6366F1),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                themeProvider.themeMode == ThemeMode.light
+                                    ? 'Dark Mode'
+                                    : 'Light Mode',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      onSelected: (String value) {
+                        if (value == 'theme') {
+                          themeProvider.toggleTheme();
+                        } else if (value == 'profile') {
+                          // Navigate to profile based on user state
+                          if (authProvider.isAuthenticated && authProvider.userProfile != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => authProvider.isWalker
+                                    ? const RedesignedWalkerProfilePage()
+                                    : const RedesignedOwnerProfilePage(),
+                              ),
+                            );
+                          } else {
+                            // Navigate to register/profile tab
+                            setState(() {
+                              _selectedIndex = 3;
+                            });
+                          }
+                        }
                       },
-                      tooltip: 'Toggle Theme',
                     ),
                   ),
                 ],
@@ -517,7 +619,12 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
     );
   }
 
-  Widget _buildModernNavBar(BuildContext context, bool isDark) {
+  Widget _buildModernNavBar(BuildContext context, AuthProvider authProvider, bool isDark) {
+    // Determine the icon and label for the fourth nav item
+    final bool isAuthenticated = authProvider.isAuthenticated;
+    final IconData fourthIcon = isAuthenticated ? Icons.person_rounded : Icons.person_add_rounded;
+    final String fourthLabel = isAuthenticated ? 'Profile' : 'Register';
+
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -538,7 +645,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
               _buildNavItem(0, Icons.directions_walk_rounded, 'Walkers', isDark),
               _buildNavItem(1, Icons.pets_rounded, 'Owners', isDark),
               _buildNavItem(2, Icons.info_rounded, 'About', isDark),
-              _buildNavItem(3, Icons.person_add_rounded, 'Register', isDark),
+              _buildNavItem(3, fourthIcon, fourthLabel, isDark),
             ],
           ),
         ),

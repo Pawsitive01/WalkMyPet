@@ -1,6 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:walkmypet/services/user_service.dart';
+import 'package:walkmypet/services/image_upload_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:walkmypet/profile/redesigned_walker_profile_page.dart';
+import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
 
 class WalkerOnboardingPage extends StatefulWidget {
   const WalkerOnboardingPage({super.key});
@@ -13,9 +18,10 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     with TickerProviderStateMixin {
   final PageController _pageController = PageController();
   final UserService _userService = UserService();
+  final ImageUploadService _imageUploadService = ImageUploadService();
 
   int _currentStep = 0;
-  final int _totalSteps = 10;
+  final int _totalSteps = 11;
 
   // Form data
   String walkerName = '';
@@ -27,6 +33,8 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
   Map<String, int> servicePrices = {};
   List<String> availability = [];
   String phoneNumber = '';
+  File? _profileImage;
+  String? _profileImageUrl;
 
   bool _isLoading = false;
 
@@ -195,6 +203,16 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     }
 
     try {
+      // Upload profile image if selected
+      if (_profileImage != null) {
+        try {
+          _profileImageUrl = await _imageUploadService.uploadProfileImage(_profileImage!);
+        } catch (e) {
+          print('Error uploading profile image: $e');
+          // Continue without profile image if upload fails
+        }
+      }
+
       // Calculate average hourly rate
       final rates = servicePrices.values.toList();
       final avgRate = rates.isNotEmpty
@@ -212,11 +230,17 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
         'availability': availability,
         'phoneNumber': phoneNumber,
         'hourlyRate': avgRate.round(),
+        'photoURL': _profileImageUrl,
         'onboardingComplete': true,
         'rating': 5.0,
         'reviews': 0,
         'completedWalks': 0,
       });
+
+      // Refresh AuthProvider to update the state
+      if (mounted) {
+        await Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -238,14 +262,18 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
               borderRadius: BorderRadius.circular(12),
             ),
             margin: const EdgeInsets.all(16),
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 2),
           ),
         );
 
         await Future.delayed(const Duration(milliseconds: 800));
 
         if (mounted) {
-          Navigator.of(context).popUntil((route) => route.isFirst);
+          // Navigate to profile page and remove all previous routes
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const RedesignedWalkerProfilePage()),
+            (route) => route.isFirst, // Keep only the first route (home page)
+          );
         }
       }
     } catch (e) {
@@ -355,6 +383,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                     _buildPricingStep(),
                     _buildAvailabilityStep(),
                     _buildBioStep(),
+                    _buildProfileImageStep(),
                     _buildSummaryStep(),
                   ],
                 ),
@@ -423,7 +452,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const SizedBox(height: 20),
           TweenAnimationBuilder<double>(
@@ -448,6 +477,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                 letterSpacing: -0.8,
                 height: 1.2,
               ),
+              textAlign: TextAlign.center,
             ),
           ),
           const SizedBox(height: 12),
@@ -472,6 +502,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                 color: Colors.white.withValues(alpha: 0.9),
                 height: 1.5,
               ),
+              textAlign: TextAlign.center,
             ),
           ),
           const SizedBox(height: 40),
@@ -1139,6 +1170,254 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     );
   }
 
+  Widget _buildProfileImageStep() {
+    return _buildStepContainer(
+      title: 'Add your photo',
+      subtitle: 'Show pet owners the friendly face behind the service!',
+      showContinueButton: false,
+      child: Column(
+        children: [
+          // Profile Image Preview
+          GestureDetector(
+            onTap: () => _showImageSourceDialog(),
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.15),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  width: 3,
+                ),
+                image: _profileImage != null
+                    ? DecorationImage(
+                        image: FileImage(_profileImage!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: _profileImage == null
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.add_a_photo_rounded,
+                          size: 60,
+                          color: Colors.white.withValues(alpha: 0.7),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Tap to add photo',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
+                        ),
+                      ],
+                    )
+                  : null,
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // Camera and Gallery Buttons
+          Row(
+            children: [
+              Expanded(
+                child: _buildImageSourceButton(
+                  icon: Icons.camera_alt_rounded,
+                  label: 'Camera',
+                  onTap: () => _pickImageFromCamera(),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildImageSourceButton(
+                  icon: Icons.photo_library_rounded,
+                  label: 'Gallery',
+                  onTap: () => _pickImageFromGallery(),
+                ),
+              ),
+            ],
+          ),
+
+          if (_profileImage != null) ...[
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _profileImage = null;
+                  _profileImageUrl = null;
+                });
+              },
+              icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+              label: const Text(
+                'Remove Photo',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 40),
+
+          // Continue Button (can skip this step)
+          _buildContinueButton(_nextStep),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImageSourceButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.3),
+              width: 2,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, size: 40, color: Colors.white),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showImageSourceDialog() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1E293B)
+              : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 16),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Choose Photo Source',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.camera_alt_rounded, color: Color(0xFF6366F1)),
+                ),
+                title: const Text('Camera'),
+                subtitle: const Text('Take a new photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromCamera();
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.photo_library_rounded, color: Color(0xFF6366F1)),
+                ),
+                title: const Text('Gallery'),
+                subtitle: const Text('Choose from gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromGallery();
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImageFromCamera() async {
+    try {
+      final image = await _imageUploadService.pickImageFromCamera();
+      if (image != null && mounted) {
+        setState(() {
+          _profileImage = image;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickImageFromGallery() async {
+    try {
+      final image = await _imageUploadService.pickImageFromGallery();
+      if (image != null && mounted) {
+        setState(() {
+          _profileImage = image;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
+
   Widget _buildSummaryStep() {
     return _buildStepContainer(
       title: 'Review your profile',
@@ -1252,15 +1531,15 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                       color: const Color(0xFF10B981).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Row(
+                    child: const Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.shield_rounded,
                           color: Color(0xFF10B981),
                           size: 16,
                         ),
-                        const SizedBox(width: 6),
-                        const Text(
+                        SizedBox(width: 6),
+                        Text(
                           'Police Check',
                           style: TextStyle(
                             fontSize: 12,

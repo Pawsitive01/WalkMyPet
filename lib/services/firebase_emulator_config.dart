@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 /// Configure Firebase to use local emulators in debug mode
 class FirebaseEmulatorConfig {
@@ -7,14 +8,18 @@ class FirebaseEmulatorConfig {
 
   // Emulator hosts and ports
   // Use 10.0.2.2 for Android emulators to access host machine's localhost
-  static const String _emulatorHost = '10.0.2.2';
+  // Use localhost or 127.0.0.1 for desktop/web
+  static const String _emulatorHost = 'localhost';
   static const int _authEmulatorPort = 9099;
   static const int _firestoreEmulatorPort = 8080;
+  static const int _storageEmulatorPort = 9199;
 
   /// Call this after Firebase.initializeApp() to connect to emulators
   static Future<void> connectToEmulators() async {
     if (!_useEmulators) {
-      print('🔥 Using production Firebase');
+      print('🔥 Using production Firebase Storage');
+      print('📦 Make sure Firebase Storage is enabled in Firebase Console');
+      print('🔐 Storage Rules: Allow authenticated users to upload images');
       return;
     }
 
@@ -34,6 +39,13 @@ class FirebaseEmulatorConfig {
         _firestoreEmulatorPort,
       );
       print('✅ Firestore Emulator connected: $_emulatorHost:$_firestoreEmulatorPort');
+
+      // Connect Storage to emulator
+      await FirebaseStorage.instance.useStorageEmulator(
+        _emulatorHost,
+        _storageEmulatorPort,
+      );
+      print('✅ Storage Emulator connected: $_emulatorHost:$_storageEmulatorPort');
 
       print('✅ All Firebase Emulators connected successfully!');
       print('📊 Emulator UI available at: http://$_emulatorHost:4000');

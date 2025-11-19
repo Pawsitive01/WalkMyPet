@@ -83,6 +83,11 @@ class UserService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  /// Determine the collection name based on user type
+  String _getCollectionName(UserType userType) {
+    return userType == UserType.petWalker ? 'walkers' : 'owners';
+  }
+
   // Create a new user document in Firestore
   // Uses merge to avoid overwriting existing data
   Future<void> createUser({
@@ -97,8 +102,10 @@ class UserService {
         throw 'No authenticated user found';
       }
 
-      // Check if user already exists
-      final existingDoc = await _firestore.collection('users').doc(user.uid).get();
+      final collectionName = _getCollectionName(userType);
+
+      // Check if user already exists in the appropriate collection
+      final existingDoc = await _firestore.collection(collectionName).doc(user.uid).get();
 
       if (existingDoc.exists) {
         // User already exists, update only if necessary
@@ -118,7 +125,7 @@ class UserService {
         }
 
         if (updates.length > 1) { // More than just updatedAt
-          await _firestore.collection('users').doc(user.uid).update(updates);
+          await _firestore.collection(collectionName).doc(user.uid).update(updates);
         }
 
         return; // User already exists, no need to create
@@ -135,7 +142,7 @@ class UserService {
       );
 
       await _firestore
-          .collection('users')
+          .collection(collectionName)
           .doc(user.uid)
           .set(appUser.toFirestore(), SetOptions(merge: true));
     } catch (e) {
@@ -157,6 +164,8 @@ class UserService {
         throw 'No authenticated user found';
       }
 
+      final collectionName = _getCollectionName(userType);
+
       final userData = {
         'email': email,
         'displayName': displayName ?? user.displayName ?? email.split('@')[0],
@@ -171,7 +180,7 @@ class UserService {
       }
 
       // Check if document exists
-      final docRef = _firestore.collection('users').doc(user.uid);
+      final docRef = _firestore.collection(collectionName).doc(user.uid);
       final doc = await docRef.get();
 
       if (doc.exists) {
@@ -187,13 +196,27 @@ class UserService {
     }
   }
 
-  // Get user document from Firestore
+  // Get user document from Firestore (checks both collections)
   Future<AppUser?> getUser(String userId) async {
     try {
-      final doc = await _firestore.collection('users').doc(userId).get();
+      // Try walkers collection first
+      var doc = await _firestore.collection('walkers').doc(userId).get();
       if (doc.exists) {
         return AppUser.fromFirestore(doc);
       }
+
+      // Try owners collection
+      doc = await _firestore.collection('owners').doc(userId).get();
+      if (doc.exists) {
+        return AppUser.fromFirestore(doc);
+      }
+
+      // Fallback to users collection for backward compatibility
+      doc = await _firestore.collection('users').doc(userId).get();
+      if (doc.exists) {
+        return AppUser.fromFirestore(doc);
+      }
+
       return null;
     } catch (e) {
       throw 'Failed to fetch user profile: $e';
@@ -203,8 +226,15 @@ class UserService {
   // Update user document
   Future<void> updateUser(String userId, Map<String, dynamic> updates) async {
     try {
+      // First find which collection the user is in
+      final user = await getUser(userId);
+      if (user == null) {
+        throw 'User not found';
+      }
+
+      final collectionName = _getCollectionName(user.userType);
       updates['updatedAt'] = Timestamp.fromDate(DateTime.now());
-      await _firestore.collection('users').doc(userId).update(updates);
+      await _firestore.collection(collectionName).doc(userId).update(updates);
     } catch (e) {
       throw 'Failed to update user profile: $e';
     }
@@ -213,28 +243,51 @@ class UserService {
   // Delete user document
   Future<void> deleteUser(String userId) async {
     try {
-      await _firestore.collection('users').doc(userId).delete();
+      // Find which collection the user is in
+      final user = await getUser(userId);
+      if (user != null) {
+        final collectionName = _getCollectionName(user.userType);
+        await _firestore.collection(collectionName).doc(userId).delete();
+      }
     } catch (e) {
       throw 'Failed to delete user profile: $e';
     }
   }
 
-  // Stream user data
-  Stream<AppUser?> userStream(String userId) {
-    return _firestore.collection('users').doc(userId).snapshots().map((doc) {
+  // Stream user data (checks both collections)
+  Stream<AppUser?> userStream(String userId) async* {
+    // Try walkers first
+    await for (final doc in _firestore.collection('walkers').doc(userId).snapshots()) {
       if (doc.exists) {
-        return AppUser.fromFirestore(doc);
+        yield AppUser.fromFirestore(doc);
+        return;
       }
-      return null;
-    });
+    }
+
+    // Try owners
+    await for (final doc in _firestore.collection('owners').doc(userId).snapshots()) {
+      if (doc.exists) {
+        yield AppUser.fromFirestore(doc);
+        return;
+      }
+    }
+
+    // Fallback to users collection
+    await for (final doc in _firestore.collection('users').doc(userId).snapshots()) {
+      if (doc.exists) {
+        yield AppUser.fromFirestore(doc);
+      } else {
+        yield null;
+      }
+    }
   }
 
-  // Get all pet walkers
+  // Get all pet walkers (from walkers collection)
   Future<List<AppUser>> getPetWalkers() async {
     try {
       final querySnapshot = await _firestore
-          .collection('users')
-          .where('userType', isEqualTo: 'petWalker')
+          .collection('walkers')
+          .where('onboardingComplete', isEqualTo: true)
           .get();
 
       return querySnapshot.docs
@@ -245,12 +298,12 @@ class UserService {
     }
   }
 
-  // Get all pet owners
+  // Get all pet owners (from owners collection)
   Future<List<AppUser>> getPetOwners() async {
     try {
       final querySnapshot = await _firestore
-          .collection('users')
-          .where('userType', isEqualTo: 'petOwner')
+          .collection('owners')
+          .where('onboardingComplete', isEqualTo: true)
           .get();
 
       return querySnapshot.docs

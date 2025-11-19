@@ -88,11 +88,11 @@ class _WalkerProfilePageState extends State<WalkerProfilePage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
+            content: const Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                const Text(
+                Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                SizedBox(width: 12),
+                Text(
                   'Profile updated successfully!',
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
@@ -335,11 +335,11 @@ class _WalkerProfilePageState extends State<WalkerProfilePage> {
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: const Color(0xFF10B981)),
                               ),
-                              child: Row(
+                              child: const Row(
                                 children: [
-                                  const Icon(Icons.shield_rounded, color: Color(0xFF10B981)),
-                                  const SizedBox(width: 12),
-                                  const Text(
+                                  Icon(Icons.shield_rounded, color: Color(0xFF10B981)),
+                                  SizedBox(width: 12),
+                                  Text(
                                     'Police Check Verified',
                                     style: TextStyle(
                                       fontSize: 14,

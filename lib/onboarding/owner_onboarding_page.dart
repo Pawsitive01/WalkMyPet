@@ -1,6 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:walkmypet/services/user_service.dart';
+import 'package:walkmypet/services/image_upload_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:walkmypet/profile/redesigned_owner_profile_page.dart';
+import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
 
 class OwnerOnboardingPage extends StatefulWidget {
   const OwnerOnboardingPage({super.key});
@@ -13,9 +18,10 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
     with TickerProviderStateMixin {
   final PageController _pageController = PageController();
   final UserService _userService = UserService();
+  final ImageUploadService _imageUploadService = ImageUploadService();
 
   int _currentStep = 0;
-  final int _totalSteps = 7;
+  final int _totalSteps = 8;
 
   // Form data
   String ownerName = '';
@@ -24,8 +30,15 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
   int? dogAge;
   String dogSize = '';
   String dogTemperament = '';
-  String location = '';
+  String locationState = '';
+  String locationCity = '';
+  String locationSuburb = '';
+  String locationPostcode = '';
   String bio = '';
+  File? _profileImage;
+  String? _profileImageUrl;
+  File? _petImage;
+  String? _petImageUrl;
 
   bool _isLoading = false;
 
@@ -70,7 +83,10 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
           dogName = progress['dogName'] ?? '';
           dogBreed = progress['dogBreed'] ?? '';
           dogAge = progress['dogAge'];
-          location = progress['location'] ?? '';
+          locationState = progress['locationState'] ?? '';
+          locationCity = progress['locationCity'] ?? '';
+          locationSuburb = progress['locationSuburb'] ?? '';
+          locationPostcode = progress['locationPostcode'] ?? '';
           bio = progress['bio'] ?? '';
         });
         _updateProgress();
@@ -95,7 +111,10 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
           'dogAge': dogAge,
           'dogSize': dogSize,
           'dogTemperament': dogTemperament,
-          'location': location,
+          'locationState': locationState,
+          'locationCity': locationCity,
+          'locationSuburb': locationSuburb,
+          'locationPostcode': locationPostcode,
           'bio': bio,
         },
       });
@@ -158,6 +177,26 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
     }
 
     try {
+      // Upload profile image if selected
+      if (_profileImage != null) {
+        try {
+          _profileImageUrl = await _imageUploadService.uploadProfileImage(_profileImage!);
+        } catch (e) {
+          print('Error uploading profile image: $e');
+          // Continue without profile image if upload fails
+        }
+      }
+
+      // Upload pet image if selected
+      if (_petImage != null) {
+        try {
+          _petImageUrl = await _imageUploadService.uploadProfileImage(_petImage!);
+        } catch (e) {
+          print('Error uploading pet image: $e');
+          // Continue without pet image if upload fails
+        }
+      }
+
       // Save complete profile to Firebase
       await _userService.updateUser(user.uid, {
         'displayName': ownerName,
@@ -166,13 +205,24 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
         'dogAge': dogAge.toString(),
         'dogSize': dogSize,
         'dogTemperament': dogTemperament,
-        'location': location,
+        'locationState': locationState,
+        'locationCity': locationCity,
+        'locationSuburb': locationSuburb,
+        'locationPostcode': locationPostcode,
+        'location': '$locationCity, $locationState', // Keep for backward compatibility
         'bio': bio,
+        'photoURL': _profileImageUrl,
+        'petImageURL': _petImageUrl,
         'onboardingComplete': true,
       });
 
+      // Refresh AuthProvider to update the state
       if (mounted) {
-        // Show success and navigate to home
+        await Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
+      }
+
+      if (mounted) {
+        // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -191,14 +241,18 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
               borderRadius: BorderRadius.circular(12),
             ),
             margin: const EdgeInsets.all(16),
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 2),
           ),
         );
 
         await Future.delayed(const Duration(milliseconds: 800));
 
         if (mounted) {
-          Navigator.of(context).popUntil((route) => route.isFirst);
+          // Navigate to profile page and remove all previous routes
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const RedesignedOwnerProfilePage()),
+            (route) => route.isFirst, // Keep only the first route (home page)
+          );
         }
       }
     } catch (e) {
@@ -273,12 +327,12 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
         ],
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              const Color(0xFFEC4899),
-              const Color(0xFFF472B6),
-              const Color(0xFFDB2777),
+              Color(0xFFEC4899),
+              Color(0xFFF472B6),
+              Color(0xFFDB2777),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -307,6 +361,7 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
                     _buildDogBreedStep(),
                     _buildDogAgeStep(),
                     _buildLocationStep(),
+                    _buildProfileImageStep(),
                     _buildSummaryStep(),
                   ],
                 ),
@@ -375,7 +430,7 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const SizedBox(height: 20),
 
@@ -402,6 +457,7 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
                 letterSpacing: -0.8,
                 height: 1.2,
               ),
+              textAlign: TextAlign.center,
             ),
           ),
 
@@ -429,6 +485,7 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
                 color: Colors.white.withValues(alpha: 0.9),
                 height: 1.5,
               ),
+              textAlign: TextAlign.center,
             ),
           ),
 
@@ -704,21 +761,384 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
   }
 
   Widget _buildLocationStep() {
+    final List<String> australianStates = [
+      'New South Wales',
+      'Victoria',
+      'Queensland',
+      'Western Australia',
+      'South Australia',
+      'Tasmania',
+      'Australian Capital Territory',
+      'Northern Territory',
+    ];
+
     return _buildStepContainer(
       title: 'Where are you located?',
       subtitle: 'This helps us find walkers in your area.',
-      child: _buildModernTextField(
-        value: location,
-        hint: 'e.g., Adelaide, Australia',
-        icon: Icons.location_on_rounded,
-        onChanged: (value) {
-          setState(() {
-            location = value;
-          });
-        },
+      showContinueButton: false,
+      child: Column(
+        children: [
+          // State Dropdown
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: DropdownButtonFormField<String>(
+              initialValue: locationState.isEmpty ? null : locationState,
+              decoration: InputDecoration(
+                hintText: 'Select State',
+                hintStyle: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[400],
+                ),
+                prefixIcon: Container(
+                  margin: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFEC4899), Color(0xFFF472B6)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.location_on_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 20,
+                ),
+              ),
+              dropdownColor: Colors.white,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF0F172A),
+              ),
+              items: australianStates.map((state) {
+                return DropdownMenuItem<String>(
+                  value: state,
+                  child: Text(state),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  locationState = value ?? '';
+                });
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          // City
+          _buildModernTextField(
+            value: locationCity,
+            hint: 'City (e.g., Adelaide, Sydney)',
+            icon: Icons.location_city_rounded,
+            onChanged: (value) {
+              setState(() {
+                locationCity = value;
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+          // Suburb
+          _buildModernTextField(
+            value: locationSuburb,
+            hint: 'Suburb (Optional)',
+            icon: Icons.home_rounded,
+            onChanged: (value) {
+              setState(() {
+                locationSuburb = value;
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+          // Postcode
+          _buildModernTextField(
+            value: locationPostcode,
+            hint: 'Postcode',
+            icon: Icons.pin_rounded,
+            keyboardType: TextInputType.number,
+            onChanged: (value) {
+              setState(() {
+                locationPostcode = value;
+              });
+            },
+          ),
+          const SizedBox(height: 40),
+          _buildContinueButton(
+            (locationState.isNotEmpty && locationCity.isNotEmpty && locationPostcode.isNotEmpty)
+                ? _nextStep
+                : null,
+          ),
+        ],
       ),
-      onContinue: location.isNotEmpty ? _nextStep : null,
     );
+  }
+
+  Widget _buildProfileImageStep() {
+    return _buildStepContainer(
+      title: 'Add your photo',
+      subtitle: 'Help walkers recognize you and your furry friend!',
+      showContinueButton: false,
+      child: Column(
+        children: [
+          // Profile Image Preview
+          GestureDetector(
+            onTap: () => _showImageSourceDialog(),
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.15),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  width: 3,
+                ),
+                image: _profileImage != null
+                    ? DecorationImage(
+                        image: FileImage(_profileImage!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: _profileImage == null
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.add_a_photo_rounded,
+                          size: 60,
+                          color: Colors.white.withValues(alpha: 0.7),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Tap to add photo',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
+                        ),
+                      ],
+                    )
+                  : null,
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // Camera and Gallery Buttons
+          Row(
+            children: [
+              Expanded(
+                child: _buildImageSourceButton(
+                  icon: Icons.camera_alt_rounded,
+                  label: 'Camera',
+                  onTap: () => _pickImageFromCamera(),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildImageSourceButton(
+                  icon: Icons.photo_library_rounded,
+                  label: 'Gallery',
+                  onTap: () => _pickImageFromGallery(),
+                ),
+              ),
+            ],
+          ),
+
+          if (_profileImage != null) ...[
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _profileImage = null;
+                  _profileImageUrl = null;
+                });
+              },
+              icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+              label: const Text(
+                'Remove Photo',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 40),
+
+          // Continue Button (can skip this step)
+          _buildContinueButton(_nextStep),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImageSourceButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.3),
+              width: 2,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, size: 40, color: Colors.white),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showImageSourceDialog() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1E293B)
+              : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 16),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Choose Photo Source',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEC4899).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.camera_alt_rounded, color: Color(0xFFEC4899)),
+                ),
+                title: const Text('Camera'),
+                subtitle: const Text('Take a new photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromCamera();
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEC4899).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.photo_library_rounded, color: Color(0xFFEC4899)),
+                ),
+                title: const Text('Gallery'),
+                subtitle: const Text('Choose from gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromGallery();
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImageFromCamera() async {
+    try {
+      final image = await _imageUploadService.pickImageFromCamera();
+      if (image != null && mounted) {
+        setState(() {
+          _profileImage = image;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickImageFromGallery() async {
+    try {
+      final image = await _imageUploadService.pickImageFromGallery();
+      if (image != null && mounted) {
+        setState(() {
+          _profileImage = image;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
   }
 
   Widget _buildSummaryStep() {
@@ -785,7 +1205,9 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      location.isNotEmpty ? location : 'Location not set',
+                      locationCity.isNotEmpty || locationState.isNotEmpty
+                          ? '${locationSuburb.isNotEmpty ? '$locationSuburb, ' : ''}$locationCity${locationState.isNotEmpty ? ', $locationState' : ''}'
+                          : 'Location not set',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[600],
