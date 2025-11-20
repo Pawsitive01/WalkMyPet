@@ -62,4 +62,13 @@ class AuthProvider with ChangeNotifier {
 
   bool get isWalker => userType == 'petWalker';
   bool get isOwner => userType == 'petOwner';
+
+  Future<void> signOut() async {
+    try {
+      await _auth.signOut();
+    } catch (e) {
+      print('Error signing out: $e');
+      rethrow;
+    }
+  }
 }

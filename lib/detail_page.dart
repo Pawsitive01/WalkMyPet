@@ -5,66 +5,7 @@ import 'package:walkmypet/models.dart';
 import 'package:walkmypet/booking_authentication_page.dart';
 import 'package:walkmypet/booking/booking_page.dart';
 import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
-
-// Modern Design System Constants
-class DesignSystem {
-  // Typography Scale (SF Pro / Inter inspired)
-  static const double displayLarge = 40.0;
-  static const double h1 = 32.0;
-  static const double h2 = 24.0;
-  static const double h3 = 20.0;
-  static const double body = 16.0;
-  static const double caption = 14.0;
-  static const double small = 12.0;
-
-  // 8pt Grid Spacing System
-  static const double space1 = 8.0;
-  static const double space2 = 16.0;
-  static const double space3 = 24.0;
-  static const double space4 = 32.0;
-  static const double space5 = 40.0;
-  static const double space6 = 48.0;
-
-  // Border Radius
-  static const double radiusSmall = 12.0;
-  static const double radiusMedium = 16.0;
-  static const double radiusLarge = 20.0;
-  static const double radiusXL = 24.0;
-  static const double radiusFull = 999.0;
-
-  // Modern Shadow System
-  static List<BoxShadow> shadowSubtle(Color color) => [
-    BoxShadow(
-      color: color.withAlpha((0.04 * 255).round()),
-      blurRadius: 8,
-      offset: const Offset(0, 2),
-    ),
-  ];
-
-  static List<BoxShadow> shadowCard(Color color) => [
-    BoxShadow(
-      color: color.withAlpha((0.08 * 255).round()),
-      blurRadius: 16,
-      offset: const Offset(0, 4),
-    ),
-  ];
-
-  static List<BoxShadow> shadowElevated(Color color) => [
-    BoxShadow(
-      color: color.withAlpha((0.12 * 255).round()),
-      blurRadius: 24,
-      offset: const Offset(0, 8),
-    ),
-  ];
-
-  static List<BoxShadow> shadowFloat(Color color) => [
-    BoxShadow(
-      color: color.withAlpha((0.16 * 255).round()),
-      blurRadius: 48,
-      offset: const Offset(0, 16),
-    ),
-  ];
-}
+import 'package:walkmypet/design_system.dart';
 
 class DetailPage extends StatefulWidget {
   final Person person;

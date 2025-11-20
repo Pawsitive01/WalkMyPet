@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:walkmypet/design_system.dart';
 
 class AboutUsPage extends StatefulWidget {
   const AboutUsPage({super.key});
@@ -230,25 +231,11 @@ class _AboutUsPageState extends State<AboutUsPage> with SingleTickerProviderStat
 
   Widget _buildHeroSection(bool isDark) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(DesignSystem.space4),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF6366F1),
-            Color(0xFF8B5CF6),
-            Color(0xFFEC4899),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF6366F1).withAlpha((0.3 * 255).round()),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        gradient: DesignSystem.heroGradient,
+        borderRadius: BorderRadius.circular(DesignSystem.radiusXL),
+        boxShadow: DesignSystem.shadowGlow(DesignSystem.walkerPrimary),
       ),
       child: Column(
         children: [
@@ -304,23 +291,15 @@ class _AboutUsPageState extends State<AboutUsPage> with SingleTickerProviderStat
     List<Widget>? children,
   }) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(DesignSystem.space3),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: DesignSystem.getSurface(isDark),
+        borderRadius: BorderRadius.circular(DesignSystem.radiusLarge),
         border: Border.all(
-          color: isDark
-              ? Colors.white.withAlpha((0.1 * 255).round())
-              : Colors.black.withAlpha((0.05 * 255).round()),
+          color: DesignSystem.getBorderColor(isDark, opacity: 0.1),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha((0.05 * 255).round()),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: DesignSystem.shadowCard(Colors.black),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

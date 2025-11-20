@@ -12,6 +12,7 @@ import 'package:walkmypet/providers/auth_provider.dart';
 import 'package:walkmypet/profile/redesigned_owner_profile_page.dart';
 import 'package:walkmypet/profile/redesigned_walker_profile_page.dart';
 import 'package:flutter/services.dart';
+import 'package:walkmypet/design_system.dart';
 
 import 'firebase_options.dart';
 
@@ -475,12 +476,12 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(DesignSystem.space1_5),
                         decoration: BoxDecoration(
-                          color: Colors.white.withAlpha((0.25 * 255).round()),
-                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.white.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
                           border: Border.all(
-                            color: Colors.white.withAlpha((0.3 * 255).round()),
+                            color: Colors.white.withValues(alpha: 0.3),
                             width: 1.5,
                           ),
                         ),
@@ -519,10 +520,10 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                   ),
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withAlpha((0.25 * 255).round()),
-                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.white.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
                       border: Border.all(
-                        color: Colors.white.withAlpha((0.3 * 255).round()),
+                        color: Colors.white.withValues(alpha: 0.3),
                         width: 1.5,
                       ),
                     ),
@@ -585,8 +586,31 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                             ],
                           ),
                         ),
+                        PopupMenuItem<String>(
+                          value: authProvider.isAuthenticated ? 'signout' : 'signin',
+                          child: Row(
+                            children: [
+                              Icon(
+                                authProvider.isAuthenticated
+                                    ? Icons.logout_rounded
+                                    : Icons.login_rounded,
+                                size: 20,
+                                color: isDark ? Colors.white : const Color(0xFF6366F1),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                authProvider.isAuthenticated ? 'Sign Out' : 'Sign In',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
-                      onSelected: (String value) {
+                      onSelected: (String value) async {
                         if (value == 'theme') {
                           themeProvider.toggleTheme();
                         } else if (value == 'profile') {
@@ -606,6 +630,37 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                               _selectedIndex = 3;
                             });
                           }
+                        } else if (value == 'signout') {
+                          // Sign out the user
+                          try {
+                            await authProvider.signOut();
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Signed out successfully'),
+                                  backgroundColor: Color(0xFF10B981),
+                                ),
+                              );
+                              // Navigate to home tab
+                              setState(() {
+                                _selectedIndex = 0;
+                              });
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error signing out: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        } else if (value == 'signin') {
+                          // Navigate to register/sign in tab
+                          setState(() {
+                            _selectedIndex = 3;
+                          });
                         }
                       },
                     ),
