@@ -15,31 +15,111 @@ class BookingPage extends StatefulWidget {
   State<BookingPage> createState() => _BookingPageState();
 }
 
-class _BookingPageState extends State<BookingPage> {
+class _BookingPageState extends State<BookingPage> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final BookingService _bookingService = BookingService();
   final UserService _userService = UserService();
 
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
-  int _selectedDuration = 30; // minutes
+  Map<String, int> _serviceDurations = {}; // Track duration for each service
+  Set<String> _selectedServices = {};
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   bool _isLoading = false;
 
-  final List<int> _durationOptions = [30, 60, 90, 120];
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+
+  final List<int> _durationOptions = [30, 60, 90, 120, 180, 240];
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      ),
+    );
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOutCubic),
+      ),
+    );
+    _animationController.forward();
+  }
 
   @override
   void dispose() {
+    _animationController.dispose();
     _locationController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
+  bool _isFixedPriceService(String service) {
+    return service.toLowerCase() == 'grooming';
+  }
+
   double get _totalPrice {
-    final hourlyRate = widget.walker.hourlyRate;
-    final hours = _selectedDuration / 60;
-    return hourlyRate * hours;
+    double total = 0;
+
+    for (var service in _selectedServices) {
+      final servicePrice = widget.walker.servicePrices[service] ?? widget.walker.hourlyRate;
+
+      if (_isFixedPriceService(service)) {
+        // Fixed price for grooming
+        total += servicePrice;
+      } else {
+        // Hourly rate for other services
+        final duration = _serviceDurations[service] ?? 60;
+        final hours = duration / 60;
+        total += servicePrice * hours;
+      }
+    }
+
+    return total;
+  }
+
+  IconData _getServiceIcon(String service) {
+    switch (service.toLowerCase()) {
+      case 'walking':
+        return Icons.directions_walk_rounded;
+      case 'grooming':
+        return Icons.content_cut_rounded;
+      case 'sitting':
+        return Icons.home_rounded;
+      case 'training':
+        return Icons.school_rounded;
+      case 'feeding':
+        return Icons.restaurant_rounded;
+      default:
+        return Icons.pets_rounded;
+    }
+  }
+
+  Color _getServiceColor(String service) {
+    switch (service.toLowerCase()) {
+      case 'walking':
+        return const Color(0xFF10B981); // Green
+      case 'grooming':
+        return const Color(0xFFEC4899); // Pink
+      case 'sitting':
+        return const Color(0xFF6366F1); // Purple
+      case 'training':
+        return const Color(0xFFF59E0B); // Amber
+      case 'feeding':
+        return const Color(0xFF8B5CF6); // Violet
+      default:
+        return const Color(0xFF6366F1);
+    }
   }
 
   Future<void> _selectDate() async {
@@ -93,6 +173,25 @@ class _BookingPageState extends State<BookingPage> {
   }
 
   Future<void> _submitBooking() async {
+    if (_selectedServices.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: const [
+              Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 12),
+              Text('Please select at least one service', style: TextStyle(fontSize: 15)),
+            ],
+          ),
+          backgroundColor: const Color(0xFFF59E0B),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
     final user = FirebaseAuth.instance.currentUser;
@@ -101,23 +200,23 @@ class _BookingPageState extends State<BookingPage> {
     setState(() => _isLoading = true);
 
     try {
-      // Get owner profile
       final ownerProfile = await _userService.getUser(user.uid);
       if (ownerProfile == null) throw 'Owner profile not found';
 
       final ownerData = ownerProfile.toFirestore();
 
-      // Create booking
       final booking = Booking(
         id: '',
         ownerId: user.uid,
-        walkerId: widget.walker.name, // This should be walker's ID in production
+        walkerId: widget.walker.name,
         ownerName: ownerProfile.displayName ?? 'Unknown',
         walkerName: widget.walker.name,
         dogName: ownerData['dogName'] ?? 'My Dog',
         date: _selectedDate,
         time: _selectedTime.format(context),
-        duration: _selectedDuration,
+        duration: _serviceDurations.values.isNotEmpty
+            ? _serviceDurations.values.reduce((a, b) => a > b ? a : b)
+            : 60,
         location: _locationController.text.trim(),
         price: _totalPrice,
         status: BookingStatus.pending,
@@ -129,9 +228,18 @@ class _BookingPageState extends State<BookingPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Booking created successfully!'),
-            backgroundColor: Color(0xFF10B981),
+          SnackBar(
+            content: Row(
+              children: const [
+                Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                SizedBox(width: 12),
+                Text('Booking confirmed successfully!', style: TextStyle(fontSize: 15)),
+              ],
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            margin: const EdgeInsets.all(16),
           ),
         );
         Navigator.pop(context);
@@ -139,7 +247,19 @@ class _BookingPageState extends State<BookingPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Error: $e', style: const TextStyle(fontSize: 15))),
+              ],
+            ),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            margin: const EdgeInsets.all(16),
+          ),
         );
       }
     } finally {
@@ -152,38 +272,110 @@ class _BookingPageState extends State<BookingPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFFAFAFA),
-      appBar: _buildAppBar(isDark),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF9FAFB),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _buildBody(isDark),
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                          blurRadius: 30,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                      strokeWidth: 3,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Confirming your booking...',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF1F2937),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                _buildModernAppBar(isDark),
+                SliverToBoxAdapter(
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: ScaleTransition(
+                      scale: _scaleAnimation,
+                      child: _buildBody(isDark),
+                    ),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(bool isDark) {
-    return AppBar(
+  Widget _buildModernAppBar(bool isDark) {
+    return SliverAppBar(
+      expandedHeight: 140,
+      floating: true,
+      pinned: true,
       elevation: 0,
-      backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
-      surfaceTintColor: Colors.transparent,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_rounded),
-        onPressed: () => Navigator.pop(context),
-        color: isDark ? Colors.white : const Color(0xFF1F2937),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF9FAFB),
+      leading: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isDark
+              ? const Color(0xFF1E293B)
+              : Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: isDark ? Colors.white : const Color(0xFF1F2937),
+            size: 20,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      title: Text(
-        'Book a Walk',
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white : const Color(0xFF1F2937),
+      flexibleSpace: FlexibleSpaceBar(
+        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+        title: Text(
+          'Book Service',
+          style: TextStyle(
+            color: isDark ? Colors.white : const Color(0xFF1F2937),
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildBody(bool isDark) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       child: Form(
         key: _formKey,
         child: Column(
@@ -192,17 +384,16 @@ class _BookingPageState extends State<BookingPage> {
             _buildWalkerCard(isDark),
             const SizedBox(height: 24),
             _buildDateTimeCard(isDark),
-            const SizedBox(height: 16),
-            _buildDurationCard(isDark),
-            const SizedBox(height: 16),
-            _buildLocationField(isDark),
-            const SizedBox(height: 16),
-            _buildNotesField(isDark),
             const SizedBox(height: 24),
-            _buildPriceCard(isDark),
+            _buildServicesSection(isDark),
             const SizedBox(height: 24),
-            _buildSubmitButton(isDark),
-            const SizedBox(height: 32),
+            _buildLocationCard(isDark),
+            const SizedBox(height: 16),
+            _buildNotesCard(isDark),
+            const SizedBox(height: 24),
+            _buildPriceSummary(isDark),
+            const SizedBox(height: 24),
+            _buildConfirmButton(isDark),
           ],
         ),
       ),
@@ -211,20 +402,56 @@ class _BookingPageState extends State<BookingPage> {
 
   Widget _buildWalkerCard(bool isDark) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB),
-        ),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundImage: NetworkImage(widget.walker.imageUrl),
-            backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.1),
+          Stack(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF6366F1).withValues(alpha: 0.2),
+                      const Color(0xFF8B5CF6).withValues(alpha: 0.2),
+                    ],
+                  ),
+                ),
+                padding: const EdgeInsets.all(3),
+                child: CircleAvatar(
+                  radius: 32,
+                  backgroundImage: NetworkImage(widget.walker.imageUrl),
+                  backgroundColor: Colors.grey[200],
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF10B981),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.verified_rounded,
+                    color: Colors.white,
+                    size: 14,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -237,18 +464,41 @@ class _BookingPageState extends State<BookingPage> {
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: isDark ? Colors.white : const Color(0xFF1F2937),
+                    letterSpacing: -0.3,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Icons.star_rounded, size: 16, color: Color(0xFFFBBF24)),
-                    const SizedBox(width: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFBBF24).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.star_rounded, size: 12, color: Color(0xFFFBBF24)),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${widget.walker.rating}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFFFBBF24),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Text(
-                      '${widget.walker.rating} • ${widget.walker.reviews} reviews',
+                      '${widget.walker.reviews} reviews',
                       style: TextStyle(
-                        fontSize: 14,
-                        color: isDark ? Colors.white70 : const Color(0xFF6B7280),
+                        fontSize: 13,
+                        color: isDark ? Colors.white54 : const Color(0xFF6B7280),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -263,27 +513,43 @@ class _BookingPageState extends State<BookingPage> {
 
   Widget _buildDateTimeCard(bool isDark) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB),
-        ),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.calendar_today_rounded, size: 20, color: Color(0xFF6366F1)),
-              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.calendar_month_rounded,
+                  size: 20,
+                  color: Color(0xFF6366F1),
+                ),
+              ),
+              const SizedBox(width: 12),
               Text(
                 'Date & Time',
                 style: TextStyle(
                   fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   color: isDark ? Colors.white : const Color(0xFF1F2937),
+                  letterSpacing: -0.3,
                 ),
               ),
             ],
@@ -292,22 +558,22 @@ class _BookingPageState extends State<BookingPage> {
           Row(
             children: [
               Expanded(
-                child: _buildSelectButton(
+                child: _buildDateTimeButton(
                   isDark,
                   Icons.event_rounded,
-                  'Date',
-                  DateFormat('MMM dd, yyyy').format(_selectedDate),
+                  DateFormat('EEE, MMM dd').format(_selectedDate),
                   _selectDate,
+                  const Color(0xFF6366F1),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildSelectButton(
+                child: _buildDateTimeButton(
                   isDark,
                   Icons.access_time_rounded,
-                  'Time',
                   _selectedTime.format(context),
                   _selectTime,
+                  const Color(0xFF8B5CF6),
                 ),
               ),
             ],
@@ -317,51 +583,43 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
-  Widget _buildSelectButton(
+  Widget _buildDateTimeButton(
     bool isDark,
     IconData icon,
-    String label,
     String value,
     VoidCallback onTap,
+    Color accentColor,
   ) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
-            borderRadius: BorderRadius.circular(12),
+            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF9FAFB),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : const Color(0xFFE5E7EB),
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white60 : const Color(0xFF6B7280),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(icon, size: 16, color: const Color(0xFF6366F1)),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : const Color(0xFF1F2937),
-                      ),
-                    ),
+              Icon(icon, size: 18, color: accentColor),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : const Color(0xFF1F2937),
+                    letterSpacing: -0.2,
                   ),
-                ],
+                ),
               ),
             ],
           ),
@@ -370,195 +628,451 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
-  Widget _buildDurationCard(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB),
+  Widget _buildServicesSection(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.spa_rounded,
+                  size: 20,
+                  color: Color(0xFF10B981),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Select Services',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : const Color(0xFF1F2937),
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ],
+          ),
         ),
+        ...widget.walker.services.map((service) => _buildServiceCard(isDark, service)),
+      ],
+    );
+  }
+
+  Widget _buildServiceCard(bool isDark, String service) {
+    final isSelected = _selectedServices.contains(service);
+    final serviceColor = _getServiceColor(service);
+    final serviceIcon = _getServiceIcon(service);
+    final price = widget.walker.servicePrices[service] ?? widget.walker.hourlyRate;
+    final isFixedPrice = _isFixedPriceService(service);
+    final duration = _serviceDurations[service] ?? 60;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              if (isSelected) {
+                _selectedServices.remove(service);
+                _serviceDurations.remove(service);
+              } else {
+                _selectedServices.add(service);
+                if (!isFixedPrice) {
+                  _serviceDurations[service] = 60;
+                }
+              }
+            });
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? serviceColor.withValues(alpha: 0.08)
+                  : (isDark ? const Color(0xFF1E293B) : Colors.white),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isSelected
+                    ? serviceColor
+                    : (isDark
+                        ? Colors.white.withValues(alpha: 0.06)
+                        : const Color(0xFFE5E7EB)),
+                width: isSelected ? 2 : 1,
+              ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: serviceColor.withValues(alpha: 0.15),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: serviceColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        serviceIcon,
+                        size: 22,
+                        color: serviceColor,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            service,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white : const Color(0xFF1F2937),
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            isFixedPrice ? 'Fixed rate service' : 'Hourly rate service',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? Colors.white54 : const Color(0xFF6B7280),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '\$$price',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: isSelected ? serviceColor : (isDark ? Colors.white : const Color(0xFF1F2937)),
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        Text(
+                          isFixedPrice ? 'fixed' : '/hour',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark ? Colors.white54 : const Color(0xFF6B7280),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                if (isSelected && !isFixedPrice) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF0F172A)
+                          : serviceColor.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.schedule_rounded,
+                              size: 14,
+                              color: serviceColor,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Duration',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.white70 : const Color(0xFF6B7280),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _durationOptions.map((dur) {
+                            final isSelectedDuration = duration == dur;
+                            final hours = dur >= 60 ? '${dur ~/ 60}h' : '${dur}m';
+
+                            return InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _serviceDurations[service] = dur;
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isSelectedDuration
+                                      ? serviceColor
+                                      : (isDark
+                                          ? Colors.white.withValues(alpha: 0.05)
+                                          : Colors.white),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isSelectedDuration
+                                        ? serviceColor
+                                        : (isDark
+                                            ? Colors.white.withValues(alpha: 0.1)
+                                            : const Color(0xFFE5E7EB)),
+                                  ),
+                                ),
+                                child: Text(
+                                  hours,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: isSelectedDuration
+                                        ? Colors.white
+                                        : (isDark ? Colors.white70 : const Color(0xFF6B7280)),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocationCard(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.timer_outlined, size: 20, color: Color(0xFF6366F1)),
-              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEC4899).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.location_on_rounded,
+                  size: 20,
+                  color: Color(0xFFEC4899),
+                ),
+              ),
+              const SizedBox(width: 12),
               Text(
-                'Duration',
+                'Pickup Location',
                 style: TextStyle(
                   fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   color: isDark ? Colors.white : const Color(0xFF1F2937),
+                  letterSpacing: -0.3,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _durationOptions.map((duration) {
-              final isSelected = _selectedDuration == duration;
-              return InkWell(
-                onTap: () => setState(() => _selectedDuration = duration),
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? const Color(0xFF6366F1)
-                        : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6)),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isSelected
-                          ? const Color(0xFF6366F1)
-                          : (isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB)),
-                    ),
-                  ),
-                  child: Text(
-                    '$duration min',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: isSelected
-                          ? Colors.white
-                          : (isDark ? Colors.white70 : const Color(0xFF1F2937)),
-                    ),
-                  ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _locationController,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white : const Color(0xFF1F2937),
+            ),
+            decoration: InputDecoration(
+              hintText: 'Enter your address',
+              hintStyle: TextStyle(
+                color: isDark ? Colors.white30 : const Color(0xFF9CA3AF),
+                fontWeight: FontWeight.w500,
+              ),
+              filled: true,
+              fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF9FAFB),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : const Color(0xFFE5E7EB),
                 ),
-              );
-            }).toList(),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Color(0xFFEC4899), width: 2),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Color(0xFFEF4444)),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Color(0xFFEF4444), width: 2),
+              ),
+              contentPadding: const EdgeInsets.all(16),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter pickup location';
+              }
+              return null;
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLocationField(bool isDark) {
-    return TextFormField(
-      controller: _locationController,
-      style: TextStyle(
-        fontSize: 16,
-        color: isDark ? Colors.white : const Color(0xFF1F2937),
-      ),
-      decoration: InputDecoration(
-        labelText: 'Pickup Location',
-        prefixIcon: const Icon(Icons.location_on_outlined, color: Color(0xFF6366F1)),
-        filled: true,
-        fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB),
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB),
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
-        ),
-      ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'Please enter a pickup location';
-        }
-        return null;
-      },
-    );
-  }
-
-  Widget _buildNotesField(bool isDark) {
-    return TextFormField(
-      controller: _notesController,
-      maxLines: 3,
-      style: TextStyle(
-        fontSize: 16,
-        color: isDark ? Colors.white : const Color(0xFF1F2937),
-      ),
-      decoration: InputDecoration(
-        labelText: 'Special Instructions (Optional)',
-        prefixIcon: const Icon(Icons.notes_outlined, color: Color(0xFF6366F1)),
-        filled: true,
-        fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB),
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB),
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPriceCard(bool isDark) {
+  Widget _buildNotesCard(bool isDark) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Text(
-                'Total Price',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white.withValues(alpha: 0.9),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.note_alt_rounded,
+                  size: 20,
+                  color: Color(0xFF8B5CF6),
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(width: 12),
               Text(
-                '\$${_totalPrice.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                  letterSpacing: -1,
+                'Special Notes',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : const Color(0xFF1F2937),
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'Optional',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white54 : const Color(0xFF6B7280),
+                  ),
                 ),
               ),
             ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _notesController,
+            maxLines: 3,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white : const Color(0xFF1F2937),
             ),
-            child: Text(
-              '\$${widget.walker.hourlyRate}/hr',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
+            decoration: InputDecoration(
+              hintText: 'Any special instructions?',
+              hintStyle: TextStyle(
+                color: isDark ? Colors.white30 : const Color(0xFF9CA3AF),
+                fontWeight: FontWeight.w500,
               ),
+              filled: true,
+              fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF9FAFB),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : const Color(0xFFE5E7EB),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 2),
+              ),
+              contentPadding: const EdgeInsets.all(16),
             ),
           ),
         ],
@@ -566,26 +1080,214 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
-  Widget _buildSubmitButton(bool isDark) {
-    return SizedBox(
+  Widget _buildPriceSummary(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: _selectedServices.isEmpty
+              ? [
+                  isDark ? const Color(0xFF1E293B) : const Color(0xFFF3F4F6),
+                  isDark ? const Color(0xFF1E293B) : const Color(0xFFF3F4F6),
+                ]
+              : const [
+                  Color(0xFF6366F1),
+                  Color(0xFF8B5CF6),
+                ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: _selectedServices.isNotEmpty
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.25),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ]
+            : null,
+      ),
+      child: _selectedServices.isEmpty
+          ? Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.info_outline_rounded,
+                    size: 20,
+                    color: isDark ? Colors.white54 : const Color(0xFF6B7280),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    'Select services to view pricing',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white54 : const Color(0xFF6B7280),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : Column(
+              children: [
+                ..._selectedServices.map((service) {
+                  final price = widget.walker.servicePrices[service] ?? widget.walker.hourlyRate;
+                  final isFixedPrice = _isFixedPriceService(service);
+                  final duration = _serviceDurations[service] ?? 60;
+                  final hours = duration / 60;
+                  final total = isFixedPrice ? price.toDouble() : price * hours;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _getServiceIcon(service),
+                          size: 16,
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                service,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Text(
+                                isFixedPrice
+                                    ? 'Fixed rate'
+                                    : '\$$price/hr × ${hours.toStringAsFixed(1)}h',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          '\$${total.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                if (_selectedServices.length > 1) ...[
+                  Divider(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    thickness: 1,
+                    height: 24,
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Total',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        '\$${_totalPrice.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: -1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                if (_selectedServices.length == 1)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        '\$${_totalPrice.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: -1,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildConfirmButton(bool isDark) {
+    final canSubmit = _selectedServices.isNotEmpty && !_isLoading;
+
+    return Container(
       width: double.infinity,
-      height: 56,
+      height: 58,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: canSubmit
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.35),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ]
+            : null,
+      ),
       child: ElevatedButton(
-        onPressed: _isLoading ? null : _submitBooking,
+        onPressed: canSubmit ? _submitBooking : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF10B981),
           foregroundColor: Colors.white,
+          disabledBackgroundColor: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : const Color(0xFFE5E7EB),
+          disabledForegroundColor: isDark ? Colors.white30 : const Color(0xFF9CA3AF),
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline_rounded, size: 20),
-            SizedBox(width: 8),
+            Icon(
+              canSubmit ? Icons.check_circle_rounded : Icons.spa_rounded,
+              size: 22,
+            ),
+            const SizedBox(width: 12),
             Text(
-              'Confirm Booking',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              canSubmit ? 'Confirm Booking' : 'Select Services',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
             ),
           ],
         ),

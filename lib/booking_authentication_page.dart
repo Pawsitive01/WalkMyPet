@@ -897,6 +897,25 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
 
           if (userCredential != null) {
             print('✅ User signed in: ${userCredential.user?.uid}');
+
+            // Verify user type matches the flow they're trying to access
+            final userDoc = await _userService.getUser(userCredential.user!.uid);
+            if (userDoc != null) {
+              final userData = userDoc.toFirestore();
+              final userType = userData['userType'] as String?;
+
+              // Check if user type matches
+              final expectedType = widget.isWalker ? 'petWalker' : 'petOwner';
+              if (userType != expectedType) {
+                // Wrong user type - sign them out and show error
+                await _authService.signOut();
+                throw Exception(
+                  widget.isWalker
+                    ? 'This account is registered as a Pet Owner. Please use the Pet Owner login.'
+                    : 'This account is registered as a Pet Walker. Please use the Pet Walker login.'
+                );
+              }
+            }
           }
         }
 
@@ -1004,6 +1023,24 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
         print('✅ Google Sign-In successful');
         print('👤 User: ${userCredential.user?.displayName} (${userCredential.user?.email})');
         print('🆔 UID: ${userCredential.user?.uid}');
+
+        // Check if user already exists with a different type
+        final existingUser = await _userService.getUser(userCredential.user!.uid);
+        if (existingUser != null) {
+          final userData = existingUser.toFirestore();
+          final existingType = userData['userType'] as String?;
+          final expectedType = widget.isWalker ? 'petWalker' : 'petOwner';
+
+          if (existingType != null && existingType != expectedType) {
+            // User exists with wrong type - sign out and show error
+            await _authService.signOut();
+            throw Exception(
+              widget.isWalker
+                ? 'This account is registered as a Pet Owner. Please use the Pet Owner login.'
+                : 'This account is registered as a Pet Walker. Please use the Pet Walker login.'
+            );
+          }
+        }
 
         // Create or update user profile in Firestore
         print('💾 Creating/updating Firestore profile...');

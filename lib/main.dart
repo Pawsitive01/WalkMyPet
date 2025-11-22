@@ -1,14 +1,16 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:walkmypet/models.dart';
 import 'package:walkmypet/detail_page.dart';
 import 'package:walkmypet/booking_authentication_page.dart';
+import 'package:walkmypet/booking/booking_page.dart';
 import 'package:walkmypet/about_us_page.dart';
 import 'package:walkmypet/user_type_selection_page.dart' as user_type;
 import 'package:walkmypet/services/firebase_emulator_config.dart';
 import 'package:walkmypet/services/user_service.dart';
-import 'package:walkmypet/providers/auth_provider.dart';
+import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
 import 'package:walkmypet/profile/redesigned_owner_profile_page.dart';
 import 'package:walkmypet/profile/redesigned_walker_profile_page.dart';
 import 'package:flutter/services.dart';
@@ -52,7 +54,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
-        ChangeNotifierProvider(create: (context) => AuthProvider()),
+        ChangeNotifierProvider(create: (context) => app_auth.AuthProvider()),
       ],
       child: MyApp(
         firebaseInitialized: firebaseInitialized,
@@ -356,7 +358,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
     _animController.forward(from: 0);
   }
 
-  List<Widget> _getWidgetOptions(AuthProvider authProvider) {
+  List<Widget> _getWidgetOptions(app_auth.AuthProvider authProvider) {
     final Widget fourthTab;
 
     if (authProvider.isAuthenticated) {
@@ -388,7 +390,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final authProvider = Provider.of<AuthProvider>(context);
+    final authProvider = Provider.of<app_auth.AuthProvider>(context);
     final isDark = themeProvider.themeMode == ThemeMode.dark;
     final widgetOptions = _getWidgetOptions(authProvider);
 
@@ -431,7 +433,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
     );
   }
 
-  Widget _buildModernAppBar(BuildContext context, ThemeProvider themeProvider, AuthProvider authProvider, bool isDark) {
+  Widget _buildModernAppBar(BuildContext context, ThemeProvider themeProvider, app_auth.AuthProvider authProvider, bool isDark) {
     return Container(
       height: 150,
       decoration: BoxDecoration(
@@ -674,7 +676,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
     );
   }
 
-  Widget _buildModernNavBar(BuildContext context, AuthProvider authProvider, bool isDark) {
+  Widget _buildModernNavBar(BuildContext context, app_auth.AuthProvider authProvider, bool isDark) {
     // Determine the icon and label for the fourth nav item
     final bool isAuthenticated = authProvider.isAuthenticated;
     final IconData fourthIcon = isAuthenticated ? Icons.person_rounded : Icons.person_add_rounded;
@@ -1334,16 +1336,43 @@ class _WalkerCardState extends State<WalkerCard> {
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => BookingAuthenticationPage(
-                                  personName: widget.walker.name,
-                                  isWalker: false,
+                          onTap: () async {
+                            final authProvider = Provider.of<app_auth.AuthProvider>(context, listen: false);
+                            final currentUser = FirebaseAuth.instance.currentUser;
+
+                            print('🔍 Walker Card - Auth Check:');
+                            print('  Provider isAuthenticated: ${authProvider.isAuthenticated}');
+                            print('  Provider hasCompletedOnboarding: ${authProvider.hasCompletedOnboarding}');
+                            print('  Provider isLoading: ${authProvider.isLoading}');
+                            print('  Provider userProfile: ${authProvider.userProfile}');
+                            print('  Firebase currentUser: ${currentUser?.uid}');
+                            print('  Firebase currentUser email: ${currentUser?.email}');
+
+                            // Check if user is authenticated using Firebase Auth directly
+                            if (currentUser != null) {
+                              // User is logged in - go directly to booking page
+                              print('✅ User authenticated, navigating to booking page');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => BookingPage(
+                                    walker: widget.walker,
+                                  ),
                                 ),
-                              ),
-                            );
+                              );
+                            } else {
+                              // User not logged in - go to authentication page
+                              print('❌ User not authenticated, navigating to auth page');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => BookingAuthenticationPage(
+                                    personName: widget.walker.name,
+                                    isWalker: false,
+                                  ),
+                                ),
+                              );
+                            }
                           },
                           borderRadius: BorderRadius.circular(10),
                           child: Container(
@@ -1716,22 +1745,47 @@ class _OwnerCardState extends State<OwnerCard> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    // Book Button
+                    // Add Pet Button
                     Expanded(
                       flex: 2,
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => BookingAuthenticationPage(
-                                  personName: widget.owner.dogName,
-                                  isWalker: false,
+                          onTap: () async {
+                            final authProvider = Provider.of<app_auth.AuthProvider>(context, listen: false);
+                            final currentUser = FirebaseAuth.instance.currentUser;
+
+                            print('🔍 Owner Card - Auth Check:');
+                            print('  Provider isAuthenticated: ${authProvider.isAuthenticated}');
+                            print('  Provider hasCompletedOnboarding: ${authProvider.hasCompletedOnboarding}');
+                            print('  Provider isLoading: ${authProvider.isLoading}');
+                            print('  Provider userProfile: ${authProvider.userProfile}');
+                            print('  Firebase currentUser: ${currentUser?.uid}');
+                            print('  Firebase currentUser email: ${currentUser?.email}');
+
+                            // Check if user is authenticated using Firebase Auth directly
+                            if (currentUser != null) {
+                              // User is logged in - go to their profile page
+                              print('✅ User authenticated, navigating to profile page');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const RedesignedOwnerProfilePage(),
                                 ),
-                              ),
-                            );
+                              );
+                            } else {
+                              // User not logged in - go to authentication page
+                              print('❌ User not authenticated, navigating to auth page');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => BookingAuthenticationPage(
+                                    personName: widget.owner.dogName,
+                                    isWalker: false,
+                                  ),
+                                ),
+                              );
+                            }
                           },
                           borderRadius: BorderRadius.circular(10),
                           child: Container(
