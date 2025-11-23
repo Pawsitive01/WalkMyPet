@@ -223,18 +223,34 @@ class UserService {
     }
   }
 
-  // Update user document
+  // Update user document (creates if doesn't exist)
   Future<void> updateUser(String userId, Map<String, dynamic> updates) async {
     try {
-      // First find which collection the user is in
+      // First try to find which collection the user is in
       final user = await getUser(userId);
-      if (user == null) {
-        throw 'User not found';
-      }
 
-      final collectionName = _getCollectionName(user.userType);
-      updates['updatedAt'] = Timestamp.fromDate(DateTime.now());
-      await _firestore.collection(collectionName).doc(userId).update(updates);
+      String collectionName;
+      if (user == null) {
+        // User doesn't exist yet - determine collection from userType in updates or default to owners
+        final userTypeStr = updates['userType'] as String?;
+        if (userTypeStr == 'petWalker') {
+          collectionName = 'walkers';
+        } else {
+          // Default to owners collection for new users without explicit type
+          collectionName = 'owners';
+        }
+
+        // Create new document with set() instead of update()
+        updates['createdAt'] = Timestamp.fromDate(DateTime.now());
+        updates['updatedAt'] = Timestamp.fromDate(DateTime.now());
+        updates['userType'] = updates['userType'] ?? 'petOwner';
+        await _firestore.collection(collectionName).doc(userId).set(updates, SetOptions(merge: true));
+      } else {
+        // User exists - update normally
+        collectionName = _getCollectionName(user.userType);
+        updates['updatedAt'] = Timestamp.fromDate(DateTime.now());
+        await _firestore.collection(collectionName).doc(userId).update(updates);
+      }
     } catch (e) {
       throw 'Failed to update user profile: $e';
     }
@@ -254,26 +270,20 @@ class UserService {
     }
   }
 
-  // Stream user data (checks both collections)
+  // Stream user data (checks which collection the user is in first, then streams)
   Stream<AppUser?> userStream(String userId) async* {
-    // Try walkers first
-    await for (final doc in _firestore.collection('walkers').doc(userId).snapshots()) {
-      if (doc.exists) {
-        yield AppUser.fromFirestore(doc);
-        return;
-      }
+    // First, determine which collection the user is in
+    AppUser? user = await getUser(userId);
+
+    if (user == null) {
+      yield null;
+      return;
     }
 
-    // Try owners
-    await for (final doc in _firestore.collection('owners').doc(userId).snapshots()) {
-      if (doc.exists) {
-        yield AppUser.fromFirestore(doc);
-        return;
-      }
-    }
+    // Now stream from the correct collection
+    final collectionName = _getCollectionName(user.userType);
 
-    // Fallback to users collection
-    await for (final doc in _firestore.collection('users').doc(userId).snapshots()) {
+    await for (final doc in _firestore.collection(collectionName).doc(userId).snapshots()) {
       if (doc.exists) {
         yield AppUser.fromFirestore(doc);
       } else {

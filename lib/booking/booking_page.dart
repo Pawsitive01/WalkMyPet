@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:walkmypet/models.dart';
 import 'package:walkmypet/models/booking_model.dart';
 import 'package:walkmypet/services/booking_service.dart';
@@ -431,7 +432,7 @@ class _BookingPageState extends State<BookingPage> with SingleTickerProviderStat
                 padding: const EdgeInsets.all(3),
                 child: CircleAvatar(
                   radius: 32,
-                  backgroundImage: NetworkImage(widget.walker.imageUrl),
+                  backgroundImage: CachedNetworkImageProvider(widget.walker.imageUrl),
                   backgroundColor: Colors.grey[200],
                 ),
               ),

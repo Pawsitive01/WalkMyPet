@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:walkmypet/models.dart';
 import 'package:walkmypet/booking_authentication_page.dart';
 import 'package:walkmypet/booking/booking_page.dart';
@@ -286,9 +287,44 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                           ),
                         ],
                       ),
-                      child: CircleAvatar(
-                        radius: _imageSize / 2,
-                        backgroundImage: AssetImage(widget.person.imageUrl),
+                      child: ClipOval(
+                        child: SizedBox(
+                          width: _imageSize,
+                          height: _imageSize,
+                          child: widget.person.imageUrl.startsWith('http')
+                              ? CachedNetworkImage(
+                                  imageUrl: widget.person.imageUrl,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
+                                    color: (widget.person is Walker ? const Color(0xFF6366F1) : const Color(0xFFEC4899))
+                                        .withAlpha((0.1 * 255).round()),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        color: widget.person is Walker ? const Color(0xFF6366F1) : const Color(0xFFEC4899),
+                                        strokeWidth: 3,
+                                      ),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) => Container(
+                                    color: (widget.person is Walker ? const Color(0xFF6366F1) : const Color(0xFFEC4899))
+                                        .withAlpha((0.1 * 255).round()),
+                                    child: Icon(
+                                      widget.person is Walker ? Icons.person : Icons.pets,
+                                      color: widget.person is Walker ? const Color(0xFF6366F1) : const Color(0xFFEC4899),
+                                      size: _imageSize * 0.4,
+                                    ),
+                                  ),
+                                )
+                              : Container(
+                                  color: (widget.person is Walker ? const Color(0xFF6366F1) : const Color(0xFFEC4899))
+                                      .withAlpha((0.1 * 255).round()),
+                                  child: Icon(
+                                    widget.person is Walker ? Icons.person : Icons.pets,
+                                    color: widget.person is Walker ? const Color(0xFF6366F1) : const Color(0xFFEC4899),
+                                    size: _imageSize * 0.4,
+                                  ),
+                                ),
+                        ),
                       ),
                     ),
                   ),

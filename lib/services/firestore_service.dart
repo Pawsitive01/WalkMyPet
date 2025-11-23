@@ -9,6 +9,7 @@ class FirestoreService {
     return _db.collection('users').doc(uid).set(userProfile.toFirestore());
   }
 
+  // One-time read (kept for backward compatibility)
   Future<UserProfile?> getUserProfile(String uid) async {
     DocumentSnapshot doc = await _db.collection('users').doc(uid).get();
     if (doc.exists) {
@@ -18,13 +19,43 @@ class FirestoreService {
     }
   }
 
+  // Real-time stream for user profile
+  Stream<UserProfile?> getUserProfileStream(String uid) {
+    return _db.collection('users').doc(uid).snapshots().map((doc) {
+      if (doc.exists) {
+        return UserProfile.fromFirestore(doc);
+      }
+      return null;
+    });
+  }
+
+  // One-time read (kept for backward compatibility)
   Future<List<UserProfile>> getWalkers() async {
     QuerySnapshot snapshot = await _db.collection('users').where('userType', isEqualTo: 'walker').get();
     return snapshot.docs.map((doc) => UserProfile.fromFirestore(doc)).toList();
   }
 
+  // Real-time stream for walkers
+  Stream<List<UserProfile>> getWalkersStream() {
+    return _db
+        .collection('users')
+        .where('userType', isEqualTo: 'walker')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => UserProfile.fromFirestore(doc)).toList());
+  }
+
+  // One-time read (kept for backward compatibility)
   Future<List<UserProfile>> getOwners() async {
     QuerySnapshot snapshot = await _db.collection('users').where('userType', isEqualTo: 'owner').get();
     return snapshot.docs.map((doc) => UserProfile.fromFirestore(doc)).toList();
+  }
+
+  // Real-time stream for owners
+  Stream<List<UserProfile>> getOwnersStream() {
+    return _db
+        .collection('users')
+        .where('userType', isEqualTo: 'owner')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => UserProfile.fromFirestore(doc)).toList());
   }
 }

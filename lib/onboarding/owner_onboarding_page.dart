@@ -199,7 +199,9 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
 
       // Save complete profile to Firebase
       await _userService.updateUser(user.uid, {
+        'email': user.email,
         'displayName': ownerName,
+        'userType': 'petOwner',
         'dogName': dogName,
         'dogBreed': dogBreed,
         'dogAge': dogAge.toString(),
@@ -214,6 +216,11 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
         'photoURL': _profileImageUrl,
         'petImageURL': _petImageUrl,
         'onboardingComplete': true,
+        'rating': 5.0,
+        'reviews': 0,
+        'completedWalks': 0,
+        'hasPoliceClearance': false,
+        'likes': 0,
       });
 
       // Refresh AuthProvider to update the state

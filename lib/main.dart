@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:walkmypet/models.dart';
 import 'package:walkmypet/detail_page.dart';
 import 'package:walkmypet/booking_authentication_page.dart';
@@ -944,48 +945,10 @@ class OwnerList extends StatefulWidget {
 class _OwnerListState extends State<OwnerList> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late List<Animation<double>> _itemAnimations;
-
-  static const _owners = [
-    Owner(
-      name: 'Richard Roe',
-      dogName: 'Max',
-      dogAge: 3,
-      dogBreed: 'Golden Retriever',
-      rating: 4.8,
-      reviews: 80,
-      completedWalks: 100,
-      imageUrl: 'assets/images/owner1.jpg',
-      bio: 'Max is a very friendly and energetic Golden Retriever. He loves to play fetch and go for long walks.',
-      hasPoliceClearance: true,
-      likes: 245,
-    ),
-    Owner(
-      name: 'Mary Major',
-      dogName: 'Bella',
-      dogAge: 2,
-      dogBreed: 'French Bulldog',
-      rating: 4.9,
-      reviews: 95,
-      completedWalks: 120,
-      imageUrl: 'assets/images/owner2.jpg',
-      bio: 'Bella is a sweet and playful French Bulldog. She is very good with other dogs and loves to cuddle.',
-      hasPoliceClearance: false,
-      likes: 312,
-    ),
-    Owner(
-      name: 'Peter Jones',
-      dogName: 'Buddy',
-      dogAge: 5,
-      dogBreed: 'Labrador',
-      rating: 4.2,
-      reviews: 60,
-      completedWalks: 80,
-      imageUrl: 'assets/images/owner3.jpg',
-      bio: 'Buddy is a calm and gentle Labrador. He is very well-behaved and loves to go for walks in the park.',
-      hasPoliceClearance: true,
-      likes: 178,
-    ),
-  ];
+  final UserService _userService = UserService();
+  List<Owner> _owners = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -995,21 +958,69 @@ class _OwnerListState extends State<OwnerList> with SingleTickerProviderStateMix
       duration: const Duration(milliseconds: 600),
     );
 
-    _itemAnimations = List.generate(
-      _owners.length,
-      (index) => Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(
-          parent: _controller,
-          curve: Interval(
-            index * 0.2,
-            0.6 + (index * 0.2),
-            curve: Curves.easeOutCubic,
-          ),
-        ),
-      ),
-    );
+    _loadOwners();
+  }
 
-    _controller.forward();
+  Future<void> _loadOwners() async {
+    try {
+      final users = await _userService.getPetOwners();
+
+      print('📊 Loaded ${users.length} owners from Firebase');
+
+      final loadedOwners = users.map((user) {
+        final data = user.toFirestore();
+        print('  Owner: ${data['displayName']} - ${data['dogName']} (${data['dogBreed']})');
+        return Owner(
+          name: data['displayName'] ?? 'Unknown',
+          dogName: data['dogName'] ?? 'Pet',
+          dogAge: int.tryParse((data['dogAge'] ?? '0').toString()) ?? 0,
+          dogBreed: data['dogBreed'] ?? 'Unknown Breed',
+          rating: (data['rating'] ?? 5.0).toDouble(),
+          reviews: data['reviews'] ?? 0,
+          completedWalks: data['completedWalks'] ?? 0,
+          imageUrl: data['photoURL'] ?? 'assets/images/default_owner.jpg',
+          bio: data['bio'] ?? 'No bio available',
+          hasPoliceClearance: data['hasPoliceClearance'] ?? false,
+          likes: data['likes'] ?? 0,
+        );
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _owners = loadedOwners;
+          _isLoading = false;
+          _errorMessage = null;
+        });
+
+        // Create staggered animations for each item
+        if (_owners.isNotEmpty) {
+          _itemAnimations = List.generate(
+            _owners.length,
+            (index) => Tween<double>(begin: 0.0, end: 1.0).animate(
+              CurvedAnimation(
+                parent: _controller,
+                curve: Interval(
+                  index * 0.2,
+                  0.6 + (index * 0.2),
+                  curve: Curves.easeOutCubic,
+                ),
+              ),
+            ),
+          );
+
+          _controller.forward();
+        }
+      }
+    } catch (e) {
+      print('Error loading owners: $e');
+      if (mounted) {
+        setState(() {
+          _owners = [];
+          _isLoading = false;
+          _errorMessage = 'Failed to load pet owners. Please try again.';
+        });
+      }
+    }
   }
 
   @override
@@ -1020,6 +1031,113 @@ class _OwnerListState extends State<OwnerList> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Show loading state
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFEC4899)),
+      );
+    }
+
+    // Show error state
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: isDark ? Colors.grey[600] : Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _errorMessage!,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _isLoading = true;
+                  });
+                  _loadOwners();
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEC4899),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Show empty state
+    if (_owners.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.pets_outlined,
+                size: 80,
+                color: isDark ? Colors.grey[600] : Colors.grey[400],
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'No Pet Owners Yet',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Pet owners will appear here once they complete their profile setup.',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _isLoading = true;
+                  });
+                  _loadOwners();
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Refresh'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEC4899),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Show owners list
     return ListView.builder(
       padding: const EdgeInsets.only(top: 20, bottom: 20),
       itemCount: _owners.length,
@@ -1140,9 +1258,41 @@ class _WalkerCardState extends State<WalkerCard> {
                                 width: 2,
                               ),
                             ),
-                            child: CircleAvatar(
-                              radius: 28,
-                              backgroundImage: AssetImage(widget.walker.imageUrl),
+                            child: ClipOval(
+                              child: SizedBox(
+                                width: 56,
+                                height: 56,
+                                child: widget.walker.imageUrl.startsWith('http')
+                                    ? CachedNetworkImage(
+                                        imageUrl: widget.walker.imageUrl,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => Container(
+                                          color: const Color(0xFF6366F1).withAlpha((0.1 * 255).round()),
+                                          child: const Center(
+                                            child: CircularProgressIndicator(
+                                              color: Color(0xFF6366F1),
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
+                                        ),
+                                        errorWidget: (context, url, error) => Container(
+                                          color: const Color(0xFF6366F1).withAlpha((0.1 * 255).round()),
+                                          child: const Icon(
+                                            Icons.person,
+                                            color: Color(0xFF6366F1),
+                                            size: 28,
+                                          ),
+                                        ),
+                                      )
+                                    : Container(
+                                        color: const Color(0xFF6366F1).withAlpha((0.1 * 255).round()),
+                                        child: const Icon(
+                                          Icons.person,
+                                          color: Color(0xFF6366F1),
+                                          size: 28,
+                                        ),
+                                      ),
+                              ),
                             ),
                           ),
                         ),
@@ -1583,9 +1733,41 @@ class _OwnerCardState extends State<OwnerCard> {
                                 width: 2,
                               ),
                             ),
-                            child: CircleAvatar(
-                              radius: 28,
-                              backgroundImage: AssetImage(widget.owner.imageUrl),
+                            child: ClipOval(
+                              child: SizedBox(
+                                width: 56,
+                                height: 56,
+                                child: widget.owner.imageUrl.startsWith('http')
+                                    ? CachedNetworkImage(
+                                        imageUrl: widget.owner.imageUrl,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => Container(
+                                          color: const Color(0xFFEC4899).withAlpha((0.1 * 255).round()),
+                                          child: const Center(
+                                            child: CircularProgressIndicator(
+                                              color: Color(0xFFEC4899),
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
+                                        ),
+                                        errorWidget: (context, url, error) => Container(
+                                          color: const Color(0xFFEC4899).withAlpha((0.1 * 255).round()),
+                                          child: const Icon(
+                                            Icons.pets,
+                                            color: Color(0xFFEC4899),
+                                            size: 28,
+                                          ),
+                                        ),
+                                      )
+                                    : Container(
+                                        color: const Color(0xFFEC4899).withAlpha((0.1 * 255).round()),
+                                        child: const Icon(
+                                          Icons.pets,
+                                          color: Color(0xFFEC4899),
+                                          size: 28,
+                                        ),
+                                      ),
+                              ),
                             ),
                           ),
                         ),

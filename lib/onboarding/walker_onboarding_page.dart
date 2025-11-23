@@ -1556,7 +1556,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                 ),
                 SizedBox(width: isSmallScreen ? 8 : 10),
                 Text(
-                  '${avgRate.round()}/hr average',
+                  '\${avgRate.round()}/hr average',
                   style: TextStyle(
                     fontSize: isSmallScreen ? 15 : 16,
                     fontWeight: FontWeight.w700,
