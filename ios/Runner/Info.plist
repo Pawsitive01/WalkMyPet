@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>WalkMyPet needs your location to help you select accurate pickup points for pet services</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>WalkMyPet needs your location to help you select accurate pickup points for pet services</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>WalkMyPet needs your location to help you select accurate pickup points for pet services</string>
 </dict>
 </plist>

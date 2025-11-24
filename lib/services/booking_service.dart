@@ -14,7 +14,7 @@ class BookingService {
     }
   }
 
-  /// Get booking by ID
+  /// Get booking by ID (one-time read)
   Future<Booking?> getBooking(String bookingId) async {
     try {
       final doc = await _firestore.collection('bookings').doc(bookingId).get();
@@ -27,15 +27,30 @@ class BookingService {
     }
   }
 
+  /// Get booking by ID (real-time stream)
+  Stream<Booking?> getBookingStream(String bookingId) {
+    return _firestore.collection('bookings').doc(bookingId).snapshots().map((doc) {
+      if (doc.exists) {
+        return Booking.fromFirestore(doc);
+      }
+      return null;
+    });
+  }
+
   /// Get all bookings for an owner
   Stream<List<Booking>> getOwnerBookings(String ownerId) {
     return _firestore
         .collection('bookings')
         .where('ownerId', isEqualTo: ownerId)
-        .orderBy('date', descending: false)
+        // Removed .orderBy() to avoid requiring composite index
+        // We'll sort in the app instead
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Booking.fromFirestore(doc)).toList());
+        .map((snapshot) {
+          final bookings = snapshot.docs.map((doc) => Booking.fromFirestore(doc)).toList();
+          // Sort by date in the app
+          bookings.sort((a, b) => a.date.compareTo(b.date));
+          return bookings;
+        });
   }
 
   /// Get all bookings for a walker
@@ -43,10 +58,15 @@ class BookingService {
     return _firestore
         .collection('bookings')
         .where('walkerId', isEqualTo: walkerId)
-        .orderBy('date', descending: false)
+        // Removed .orderBy() to avoid requiring composite index
+        // We'll sort in the app instead
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Booking.fromFirestore(doc)).toList());
+        .map((snapshot) {
+          final bookings = snapshot.docs.map((doc) => Booking.fromFirestore(doc)).toList();
+          // Sort by date in the app
+          bookings.sort((a, b) => a.date.compareTo(b.date));
+          return bookings;
+        });
   }
 
   /// Get bookings for a specific date range

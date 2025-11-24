@@ -1,11 +1,12 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:walkmypet/services/user_service.dart';
 import 'package:walkmypet/services/image_upload_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:walkmypet/profile/redesigned_walker_profile_page.dart';
 import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
+import 'package:walkmypet/widgets/location_picker.dart';
 
 class WalkerOnboardingPage extends StatefulWidget {
   const WalkerOnboardingPage({super.key});
@@ -26,6 +27,8 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
   // Form data
   String walkerName = '';
   String location = '';
+  double? _selectedLatitude;
+  double? _selectedLongitude;
   String bio = '';
   int yearsOfExperience = 0;
   bool hasPoliceClearance = false;
@@ -40,27 +43,33 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
 
   late AnimationController _progressController;
   late Animation<double> _progressAnimation;
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
 
   final List<Map<String, dynamic>> availableServices = [
     {
       'name': 'Walking',
       'icon': Icons.directions_walk_rounded,
       'description': 'Daily dog walks',
+      'gradient': [Color(0xFF6366F1), Color(0xFF8B5CF6)],
     },
     {
       'name': 'Sitting',
       'icon': Icons.home_work_rounded,
       'description': 'Pet sitting at home',
+      'gradient': [Color(0xFF10B981), Color(0xFF059669)],
     },
     {
       'name': 'Grooming',
       'icon': Icons.cleaning_services_rounded,
       'description': 'Basic grooming services',
+      'gradient': [Color(0xFFF59E0B), Color(0xFFD97706)],
     },
     {
       'name': 'Training',
       'icon': Icons.school_rounded,
       'description': 'Basic obedience training',
+      'gradient': [Color(0xFFEC4899), Color(0xFFDB2777)],
     },
   ];
 
@@ -84,13 +93,24 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     _progressAnimation = Tween<double>(begin: 0.0, end: 0.0).animate(
       CurvedAnimation(parent: _progressController, curve: Curves.easeInOut),
     );
+    
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
+    );
+    
     _loadSavedProgress();
+    _fadeController.forward();
   }
 
   @override
   void dispose() {
     _pageController.dispose();
     _progressController.dispose();
+    _fadeController.dispose();
     super.dispose();
   }
 
@@ -151,6 +171,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
 
   void _nextStep() {
     if (_currentStep < _totalSteps - 1) {
+      HapticFeedback.lightImpact();
       setState(() {
         _currentStep++;
       });
@@ -166,6 +187,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
 
   void _previousStep() {
     if (_currentStep > 0) {
+      HapticFeedback.lightImpact();
       setState(() {
         _currentStep--;
       });
@@ -203,17 +225,14 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     }
 
     try {
-      // Upload profile image if selected
       if (_profileImage != null) {
         try {
           _profileImageUrl = await _imageUploadService.uploadProfileImage(_profileImage!);
         } catch (e) {
           print('Error uploading profile image: $e');
-          // Continue without profile image if upload fails
         }
       }
 
-      // Calculate average hourly rate
       final rates = servicePrices.values.toList();
       final avgRate = rates.isNotEmpty
           ? rates.reduce((a, b) => a + b) / rates.length
@@ -237,30 +256,29 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
         'completedWalks': 0,
       });
 
-      // Refresh AuthProvider to update the state
       if (mounted) {
         await Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
       }
 
       if (mounted) {
+        HapticFeedback.mediumImpact();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle_rounded,
-                    color: Colors.white, size: 20),
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
                 const SizedBox(width: 12),
-                Text(
-                  'Welcome to WalkMyPet, $walkerName!',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                Expanded(
+                  child: Text(
+                    'Welcome to WalkMyPet, $walkerName!',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ),
               ],
             ),
             behavior: SnackBarBehavior.floating,
             backgroundColor: const Color(0xFF10B981),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.all(16),
             duration: const Duration(seconds: 2),
           ),
@@ -269,10 +287,9 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
         await Future.delayed(const Duration(milliseconds: 800));
 
         if (mounted) {
-          // Navigate to profile page and remove all previous routes
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const RedesignedWalkerProfilePage()),
-            (route) => route.isFirst, // Keep only the first route (home page)
+            (route) => route.isFirst,
           );
         }
       }
@@ -296,52 +313,59 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallScreen = screenHeight < 700;
+    final safePadding = MediaQuery.of(context).padding;
+    
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
         leading: _currentStep > 0
             ? Container(
-                margin: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.95),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                margin: EdgeInsets.only(left: 12, top: safePadding.top > 20 ? 4 : 8, bottom: 8),
+                child: Material(
+                  color: Colors.white.withOpacity(0.95),
+                  borderRadius: BorderRadius.circular(14),
+                  elevation: 0,
+                  shadowColor: Colors.black.withOpacity(0.1),
+                  child: InkWell(
+                    onTap: _previousStep,
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Color(0xFF0F172A),
+                        size: 18,
+                      ),
                     ),
-                  ],
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                      color: Color(0xFF0F172A), size: 20),
-                  onPressed: _previousStep,
+                  ),
                 ),
               )
             : null,
         actions: [
           if (_currentStep < _totalSteps - 1)
             Container(
-              margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
-              child: TextButton(
-                onPressed: _nextStep,
-                style: TextButton.styleFrom(
-                  backgroundColor: Colors.white.withValues(alpha: 0.25),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                child: const Text(
-                  'Skip',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+              margin: EdgeInsets.only(right: 12, top: safePadding.top > 20 ? 4 : 8, bottom: 8),
+              child: Material(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(20),
+                child: InkWell(
+                  onTap: _nextStep,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: const Text(
+                      'Skip',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -361,9 +385,10 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
           ),
         ),
         child: SafeArea(
+          bottom: false,
           child: Column(
             children: [
-              _buildProgressBar(),
+              _buildProgressBar(isSmallScreen),
               Expanded(
                 child: PageView(
                   controller: _pageController,
@@ -374,17 +399,17 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                     });
                   },
                   children: [
-                    _buildWelcomeStep(),
-                    _buildWalkerNameStep(),
-                    _buildLocationStep(),
-                    _buildExperienceStep(),
-                    _buildPoliceClearanceStep(),
-                    _buildServicesStep(),
-                    _buildPricingStep(),
-                    _buildAvailabilityStep(),
-                    _buildBioStep(),
-                    _buildProfileImageStep(),
-                    _buildSummaryStep(),
+                    _buildWelcomeStep(isSmallScreen),
+                    _buildWalkerNameStep(isSmallScreen),
+                    _buildLocationStep(isSmallScreen),
+                    _buildExperienceStep(isSmallScreen),
+                    _buildPoliceClearanceStep(isSmallScreen),
+                    _buildServicesStep(isSmallScreen),
+                    _buildPricingStep(isSmallScreen),
+                    _buildAvailabilityStep(isSmallScreen),
+                    _buildBioStep(isSmallScreen),
+                    _buildProfileImageStep(isSmallScreen),
+                    _buildSummaryStep(isSmallScreen),
                   ],
                 ),
               ),
@@ -395,9 +420,12 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     );
   }
 
-  Widget _buildProgressBar() {
+  Widget _buildProgressBar(bool isSmallScreen) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: isSmallScreen ? 12 : 16,
+      ),
       child: Column(
         children: [
           Row(
@@ -409,7 +437,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                   color: Colors.white,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
+                  letterSpacing: 0.3,
                 ),
               ),
               Text(
@@ -422,17 +450,35 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           AnimatedBuilder(
             animation: _progressAnimation,
             builder: (context, child) {
               return ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: LinearProgressIndicator(
-                  value: _progressAnimation.value,
-                  backgroundColor: Colors.white.withValues(alpha: 0.2),
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                  minHeight: 6,
+                child: Container(
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: _progressAnimation.value,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.3),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               );
             },
@@ -446,145 +492,128 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     required String title,
     required String subtitle,
     required Widget child,
+    required bool isSmallScreen,
     VoidCallback? onContinue,
     bool showContinueButton = true,
   }) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SizedBox(height: 20),
-          TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeOut,
-            builder: (context, value, child) {
-              return Opacity(
-                opacity: value,
-                child: Transform.translate(
-                  offset: Offset(0, 20 * (1 - value)),
-                  child: child,
-                ),
-              );
-            },
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-                letterSpacing: -0.8,
-                height: 1.2,
-              ),
-              textAlign: TextAlign.center,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth > 600 ? 600.0 : constraints.maxWidth;
+        
+        return Center(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: isSmallScreen ? 12 : 20,
+              bottom: MediaQuery.of(context).viewInsets.bottom + (isSmallScreen ? 16 : 24),
             ),
-          ),
-          const SizedBox(height: 12),
-          TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeOut,
-            builder: (context, value, child) {
-              return Opacity(
-                opacity: value,
-                child: Transform.translate(
-                  offset: Offset(0, 20 * (1 - value)),
-                  child: child,
-                ),
-              );
-            },
-            child: Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.white.withValues(alpha: 0.9),
-                height: 1.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: 40),
-          TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 700),
-            curve: Curves.easeOut,
-            builder: (context, value, child) {
-              return Opacity(
-                opacity: value,
-                child: Transform.translate(
-                  offset: Offset(0, 30 * (1 - value)),
-                  child: child,
-                ),
-              );
-            },
-            child: child,
-          ),
-          if (showContinueButton) ...[
-            const SizedBox(height: 40),
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: const Duration(milliseconds: 800),
-              curve: Curves.easeOut,
-              builder: (context, value, child) {
-                return Opacity(
-                  opacity: value,
-                  child: Transform.translate(
-                    offset: Offset(0, 20 * (1 - value)),
-                    child: child,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 26 : 32,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: -0.5,
+                        height: 1.1,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                );
-              },
-              child: _buildContinueButton(onContinue),
+                  SizedBox(height: isSmallScreen ? 8 : 12),
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 15 : 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withOpacity(0.9),
+                        height: 1.4,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  SizedBox(height: isSmallScreen ? 24 : 32),
+                  child,
+                  if (showContinueButton) ...[
+                    SizedBox(height: isSmallScreen ? 24 : 32),
+                    _buildContinueButton(onContinue, isSmallScreen),
+                  ],
+                ],
+              ),
             ),
-          ],
-        ],
-      ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildContinueButton(VoidCallback? onPressed) {
+  Widget _buildContinueButton(VoidCallback? onPressed, bool isSmallScreen) {
+    final isEnabled = onPressed != null || _currentStep == _totalSteps - 1;
+    
     return SizedBox(
       width: double.infinity,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onPressed ?? _nextStep,
+          onTap: isEnabled ? (onPressed ?? _nextStep) : null,
           borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 18),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: EdgeInsets.symmetric(vertical: isSmallScreen ? 14 : 16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isEnabled ? Colors.white : Colors.white.withOpacity(0.5),
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
+              boxShadow: isEnabled
+                  ? [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ]
+                  : null,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  _currentStep == _totalSteps - 1
-                      ? 'Complete Setup'
-                      : 'Continue',
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF6366F1),
-                    letterSpacing: 0.3,
+                if (_isLoading)
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        const Color(0xFF6366F1),
+                      ),
+                    ),
+                  )
+                else ...[
+                  Text(
+                    _currentStep == _totalSteps - 1 ? 'Complete Setup' : 'Continue',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 16 : 17,
+                      fontWeight: FontWeight.w700,
+                      color: isEnabled ? const Color(0xFF6366F1) : const Color(0xFF6366F1).withOpacity(0.5),
+                      letterSpacing: 0.2,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.arrow_forward_rounded,
-                  color: Color(0xFF6366F1),
-                  size: 22,
-                ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    color: isEnabled ? const Color(0xFF6366F1) : const Color(0xFF6366F1).withOpacity(0.5),
+                    size: 20,
+                  ),
+                ],
               ],
             ),
           ),
@@ -593,52 +622,53 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     );
   }
 
-  Widget _buildWelcomeStep() {
+  Widget _buildWelcomeStep(bool isSmallScreen) {
     return _buildStepContainer(
       title: 'Become a\nPet Walker! 🚶',
-      subtitle:
-          'Join our community of trusted pet walkers and start earning while doing what you love.',
+      subtitle: 'Join our community of trusted pet walkers and start earning while doing what you love.',
+      isSmallScreen: isSmallScreen,
       child: Container(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(isSmallScreen ? 24 : 32),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.15),
+          color: Colors.white.withOpacity(0.15),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.3),
-            width: 2,
+            color: Colors.white.withOpacity(0.3),
+            width: 1.5,
           ),
         ),
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: Colors.white.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.directions_walk_rounded,
-                size: 60,
+                size: isSmallScreen ? 48 : 60,
                 color: Colors.white,
               ),
             ),
-            const SizedBox(height: 24),
-            const Text(
+            SizedBox(height: isSmallScreen ? 16 : 24),
+            Text(
               'Professional Profile Setup',
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+                fontSize: isSmallScreen ? 17 : 18,
+                fontWeight: FontWeight.w700,
                 color: Colors.white,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: isSmallScreen ? 6 : 8),
             Text(
               'We\'ll help you create a compelling profile that attracts pet owners',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: isSmallScreen ? 13 : 14,
                 fontWeight: FontWeight.w500,
-                color: Colors.white.withValues(alpha: 0.85),
+                color: Colors.white.withOpacity(0.85),
+                height: 1.4,
               ),
               textAlign: TextAlign.center,
             ),
@@ -648,14 +678,16 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     );
   }
 
-  Widget _buildWalkerNameStep() {
+  Widget _buildWalkerNameStep(bool isSmallScreen) {
     return _buildStepContainer(
       title: 'What\'s your name?',
       subtitle: 'Pet owners want to know who they\'re trusting with their pets.',
+      isSmallScreen: isSmallScreen,
       child: _buildModernTextField(
         value: walkerName,
         hint: 'Enter your full name',
         icon: Icons.person_rounded,
+        isSmallScreen: isSmallScreen,
         onChanged: (value) {
           setState(() {
             walkerName = value;
@@ -666,34 +698,133 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     );
   }
 
-  Widget _buildLocationStep() {
+  Widget _buildLocationStep(bool isSmallScreen) {
     return _buildStepContainer(
       title: 'Where do you operate?',
       subtitle: 'This helps us connect you with nearby pet owners.',
-      child: _buildModernTextField(
-        value: location,
-        hint: 'e.g., Adelaide, Australia',
-        icon: Icons.location_on_rounded,
-        onChanged: (value) {
-          setState(() {
-            location = value;
-          });
-        },
+      isSmallScreen: isSmallScreen,
+      child: Column(
+        children: [
+          // Map Picker Button
+          InkWell(
+            onTap: () async {
+              final result = await Navigator.push<LocationPickerResult>(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LocationPicker(
+                    initialLatitude: _selectedLatitude,
+                    initialLongitude: _selectedLongitude,
+                  ),
+                ),
+              );
+
+              if (result != null) {
+                setState(() {
+                  _selectedLatitude = result.latitude;
+                  _selectedLongitude = result.longitude;
+                  location = result.address;
+                });
+              }
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
+              decoration: BoxDecoration(
+                color: location.isNotEmpty
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: location.isNotEmpty
+                      ? Colors.white.withValues(alpha: 0.4)
+                      : Colors.white.withValues(alpha: 0.2),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(isSmallScreen ? 10 : 12),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF10B981), Color(0xFF059669)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      location.isNotEmpty
+                          ? Icons.map_rounded
+                          : Icons.add_location_alt_rounded,
+                      color: Colors.white,
+                      size: isSmallScreen ? 22 : 24,
+                    ),
+                  ),
+                  SizedBox(width: isSmallScreen ? 12 : 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          location.isNotEmpty
+                              ? 'Location Selected'
+                              : 'Select your location',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: isSmallScreen ? 15 : 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (location.isNotEmpty) ...[
+                          SizedBox(height: 4),
+                          Text(
+                            location,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: isSmallScreen ? 13 : 14,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ] else ...[
+                          SizedBox(height: 4),
+                          Text(
+                            'Tap to open map',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              fontSize: isSmallScreen ? 13 : 14,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: Colors.white.withValues(alpha: 0.5),
+                    size: 16,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
       onContinue: location.isNotEmpty ? _nextStep : null,
     );
   }
 
-  Widget _buildExperienceStep() {
+  Widget _buildExperienceStep(bool isSmallScreen) {
     return _buildStepContainer(
       title: 'Your experience?',
       subtitle: 'How many years have you been working with dogs?',
+      isSmallScreen: isSmallScreen,
       child: Column(
         children: [
           _buildModernTextField(
             value: yearsOfExperience > 0 ? yearsOfExperience.toString() : '',
             hint: 'Years of experience',
             icon: Icons.star_rounded,
+            isSmallScreen: isSmallScreen,
             keyboardType: TextInputType.number,
             onChanged: (value) {
               setState(() {
@@ -701,15 +832,15 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
               });
             },
           ),
-          const SizedBox(height: 24),
-          _buildExperienceQuickSelect(),
+          SizedBox(height: isSmallScreen ? 16 : 20),
+          _buildExperienceQuickSelect(isSmallScreen),
         ],
       ),
       onContinue: yearsOfExperience > 0 ? _nextStep : null,
     );
   }
 
-  Widget _buildExperienceQuickSelect() {
+  Widget _buildExperienceQuickSelect(bool isSmallScreen) {
     final experiences = [
       {'value': 1, 'label': '< 1 year'},
       {'value': 2, 'label': '1-2 years'},
@@ -719,14 +850,16 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     ];
 
     return Wrap(
-      spacing: 12,
-      runSpacing: 12,
+      spacing: 8,
+      runSpacing: 8,
+      alignment: WrapAlignment.center,
       children: experiences.map((exp) {
         final isSelected = yearsOfExperience == exp['value'];
         return Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: () {
+              HapticFeedback.selectionClick();
               setState(() {
                 yearsOfExperience = exp['value'] as int;
               });
@@ -734,23 +867,22 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
             borderRadius: BorderRadius.circular(12),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: EdgeInsets.symmetric(
+                horizontal: isSmallScreen ? 14 : 18,
+                vertical: isSmallScreen ? 10 : 12,
+              ),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.15),
+                color: isSelected ? Colors.white : Colors.white.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isSelected
-                      ? Colors.white
-                      : Colors.white.withValues(alpha: 0.3),
-                  width: 2,
+                  color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
+                  width: 1.5,
                 ),
               ),
               child: Text(
                 exp['label'] as String,
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: isSmallScreen ? 14 : 15,
                   fontWeight: FontWeight.w600,
                   color: isSelected ? const Color(0xFF6366F1) : Colors.white,
                 ),
@@ -762,10 +894,11 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     );
   }
 
-  Widget _buildPoliceClearanceStep() {
+  Widget _buildPoliceClearanceStep(bool isSmallScreen) {
     return _buildStepContainer(
       title: 'Police clearance?',
       subtitle: 'Do you have a valid police clearance certificate?',
+      isSmallScreen: isSmallScreen,
       child: Column(
         children: [
           _buildSelectionCard(
@@ -773,20 +906,24 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
             title: 'Yes, I have clearance',
             subtitle: 'Verified background check',
             isSelected: hasPoliceClearance == true,
+            isSmallScreen: isSmallScreen,
             onTap: () {
+              HapticFeedback.selectionClick();
               setState(() {
                 hasPoliceClearance = true;
               });
             },
             color: const Color(0xFF10B981),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: isSmallScreen ? 12 : 16),
           _buildSelectionCard(
             icon: Icons.info_outline_rounded,
             title: 'Not yet',
             subtitle: 'I can get one later',
             isSelected: hasPoliceClearance == false && _currentStep == 4,
+            isSmallScreen: isSmallScreen,
             onTap: () {
+              HapticFeedback.selectionClick();
               setState(() {
                 hasPoliceClearance = false;
               });
@@ -798,19 +935,21 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     );
   }
 
-  Widget _buildServicesStep() {
+  Widget _buildServicesStep(bool isSmallScreen) {
     return _buildStepContainer(
       title: 'Services you offer',
       subtitle: 'Select all services you can provide (choose at least one)',
+      isSmallScreen: isSmallScreen,
       child: Column(
         children: availableServices.map((service) {
           final isSelected = selectedServices.contains(service['name']);
           return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: EdgeInsets.only(bottom: isSmallScreen ? 10 : 12),
             child: Material(
               color: Colors.transparent,
               child: InkWell(
                 onTap: () {
+                  HapticFeedback.selectionClick();
                   setState(() {
                     if (isSelected) {
                       selectedServices.remove(service['name']);
@@ -824,43 +963,35 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                 borderRadius: BorderRadius.circular(16),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(isSmallScreen ? 16 : 18),
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.15),
+                    color: isSelected ? Colors.white : Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isSelected
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.3),
-                      width: 2,
+                      color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
+                      width: 1.5,
                     ),
                   ),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: EdgeInsets.all(isSmallScreen ? 10 : 12),
                         decoration: BoxDecoration(
                           gradient: isSelected
-                              ? const LinearGradient(
-                                  colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                              ? LinearGradient(
+                                  colors: service['gradient'] as List<Color>,
                                 )
                               : null,
-                          color: isSelected
-                              ? null
-                              : Colors.white.withValues(alpha: 0.2),
+                          color: isSelected ? null : Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
                           service['icon'] as IconData,
-                          color: isSelected
-                              ? Colors.white
-                              : Colors.white.withValues(alpha: 0.8),
-                          size: 24,
+                          color: isSelected ? Colors.white : Colors.white.withOpacity(0.8),
+                          size: isSmallScreen ? 20 : 24,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      SizedBox(width: isSmallScreen ? 12 : 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -868,32 +999,30 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                             Text(
                               service['name'] as String,
                               style: TextStyle(
-                                fontSize: 17,
+                                fontSize: isSmallScreen ? 16 : 17,
                                 fontWeight: FontWeight.w700,
-                                color: isSelected
-                                    ? const Color(0xFF0F172A)
-                                    : Colors.white,
+                                color: isSelected ? const Color(0xFF0F172A) : Colors.white,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               service['description'] as String,
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: isSmallScreen ? 12 : 13,
                                 fontWeight: FontWeight.w500,
                                 color: isSelected
                                     ? const Color(0xFF64748B)
-                                    : Colors.white.withValues(alpha: 0.7),
+                                    : Colors.white.withOpacity(0.7),
                               ),
                             ),
                           ],
                         ),
                       ),
                       if (isSelected)
-                        const Icon(
+                        Icon(
                           Icons.check_circle_rounded,
-                          color: Color(0xFF10B981),
-                          size: 28,
+                          color: const Color(0xFF10B981),
+                          size: isSmallScreen ? 24 : 28,
                         ),
                     ],
                   ),
@@ -907,27 +1036,28 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     );
   }
 
-  Widget _buildPricingStep() {
+  Widget _buildPricingStep(bool isSmallScreen) {
     return _buildStepContainer(
       title: 'Set your rates',
       subtitle: 'What are your hourly rates for each service?',
+      isSmallScreen: isSmallScreen,
       showContinueButton: false,
       child: Column(
         children: [
           ...selectedServices.map((service) {
             return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: _buildPriceInput(service),
+              padding: EdgeInsets.only(bottom: isSmallScreen ? 12 : 16),
+              child: _buildPriceInput(service, isSmallScreen),
             );
           }),
-          const SizedBox(height: 24),
-          _buildContinueButton(_nextStep),
+          SizedBox(height: isSmallScreen ? 16 : 20),
+          _buildContinueButton(_nextStep, isSmallScreen),
         ],
       ),
     );
   }
 
-  Widget _buildPriceInput(String service) {
+  Widget _buildPriceInput(String service, bool isSmallScreen) {
     final iconMap = {
       'Walking': Icons.directions_walk_rounded,
       'Sitting': Icons.home_work_rounded,
@@ -935,58 +1065,65 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
       'Training': Icons.school_rounded,
     };
 
+    final gradientMap = {
+      'Walking': [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+      'Sitting': [Color(0xFF10B981), Color(0xFF059669)],
+      'Grooming': [Color(0xFFF59E0B), Color(0xFFD97706)],
+      'Training': [Color(0xFFEC4899), Color(0xFFDB2777)],
+    };
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isSmallScreen ? 16 : 18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(isSmallScreen ? 10 : 12),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+              gradient: LinearGradient(
+                colors: gradientMap[service] ?? [Color(0xFF6366F1), Color(0xFF8B5CF6)],
               ),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               iconMap[service] ?? Icons.star_rounded,
               color: Colors.white,
-              size: 24,
+              size: isSmallScreen ? 20 : 24,
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: isSmallScreen ? 12 : 16),
           Expanded(
             child: Text(
               service,
-              style: const TextStyle(
-                fontSize: 16,
+              style: TextStyle(
+                fontSize: isSmallScreen ? 15 : 16,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF0F172A),
+                color: const Color(0xFF0F172A),
               ),
             ),
           ),
-          const SizedBox(width: 16),
-          const Text(
+          SizedBox(width: isSmallScreen ? 8 : 12),
+          Text(
             '\$',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: isSmallScreen ? 16 : 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF6366F1),
+              color: const Color(0xFF6366F1),
             ),
           ),
           const SizedBox(width: 8),
           SizedBox(
-            width: 80,
+            width: isSmallScreen ? 70 : 80,
             child: TextField(
               controller: TextEditingController(
                 text: servicePrices[service]?.toString() ?? '25',
@@ -998,10 +1135,10 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                 });
               },
               keyboardType: TextInputType.number,
-              style: const TextStyle(
-                fontSize: 18,
+              style: TextStyle(
+                fontSize: isSmallScreen ? 16 : 18,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF0F172A),
+                color: const Color(0xFF0F172A),
               ),
               textAlign: TextAlign.center,
               decoration: InputDecoration(
@@ -1016,7 +1153,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                    color: const Color(0xFF6366F1).withOpacity(0.3),
                     width: 2,
                   ),
                 ),
@@ -1027,20 +1164,20 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                     width: 2,
                   ),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 8 : 12,
+                  vertical: isSmallScreen ? 10 : 12,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          const Text(
+          const SizedBox(width: 6),
+          Text(
             '/hr',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: isSmallScreen ? 13 : 14,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF64748B),
+              color: const Color(0xFF64748B),
             ),
           ),
         ],
@@ -1048,19 +1185,22 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     );
   }
 
-  Widget _buildAvailabilityStep() {
+  Widget _buildAvailabilityStep(bool isSmallScreen) {
     return _buildStepContainer(
       title: 'Your availability',
       subtitle: 'Which days are you typically available?',
+      isSmallScreen: isSmallScreen,
       child: Wrap(
-        spacing: 12,
-        runSpacing: 12,
+        spacing: 8,
+        runSpacing: 8,
+        alignment: WrapAlignment.center,
         children: daysOfWeek.map((day) {
           final isSelected = availability.contains(day);
           return Material(
             color: Colors.transparent,
             child: InkWell(
               onTap: () {
+                HapticFeedback.selectionClick();
                 setState(() {
                   if (isSelected) {
                     availability.remove(day);
@@ -1072,38 +1212,35 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
               borderRadius: BorderRadius.circular(12),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 12 : 16,
+                  vertical: isSmallScreen ? 10 : 12,
+                ),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? Colors.white
-                      : Colors.white.withValues(alpha: 0.15),
+                  color: isSelected ? Colors.white : Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isSelected
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.3),
-                    width: 2,
+                    color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
+                    width: 1.5,
                   ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      day,
+                      isSmallScreen ? day.substring(0, 3) : day,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: isSmallScreen ? 14 : 15,
                         fontWeight: FontWeight.w600,
-                        color:
-                            isSelected ? const Color(0xFF6366F1) : Colors.white,
+                        color: isSelected ? const Color(0xFF6366F1) : Colors.white,
                       ),
                     ),
                     if (isSelected) ...[
-                      const SizedBox(width: 8),
-                      const Icon(
+                      const SizedBox(width: 6),
+                      Icon(
                         Icons.check_circle_rounded,
-                        color: Color(0xFF10B981),
-                        size: 20,
+                        color: const Color(0xFF10B981),
+                        size: isSmallScreen ? 16 : 18,
                       ),
                     ],
                   ],
@@ -1117,19 +1254,20 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     );
   }
 
-  Widget _buildBioStep() {
+  Widget _buildBioStep(bool isSmallScreen) {
     return _buildStepContainer(
       title: 'Tell us about yourself',
       subtitle: 'Share your experience and why you love working with dogs.',
+      isSmallScreen: isSmallScreen,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -1141,18 +1279,17 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
               bio = value;
             });
           },
-          maxLines: 6,
-          style: const TextStyle(
-            fontSize: 16,
+          maxLines: isSmallScreen ? 5 : 6,
+          style: TextStyle(
+            fontSize: isSmallScreen ? 15 : 16,
             fontWeight: FontWeight.w500,
-            color: Color(0xFF0F172A),
+            color: const Color(0xFF0F172A),
             height: 1.5,
           ),
           decoration: InputDecoration(
-            hintText:
-                'e.g., I\'ve been a dog lover my entire life and have 5 years of professional experience...',
+            hintText: 'e.g., I\'ve been a dog lover my entire life and have 5 years of professional experience...',
             hintStyle: TextStyle(
-              fontSize: 16,
+              fontSize: isSmallScreen ? 15 : 16,
               fontWeight: FontWeight.w500,
               color: Colors.grey[400],
             ),
@@ -1162,7 +1299,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
             ),
             filled: true,
             fillColor: Colors.white,
-            contentPadding: const EdgeInsets.all(20),
+            contentPadding: EdgeInsets.all(isSmallScreen ? 16 : 20),
           ),
         ),
       ),
@@ -1170,24 +1307,24 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     );
   }
 
-  Widget _buildProfileImageStep() {
+  Widget _buildProfileImageStep(bool isSmallScreen) {
     return _buildStepContainer(
       title: 'Add your photo',
       subtitle: 'Show pet owners the friendly face behind the service!',
+      isSmallScreen: isSmallScreen,
       showContinueButton: false,
       child: Column(
         children: [
-          // Profile Image Preview
           GestureDetector(
             onTap: () => _showImageSourceDialog(),
             child: Container(
-              width: 200,
-              height: 200,
+              width: isSmallScreen ? 160 : 180,
+              height: isSmallScreen ? 160 : 180,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.15),
+                color: Colors.white.withOpacity(0.15),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.3),
+                  color: Colors.white.withOpacity(0.3),
                   width: 3,
                 ),
                 image: _profileImage != null
@@ -1203,16 +1340,16 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                       children: [
                         Icon(
                           Icons.add_a_photo_rounded,
-                          size: 60,
-                          color: Colors.white.withValues(alpha: 0.7),
+                          size: isSmallScreen ? 48 : 56,
+                          color: Colors.white.withOpacity(0.7),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: isSmallScreen ? 10 : 12),
                         Text(
                           'Tap to add photo',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: isSmallScreen ? 14 : 15,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white.withValues(alpha: 0.9),
+                            color: Colors.white.withOpacity(0.9),
                           ),
                         ),
                       ],
@@ -1220,53 +1357,53 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                   : null,
             ),
           ),
-          const SizedBox(height: 32),
-
-          // Camera and Gallery Buttons
+          SizedBox(height: isSmallScreen ? 24 : 28),
           Row(
             children: [
               Expanded(
                 child: _buildImageSourceButton(
                   icon: Icons.camera_alt_rounded,
                   label: 'Camera',
+                  isSmallScreen: isSmallScreen,
                   onTap: () => _pickImageFromCamera(),
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: isSmallScreen ? 12 : 16),
               Expanded(
                 child: _buildImageSourceButton(
                   icon: Icons.photo_library_rounded,
                   label: 'Gallery',
+                  isSmallScreen: isSmallScreen,
                   onTap: () => _pickImageFromGallery(),
                 ),
               ),
             ],
           ),
-
           if (_profileImage != null) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: isSmallScreen ? 12 : 16),
             TextButton.icon(
               onPressed: () {
+                HapticFeedback.lightImpact();
                 setState(() {
                   _profileImage = null;
                   _profileImageUrl = null;
                 });
               },
-              icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
-              label: const Text(
+              icon: Icon(Icons.delete_outline_rounded, color: Colors.white, size: isSmallScreen ? 18 : 20),
+              label: Text(
                 'Remove Photo',
-                style: TextStyle(color: Colors.white, fontSize: 16),
+                style: TextStyle(color: Colors.white, fontSize: isSmallScreen ? 14 : 15),
               ),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 16 : 20,
+                  vertical: isSmallScreen ? 8 : 10,
+                ),
               ),
             ),
           ],
-
-          const SizedBox(height: 40),
-
-          // Continue Button (can skip this step)
-          _buildContinueButton(_nextStep),
+          SizedBox(height: isSmallScreen ? 24 : 32),
+          _buildContinueButton(_nextStep, isSmallScreen),
         ],
       ),
     );
@@ -1275,6 +1412,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
   Widget _buildImageSourceButton({
     required IconData icon,
     required String label,
+    required bool isSmallScreen,
     required VoidCallback onTap,
   }) {
     return Material(
@@ -1283,23 +1421,23 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
+          padding: EdgeInsets.symmetric(vertical: isSmallScreen ? 16 : 18),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
+            color: Colors.white.withOpacity(0.15),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.3),
-              width: 2,
+              color: Colors.white.withOpacity(0.3),
+              width: 1.5,
             ),
           ),
           child: Column(
             children: [
-              Icon(icon, size: 40, color: Colors.white),
-              const SizedBox(height: 8),
+              Icon(icon, size: isSmallScreen ? 32 : 36, color: Colors.white),
+              SizedBox(height: isSmallScreen ? 6 : 8),
               Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 16,
+                style: TextStyle(
+                  fontSize: isSmallScreen ? 14 : 15,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
@@ -1326,7 +1464,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Container(
                 width: 40,
                 height: 4,
@@ -1335,26 +1473,26 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               const Text(
                 'Choose Photo Source',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                    color: const Color(0xFF6366F1).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.camera_alt_rounded, color: Color(0xFF6366F1)),
+                  child: const Icon(Icons.camera_alt_rounded, color: Color(0xFF6366F1), size: 22),
                 ),
-                title: const Text('Camera'),
-                subtitle: const Text('Take a new photo'),
+                title: const Text('Camera', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Take a new photo', style: TextStyle(fontSize: 13)),
                 onTap: () {
                   Navigator.pop(context);
                   _pickImageFromCamera();
@@ -1364,19 +1502,19 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                    color: const Color(0xFF6366F1).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.photo_library_rounded, color: Color(0xFF6366F1)),
+                  child: const Icon(Icons.photo_library_rounded, color: Color(0xFF6366F1), size: 22),
                 ),
-                title: const Text('Gallery'),
-                subtitle: const Text('Choose from gallery'),
+                title: const Text('Gallery', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Choose from gallery', style: TextStyle(fontSize: 13)),
                 onTap: () {
                   Navigator.pop(context);
                   _pickImageFromGallery();
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
             ],
           ),
         ),
@@ -1418,37 +1556,38 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     }
   }
 
-  Widget _buildSummaryStep() {
+  Widget _buildSummaryStep(bool isSmallScreen) {
     return _buildStepContainer(
       title: 'Review your profile',
       subtitle: 'Make sure everything looks perfect before we publish!',
+      isSmallScreen: isSmallScreen,
       showContinueButton: false,
       child: Column(
         children: [
-          _buildSummaryCard(),
-          const SizedBox(height: 32),
-          _buildContinueButton(_isLoading ? null : _completeOnboarding),
+          _buildSummaryCard(isSmallScreen),
+          SizedBox(height: isSmallScreen ? 24 : 28),
+          _buildContinueButton(_isLoading ? null : _completeOnboarding, isSmallScreen),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryCard() {
+  Widget _buildSummaryCard(bool isSmallScreen) {
     final rates = servicePrices.values.toList();
     final avgRate = rates.isNotEmpty
         ? rates.reduce((a, b) => a + b) / rates.length
         : 25.0;
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isSmallScreen ? 18 : 22),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 20,
-            offset: const Offset(0, 10),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -1458,38 +1597,38 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(isSmallScreen ? 12 : 14),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                   ),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.directions_walk_rounded,
                   color: Colors.white,
-                  size: 32,
+                  size: isSmallScreen ? 26 : 30,
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: isSmallScreen ? 12 : 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       walkerName.isNotEmpty ? walkerName : 'Not provided',
-                      style: const TextStyle(
-                        fontSize: 22,
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 18 : 20,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F172A),
-                        letterSpacing: -0.5,
+                        color: const Color(0xFF0F172A),
+                        letterSpacing: -0.3,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       location.isNotEmpty ? location : 'Location not set',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: isSmallScreen ? 13 : 14,
                         color: Colors.grey[600],
                         fontWeight: FontWeight.w500,
                       ),
@@ -1499,52 +1638,54 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: isSmallScreen ? 16 : 20),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(isSmallScreen ? 12 : 14),
             decoration: BoxDecoration(
-              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFF6366F1).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.star_rounded,
-                  color: Color(0xFFFBBF24),
-                  size: 24,
+                  color: const Color(0xFFFBBF24),
+                  size: isSmallScreen ? 20 : 22,
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: isSmallScreen ? 8 : 10),
                 Text(
-                  '\$${avgRate.round()}/hr average',
-                  style: const TextStyle(
-                    fontSize: 18,
+                  '\${avgRate.round()}/hr average',
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 15 : 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF6366F1),
+                    color: const Color(0xFF6366F1),
                   ),
                 ),
                 const Spacer(),
                 if (hasPoliceClearance)
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isSmallScreen ? 8 : 10,
+                      vertical: isSmallScreen ? 4 : 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                      color: const Color(0xFF10B981).withOpacity(0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
                         Icon(
                           Icons.shield_rounded,
-                          color: Color(0xFF10B981),
-                          size: 16,
+                          color: const Color(0xFF10B981),
+                          size: isSmallScreen ? 14 : 16,
                         ),
-                        SizedBox(width: 6),
+                        SizedBox(width: isSmallScreen ? 4 : 6),
                         Text(
-                          'Police Check',
+                          'Verified',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: isSmallScreen ? 11 : 12,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF10B981),
+                            color: const Color(0xFF10B981),
                           ),
                         ),
                       ],
@@ -1553,52 +1694,49 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          const Divider(height: 1),
-          const SizedBox(height: 24),
+          SizedBox(height: isSmallScreen ? 16 : 20),
+          Divider(height: 1, color: Colors.grey[200]),
+          SizedBox(height: isSmallScreen ? 16 : 20),
           _buildSummaryRow(
             icon: Icons.work_rounded,
             label: 'Experience',
-            value: yearsOfExperience > 0
-                ? '$yearsOfExperience years'
-                : 'Not provided',
+            value: yearsOfExperience > 0 ? '$yearsOfExperience years' : 'Not provided',
+            isSmallScreen: isSmallScreen,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: isSmallScreen ? 12 : 14),
           _buildSummaryRow(
             icon: Icons.category_rounded,
             label: 'Services',
-            value: selectedServices.isNotEmpty
-                ? selectedServices.join(', ')
-                : 'None selected',
+            value: selectedServices.isNotEmpty ? selectedServices.join(', ') : 'None selected',
+            isSmallScreen: isSmallScreen,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: isSmallScreen ? 12 : 14),
           _buildSummaryRow(
             icon: Icons.calendar_today_rounded,
             label: 'Available',
-            value: availability.isNotEmpty
-                ? '${availability.length} days/week'
-                : 'Not set',
+            value: availability.isNotEmpty ? '${availability.length} days/week' : 'Not set',
+            isSmallScreen: isSmallScreen,
           ),
           if (bio.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            const Divider(height: 1),
-            const SizedBox(height: 16),
+            SizedBox(height: isSmallScreen ? 16 : 20),
+            Divider(height: 1, color: Colors.grey[200]),
+            SizedBox(height: isSmallScreen ? 12 : 14),
             Text(
               'About',
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
                 color: Colors.grey[600],
                 letterSpacing: 0.5,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               bio,
-              style: const TextStyle(
-                fontSize: 15,
+              style: TextStyle(
+                fontSize: isSmallScreen ? 14 : 15,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF0F172A),
+                color: const Color(0xFF0F172A),
                 height: 1.5,
               ),
             ),
@@ -1612,22 +1750,23 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     required IconData icon,
     required String label,
     required String value,
+    required bool isSmallScreen,
   }) {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
+          padding: EdgeInsets.all(isSmallScreen ? 8 : 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF6366F1).withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
+            color: const Color(0xFF6366F1).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
             icon,
             color: const Color(0xFF6366F1),
-            size: 20,
+            size: isSmallScreen ? 18 : 20,
           ),
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: isSmallScreen ? 12 : 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1635,19 +1774,19 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: Colors.grey[600],
-                  letterSpacing: 0.5,
+                  letterSpacing: 0.3,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
-                style: const TextStyle(
-                  fontSize: 16,
+                style: TextStyle(
+                  fontSize: isSmallScreen ? 14 : 15,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF0F172A),
+                  color: const Color(0xFF0F172A),
                 ),
               ),
             ],
@@ -1661,18 +1800,19 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     required String value,
     required String hint,
     required IconData icon,
+    required bool isSmallScreen,
     required Function(String) onChanged,
     TextInputType? keyboardType,
   }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -1681,21 +1821,21 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
           ..selection = TextSelection.collapsed(offset: value.length),
         onChanged: onChanged,
         keyboardType: keyboardType,
-        style: const TextStyle(
-          fontSize: 18,
+        style: TextStyle(
+          fontSize: isSmallScreen ? 16 : 17,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF0F172A),
+          color: const Color(0xFF0F172A),
         ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(
-            fontSize: 18,
+            fontSize: isSmallScreen ? 16 : 17,
             fontWeight: FontWeight.w500,
             color: Colors.grey[400],
           ),
           prefixIcon: Container(
-            margin: const EdgeInsets.all(12),
-            padding: const EdgeInsets.all(10),
+            margin: EdgeInsets.all(isSmallScreen ? 10 : 12),
+            padding: EdgeInsets.all(isSmallScreen ? 8 : 10),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
@@ -1705,18 +1845,18 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
             child: Icon(
               icon,
               color: Colors.white,
-              size: 24,
+              size: isSmallScreen ? 20 : 22,
             ),
           ),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(18),
             borderSide: BorderSide.none,
           ),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 20,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: isSmallScreen ? 16 : 20,
+            vertical: isSmallScreen ? 14 : 16,
           ),
         ),
       ),
@@ -1728,6 +1868,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
     required String title,
     required String subtitle,
     required bool isSelected,
+    required bool isSmallScreen,
     required VoidCallback onTap,
     required Color color,
   }) {
@@ -1738,28 +1879,27 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
         borderRadius: BorderRadius.circular(16),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(isSmallScreen ? 16 : 18),
           decoration: BoxDecoration(
-            color:
-                isSelected ? Colors.white : Colors.white.withValues(alpha: 0.15),
+            color: isSelected ? Colors.white : Colors.white.withOpacity(0.15),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.3),
-              width: 2,
+              color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
+              width: 1.5,
             ),
           ),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(isSmallScreen ? 10 : 12),
                 decoration: BoxDecoration(
-                  color: isSelected ? color.withValues(alpha: 0.15) : null,
+                  color: isSelected ? color.withOpacity(0.15) : null,
                   gradient: isSelected
                       ? null
                       : LinearGradient(
                           colors: [
-                            Colors.white.withValues(alpha: 0.2),
-                            Colors.white.withValues(alpha: 0.1),
+                            Colors.white.withOpacity(0.2),
+                            Colors.white.withOpacity(0.1),
                           ],
                         ),
                   borderRadius: BorderRadius.circular(12),
@@ -1767,10 +1907,10 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                 child: Icon(
                   icon,
                   color: isSelected ? color : Colors.white,
-                  size: 28,
+                  size: isSmallScreen ? 24 : 26,
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: isSmallScreen ? 12 : 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1778,21 +1918,20 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: 17,
+                        fontSize: isSmallScreen ? 16 : 17,
                         fontWeight: FontWeight.w700,
-                        color:
-                            isSelected ? const Color(0xFF0F172A) : Colors.white,
+                        color: isSelected ? const Color(0xFF0F172A) : Colors.white,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: isSmallScreen ? 12 : 13,
                         fontWeight: FontWeight.w500,
                         color: isSelected
                             ? const Color(0xFF64748B)
-                            : Colors.white.withValues(alpha: 0.7),
+                            : Colors.white.withOpacity(0.7),
                       ),
                     ),
                   ],
@@ -1802,7 +1941,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                 Icon(
                   Icons.check_circle_rounded,
                   color: color,
-                  size: 28,
+                  size: isSmallScreen ? 24 : 26,
                 ),
             ],
           ),

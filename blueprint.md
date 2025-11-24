@@ -3,41 +3,60 @@
 
 ## Overview
 
-This document outlines the project's design, features, and development plan. It serves as a single source of truth for the application's architecture and style.
+This document outlines the plan for integrating Firebase into the "WalkMyPet" Flutter application. The goal is to replace the current placeholder data with dynamic data from Firebase's Firestore and Storage services. This will allow for a more robust and scalable application.
 
-## Style and Design
+## Current State
 
-The application will adhere to Material Design 3 principles, with a focus on a modern, clean, and visually engaging user experience.
+The application currently uses hardcoded placeholder data for displaying user profiles (both pet owners and walkers) and their details. Images are also stored locally in the project's assets.
 
-*   **Color Scheme:** A color palette will be generated from a primary seed color (`Colors.deepPurple`) using `ColorScheme.fromSeed` for both light and dark themes.
-*   **Typography:** The `google_fonts` package will be used to implement a consistent and expressive type scale. `Poppins` will be used for titles and headers, while `Inter` will be used for body text.
-*   **Layout:** The layout will be responsive, utilizing widgets like `GridView` and `Wrap` to ensure adaptability across screen sizes. `Card` widgets with soft, multi-layered shadows will be used to create depth and a "lifted" appearance for important UI elements.
-*   **Iconography:** Material Design icons will be used to enhance clarity and navigation.
+## Plan for Firebase Integration
 
-## Features
+### 1. Firebase Setup
 
-### Core
-*   **User Profiles:** Display detailed profiles for both "Dog Walkers" and "Pet Owners."
-*   **Theme Toggle:** Allow users to switch between Light, Dark, and System theme modes.
+*   **Dependencies:** Add the necessary Firebase packages to the `pubspec.yaml` file:
+    *   `firebase_core`: To initialize the Firebase app.
+    *   `cloud_firestore`: To interact with the Firestore database.
+    *   `firebase_storage`: To store and retrieve user profile images.
+*   **Initialization:** Initialize Firebase in the `lib/main.dart` file to ensure that Firebase services are available throughout the application.
 
-### Current Plan: `detail_page.dart` Enhancement
+### 2. Data Modeling
 
-**Objective:** Refine the `DetailPage` to improve its visual hierarchy, responsiveness, and user experience.
+*   **User Profiles:** Create a new data model in `lib/models/user_profile.dart` to represent user profiles. This model will include fields for:
+    *   `uid`: The user's unique ID from Firebase Authentication.
+    *   `name`: The user's name.
+    *   `email`: The user's email.
+    *   `userType`: "owner" or "walker".
+    *   `bio`: A short biography.
+    *   `imageUrl`: The URL of the user's profile picture stored in Firebase Storage.
+    *   `location`: The user's location.
+    *   `availability` (for walkers): The walker's availability.
+    *   `hourlyRate` (for walkers): The walker's hourly rate.
+    *   `pets` (for owners): A list of the owner's pets.
 
-**Steps:**
+### 3. Firebase Services
 
-1.  **Restructure Statistics Display:**
-    *   Replace the current `Row` layout for statistics with a `GridView.count` to create a more organized and responsive grid.
+*   **Firestore Service:** Create a new service in `lib/services/firestore_service.dart` to handle all interactions with the Firestore database. This service will include methods for:
+    *   Creating and updating user profiles.
+    *   Fetching user profiles by UID.
+    *   Fetching lists of walkers and owners.
+*   **Storage Service:** Create a new service in `lib/services/storage_service.dart` to handle all interactions with Firebase Storage. This service will include methods for:
+    *   Uploading user profile images.
+    *   Getting the download URL for an image.
 
-2.  **Improve Layout with `Card` Widgets:**
-    *   Encapsulate the "About", "Statistics", and "Pet Details" sections within styled `Card` widgets.
-    *   Apply a subtle background color, rounded corners, and a soft shadow to each card to create a sense of depth and visual separation.
+### 4. Data Migration
 
-3.  **Add a Conditional Floating Action Button for Owners:**
-    *   Implement a secondary `FloatingActionButton` that appears only on an `Owner`'s detail page, providing an "Edit Profile" action.
+*   **Upload Script:** Create a one-time script or function to upload the existing placeholder data (including images) to Firestore and Firebase Storage. This will populate the database with initial data for testing and development.
 
-4.  **Enhance Readability of SliverAppBar:**
-    *   Add a decorative `BoxDecoration` with a gradient overlay to the `FlexibleSpaceBar` background to ensure the title text is always legible against the background image.
+### 5. UI Refactoring
 
-5.  **Refactor for Reusability:**
-    *   Create a private, reusable `_InfoCard` widget to reduce code duplication and make the main build method cleaner.
+*   **User Type Selection Page:**
+    *   Modify `lib/user_type_selection_page.dart` to display generic "Pet Owner" and "Pet Walker" cards that lead to the authentication/onboarding flow.
+*   **Profile Pages:**
+    *   Modify `lib/profile/owner_profile_page.dart` and `lib/profile/walker_profile_page.dart` to fetch user data from Firestore using the `FirestoreService`.
+    *   Update the UI to display the dynamic data, including loading the profile images from the URLs stored in Firestore.
+*   **Onboarding:**
+    *   Update the `lib/onboarding/owner_onboarding_page.dart` and `lib/onboarding/walker_onboarding_page.dart` to save the user's information to Firestore after they complete the onboarding process.
+
+### 6. Authentication
+
+*   The existing authentication flow will be updated to create a user document in Firestore upon successful registration.

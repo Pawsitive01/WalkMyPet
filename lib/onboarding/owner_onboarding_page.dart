@@ -6,6 +6,7 @@ import 'package:walkmypet/services/image_upload_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:walkmypet/profile/redesigned_owner_profile_page.dart';
 import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
+import 'package:walkmypet/widgets/location_picker.dart';
 
 class OwnerOnboardingPage extends StatefulWidget {
   const OwnerOnboardingPage({super.key});
@@ -34,6 +35,8 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
   String locationCity = '';
   String locationSuburb = '';
   String locationPostcode = '';
+  double? _selectedLatitude;
+  double? _selectedLongitude;
   String bio = '';
   Map<String, dynamic>? _profileImage;
   String? _profileImageUrl;
@@ -199,7 +202,9 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
 
       // Save complete profile to Firebase
       await _userService.updateUser(user.uid, {
+        'email': user.email,
         'displayName': ownerName,
+        'userType': 'petOwner',
         'dogName': dogName,
         'dogBreed': dogBreed,
         'dogAge': dogAge.toString(),
@@ -214,6 +219,11 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
         'photoURL': _profileImageUrl,
         'petImageURL': _petImageUrl,
         'onboardingComplete': true,
+        'rating': 5.0,
+        'reviews': 0,
+        'completedWalks': 0,
+        'hasPoliceClearance': false,
+        'likes': 0,
       });
 
       // Refresh AuthProvider to update the state
@@ -761,16 +771,10 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
   }
 
   Widget _buildLocationStep() {
-    final List<String> australianStates = [
-      'New South Wales',
-      'Victoria',
-      'Queensland',
-      'Western Australia',
-      'South Australia',
-      'Tasmania',
-      'Australian Capital Territory',
-      'Northern Territory',
-    ];
+    // Combined location string for display
+    final String fullLocation = [locationCity, locationState, locationPostcode]
+        .where((s) => s.isNotEmpty)
+        .join(', ');
 
     return _buildStepContainer(
       title: 'Where are you located?',
@@ -778,113 +782,120 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
       showContinueButton: false,
       child: Column(
         children: [
-          // State Dropdown
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: DropdownButtonFormField<String>(
-              initialValue: locationState.isEmpty ? null : locationState,
-              decoration: InputDecoration(
-                hintText: 'Select State',
-                hintStyle: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[400],
-                ),
-                prefixIcon: Container(
-                  margin: const EdgeInsets.all(12),
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFEC4899), Color(0xFFF472B6)],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.location_on_rounded,
-                    color: Colors.white,
-                    size: 24,
+          // Map Picker Button
+          InkWell(
+            onTap: () async {
+              final result = await Navigator.push<LocationPickerResult>(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LocationPicker(
+                    initialLatitude: _selectedLatitude,
+                    initialLongitude: _selectedLongitude,
                   ),
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 20,
-                ),
-              ),
-              dropdownColor: Colors.white,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF0F172A),
-              ),
-              items: australianStates.map((state) {
-                return DropdownMenuItem<String>(
-                  value: state,
-                  child: Text(state),
-                );
-              }).toList(),
-              onChanged: (value) {
+              );
+
+              if (result != null) {
                 setState(() {
-                  locationState = value ?? '';
+                  _selectedLatitude = result.latitude;
+                  _selectedLongitude = result.longitude;
+                  // Parse the address to fill in the fields
+                  final addressParts = result.address.split(', ');
+                  if (addressParts.isNotEmpty) {
+                    locationCity = addressParts.first;
+                  }
+                  if (addressParts.length > 1) {
+                    locationState = addressParts[1];
+                  }
+                  if (addressParts.length > 2) {
+                    locationPostcode = addressParts.last;
+                  }
                 });
-              },
+              }
+            },
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFEC4899), Color(0xFFF472B6)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      fullLocation.isNotEmpty
+                          ? Icons.map_rounded
+                          : Icons.add_location_alt_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          fullLocation.isNotEmpty
+                              ? 'Location Selected'
+                              : 'Select your location',
+                          style: const TextStyle(
+                            color: Color(0xFF0F172A),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (fullLocation.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            fullLocation,
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 15,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ] else ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tap to open map',
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: Colors.grey[400],
+                    size: 18,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          // City
-          _buildModernTextField(
-            value: locationCity,
-            hint: 'City (e.g., Adelaide, Sydney)',
-            icon: Icons.location_city_rounded,
-            onChanged: (value) {
-              setState(() {
-                locationCity = value;
-              });
-            },
-          ),
-          const SizedBox(height: 16),
-          // Suburb
-          _buildModernTextField(
-            value: locationSuburb,
-            hint: 'Suburb (Optional)',
-            icon: Icons.home_rounded,
-            onChanged: (value) {
-              setState(() {
-                locationSuburb = value;
-              });
-            },
-          ),
-          const SizedBox(height: 16),
-          // Postcode
-          _buildModernTextField(
-            value: locationPostcode,
-            hint: 'Postcode',
-            icon: Icons.pin_rounded,
-            keyboardType: TextInputType.number,
-            onChanged: (value) {
-              setState(() {
-                locationPostcode = value;
-              });
-            },
           ),
           const SizedBox(height: 40),
           _buildContinueButton(
-            (locationState.isNotEmpty && locationCity.isNotEmpty && locationPostcode.isNotEmpty)
+            (locationCity.isNotEmpty && locationState.isNotEmpty)
                 ? _nextStep
                 : null,
           ),

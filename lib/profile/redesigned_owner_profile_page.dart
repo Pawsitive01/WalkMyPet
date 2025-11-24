@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:walkmypet/services/user_service.dart';
 import 'package:walkmypet/services/auth_service.dart';
 import 'package:walkmypet/services/image_upload_service.dart';
-import 'package:walkmypet/booking/my_bookings_page.dart';
+import 'package:walkmypet/booking/my_bookings_page_redesigned.dart';
 import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
+import 'package:walkmypet/widgets/location_picker.dart';
 
 class RedesignedOwnerProfilePage extends StatefulWidget {
   const RedesignedOwnerProfilePage({super.key});
@@ -21,10 +23,10 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
   final ImageUploadService _imageUploadService = ImageUploadService();
 
   AppUser? _userProfile;
-  bool _isLoading = true;
   bool _isEditing = false;
   bool _isUploadingImage = false;
   late AnimationController _animationController;
+  Stream<AppUser?>? _userProfileStream;
 
   // Edit controllers
   final TextEditingController _nameController = TextEditingController();
@@ -34,6 +36,9 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
   final TextEditingController _cityController = TextEditingController();
   final TextEditingController _suburbController = TextEditingController();
   final TextEditingController _postcodeController = TextEditingController();
+
+  double? _selectedLatitude;
+  double? _selectedLongitude;
 
   // Australian states and territories
   final List<String> _australianStates = [
@@ -56,7 +61,14 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _loadProfile();
+    _initializeStream();
+  }
+
+  void _initializeStream() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _userProfileStream = _userService.userStream(user.uid);
+    }
   }
 
   @override
@@ -72,35 +84,17 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
     super.dispose();
   }
 
-  Future<void> _loadProfile() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    try {
-      final profile = await _userService.getUser(user.uid);
-      if (mounted) {
-        setState(() {
-          _userProfile = profile;
-          _isLoading = false;
-        });
-
-        if (profile != null) {
-          final data = profile.toFirestore();
-          _nameController.text = data['displayName'] ?? '';
-          _petNameController.text = data['dogName'] ?? '';
-          _petBreedController.text = data['dogBreed'] ?? '';
-          _petAgeController.text = data['dogAge'] ?? '';
-          _selectedState = data['locationState'];
-          _cityController.text = data['locationCity'] ?? '';
-          _suburbController.text = data['locationSuburb'] ?? '';
-          _postcodeController.text = data['locationPostcode'] ?? '';
-        }
-      }
-    } catch (e) {
-      print('Error loading profile: $e');
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+  void _updateControllersWithProfile(AppUser? profile) {
+    if (profile != null) {
+      final data = profile.toFirestore();
+      _nameController.text = data['displayName'] ?? '';
+      _petNameController.text = data['dogName'] ?? '';
+      _petBreedController.text = data['dogBreed'] ?? '';
+      _petAgeController.text = data['dogAge'] ?? '';
+      _selectedState = data['locationState'];
+      _cityController.text = data['locationCity'] ?? '';
+      _suburbController.text = data['locationSuburb'] ?? '';
+      _postcodeController.text = data['locationPostcode'] ?? '';
     }
   }
 
@@ -124,7 +118,6 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
       if (mounted) {
         setState(() => _isEditing = false);
         _showSuccessSnackBar('Profile updated successfully');
-        _loadProfile();
         // Refresh AuthProvider to keep state in sync
         Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
       }
@@ -336,36 +329,91 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFFAFAFA),
-      body: _isLoading
+      body: _userProfileStream == null
           ? const Center(child: CircularProgressIndicator(color: Color(0xFFEC4899)))
-          : canPop
-              ? CustomScrollView(
-                  slivers: [
-                    _buildPinkSliverAppBar(isDark),
-                    SliverToBoxAdapter(
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 20),
-                          _buildProfileHeader(isDark),
-                          const SizedBox(height: 32),
-                          if (_isEditing) _buildEditForm(isDark) else _buildInfoCards(isDark),
-                          const SizedBox(height: 32),
-                        ],
-                      ),
+          : StreamBuilder<AppUser?>(
+              stream: _userProfileStream,
+              builder: (context, snapshot) {
+                // Show loading only on initial waiting state without data
+                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator(color: Color(0xFFEC4899)));
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text('Error loading profile: ${snapshot.error}'),
+                      ],
                     ),
-                  ],
-                )
-              : SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 20),
-                      _buildProfileHeader(isDark),
-                      const SizedBox(height: 32),
-                      if (_isEditing) _buildEditForm(isDark) else _buildInfoCards(isDark),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
-                ),
+                  );
+                }
+
+                // If no data after waiting, show error
+                if (!snapshot.hasData || snapshot.data == null) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.person_off, size: 48, color: Colors.grey),
+                        const SizedBox(height: 16),
+                        const Text('No profile found'),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _initializeStream();
+                            });
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                _userProfile = snapshot.data;
+
+                // Update controllers with new data (only when not editing)
+                if (!_isEditing && _userProfile != null) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _updateControllersWithProfile(_userProfile);
+                  });
+                }
+
+                return canPop
+                    ? CustomScrollView(
+                        slivers: [
+                          _buildPinkSliverAppBar(isDark),
+                          SliverToBoxAdapter(
+                            child: Column(
+                              children: [
+                                const SizedBox(height: 20),
+                                _buildProfileHeader(isDark),
+                                const SizedBox(height: 32),
+                                if (_isEditing) _buildEditForm(isDark) else _buildInfoCards(isDark),
+                                const SizedBox(height: 32),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    : SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 20),
+                            _buildProfileHeader(isDark),
+                            const SizedBox(height: 32),
+                            if (_isEditing) _buildEditForm(isDark) else _buildInfoCards(isDark),
+                            const SizedBox(height: 32),
+                          ],
+                        ),
+                      );
+              },
+            ),
     );
   }
 
@@ -383,6 +431,33 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
             )
           : null,
       actions: [
+        if (!_isEditing) ...[
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: TextButton.icon(
+              onPressed: () {
+                // Navigate to home page and show walkers tab
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+              icon: const Icon(Icons.directions_walk_rounded, color: Colors.white, size: 20),
+              label: const Text(
+                'Book a Walk',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.white.withValues(alpha: 0.2),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+            ),
+          ),
+        ],
         IconButton(
           icon: const Icon(Icons.notifications_outlined, color: Colors.white),
           onPressed: () {
@@ -540,25 +615,17 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
                           ),
                         )
                       : profilePhotoUrl != null && profilePhotoUrl.isNotEmpty
-                          ? Image.network(
-                              profilePhotoUrl,
+                          ? CachedNetworkImage(
+                              imageUrl: profilePhotoUrl,
                               fit: BoxFit.cover,
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return Container(
-                                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                                  child: Center(
-                                    child: CircularProgressIndicator(
-                                      color: const Color(0xFFEC4899),
-                                      value: loadingProgress.expectedTotalBytes != null
-                                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                          : null,
-                                    ),
-                                  ),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) {
-                                print('Error loading profile image: $error');
+                              placeholder: (context, url) => Container(
+                                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                child: const Center(
+                                  child: CircularProgressIndicator(color: Color(0xFFEC4899)),
+                                ),
+                              ),
+                              errorWidget: (context, url, error) {
+                                // Silently fall back to default avatar
                                 return _buildDefaultPetAvatar(isDark);
                               },
                             )
@@ -833,7 +900,7 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const MyBookingsPage()),
+              MaterialPageRoute(builder: (context) => const MyBookingsPageRedesigned()),
             );
           },
           borderRadius: BorderRadius.circular(20),
@@ -903,16 +970,113 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
           const SizedBox(height: 16),
           _buildTextField('Age (years)', _petAgeController, Icons.cake_outlined, isDark, TextInputType.number),
           const SizedBox(height: 16),
-          _buildLocationDropdown(isDark),
-          const SizedBox(height: 16),
-          _buildTextField('City', _cityController, Icons.location_city, isDark),
-          const SizedBox(height: 16),
-          _buildTextField('Suburb (Optional)', _suburbController, Icons.home, isDark),
-          const SizedBox(height: 16),
-          _buildTextField('Postcode', _postcodeController, Icons.pin, isDark, TextInputType.number),
+          // Map Picker for Location
+          _buildLocationPicker(isDark),
           const SizedBox(height: 24),
           _buildSaveButton(isDark),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLocationPicker(bool isDark) {
+    // Combined location string for display
+    final String fullLocation = [_cityController.text, _selectedState ?? '', _postcodeController.text]
+        .where((s) => s.isNotEmpty)
+        .join(', ');
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: () async {
+          final result = await Navigator.push<LocationPickerResult>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LocationPicker(
+                initialLatitude: _selectedLatitude,
+                initialLongitude: _selectedLongitude,
+              ),
+            ),
+          );
+
+          if (result != null) {
+            setState(() {
+              _selectedLatitude = result.latitude;
+              _selectedLongitude = result.longitude;
+              // Parse the address to fill in the fields
+              final addressParts = result.address.split(', ');
+              if (addressParts.isNotEmpty) {
+                _cityController.text = addressParts.first;
+              }
+              if (addressParts.length > 1) {
+                _selectedState = addressParts[1];
+              }
+              if (addressParts.length > 2) {
+                _postcodeController.text = addressParts.last;
+              }
+            });
+          }
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(
+                fullLocation.isNotEmpty
+                    ? Icons.map_rounded
+                    : Icons.add_location_alt_rounded,
+                size: 22,
+                color: const Color(0xFFEC4899),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Location',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      fullLocation.isNotEmpty
+                          ? fullLocation
+                          : 'Tap to select location',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: fullLocation.isNotEmpty
+                            ? (isDark ? Colors.white : const Color(0xFF1F2937))
+                            : (isDark ? Colors.grey[400] : Colors.grey[400]),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: isDark ? Colors.grey[400] : Colors.grey[400],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

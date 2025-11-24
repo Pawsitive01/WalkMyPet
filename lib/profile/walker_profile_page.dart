@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:walkmypet/services/user_service.dart';
 import 'package:walkmypet/services/auth_service.dart';
 import 'package:walkmypet/services/image_upload_service.dart';
@@ -17,9 +18,9 @@ class _WalkerProfilePageState extends State<WalkerProfilePage> {
   final ImageUploadService _imageUploadService = ImageUploadService();
 
   AppUser? _userProfile;
-  bool _isLoading = true;
   bool _isEditing = false;
   bool _isUploadingImage = false;
+  Stream<AppUser?>? _userProfileStream;
 
   // Edit controllers
   final TextEditingController _nameController = TextEditingController();
@@ -30,7 +31,14 @@ class _WalkerProfilePageState extends State<WalkerProfilePage> {
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    _initializeStream();
+  }
+
+  void _initializeStream() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _userProfileStream = _userService.userStream(user.uid);
+    }
   }
 
   @override
@@ -42,44 +50,13 @@ class _WalkerProfilePageState extends State<WalkerProfilePage> {
     super.dispose();
   }
 
-  Future<void> _loadProfile() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    try {
-      print('📥 Loading profile for user: ${user.uid}');
-      final profile = await _userService.getUser(user.uid);
-
-      if (profile != null) {
-        print('✅ Profile loaded successfully');
-        print('   Display Name: ${profile.displayName}');
-        print('   Photo URL: ${profile.photoURL ?? "No photo"}');
-        print('   Photo URL length: ${profile.photoURL?.length ?? 0}');
-      } else {
-        print('⚠️ Profile is null');
-      }
-
-      if (mounted) {
-        setState(() {
-          _userProfile = profile;
-          _isLoading = false;
-        });
-
-        if (profile != null) {
-          final data = profile.toFirestore();
-          _nameController.text = data['displayName'] ?? '';
-          _locationController.text = data['location'] ?? '';
-          _bioController.text = data['bio'] ?? '';
-          _hourlyRateController.text = (data['hourlyRate'] ?? 25).toString();
-        }
-      }
-    } catch (e) {
-      print('❌ Error loading profile: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+  void _updateControllersWithProfile(AppUser? profile) {
+    if (profile != null) {
+      final data = profile.toFirestore();
+      _nameController.text = data['displayName'] ?? '';
+      _locationController.text = data['location'] ?? '';
+      _bioController.text = data['bio'] ?? '';
+      _hourlyRateController.text = (data['hourlyRate'] ?? 25).toString();
     }
   }
 
@@ -118,8 +95,6 @@ class _WalkerProfilePageState extends State<WalkerProfilePage> {
             margin: const EdgeInsets.all(16),
           ),
         );
-
-        _loadProfile();
       }
     } catch (e) {
       if (mounted) {
@@ -302,7 +277,6 @@ class _WalkerProfilePageState extends State<WalkerProfilePage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final profileData = _userProfile?.toFirestore();
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
@@ -327,14 +301,68 @@ class _WalkerProfilePageState extends State<WalkerProfilePage> {
                 setState(() {
                   _isEditing = false;
                 });
-                _loadProfile();
               },
             ),
         ],
       ),
-      body: _isLoading
+      body: _userProfileStream == null
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+          : StreamBuilder<AppUser?>(
+              stream: _userProfileStream,
+              builder: (context, snapshot) {
+                // Show loading only on initial waiting state without data
+                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text('Error loading profile: ${snapshot.error}'),
+                      ],
+                    ),
+                  );
+                }
+
+                // If no data after waiting, show error
+                if (!snapshot.hasData || snapshot.data == null) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.person_off, size: 48, color: Colors.grey),
+                        const SizedBox(height: 16),
+                        const Text('No profile found'),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _initializeStream();
+                            });
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                _userProfile = snapshot.data;
+
+                // Update controllers with new data (only when not editing)
+                if (!_isEditing && _userProfile != null) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _updateControllersWithProfile(_userProfile);
+                  });
+                }
+
+                final profileData = _userProfile?.toFirestore();
+
+                return SingleChildScrollView(
               child: Column(
                 children: [
                   // Header Card
@@ -364,11 +392,11 @@ class _WalkerProfilePageState extends State<WalkerProfilePage> {
                                   radius: 50,
                                   backgroundColor: const Color(0xFF6366F1),
                                   backgroundImage: _userProfile?.photoURL != null && _userProfile!.photoURL!.isNotEmpty
-                                      ? NetworkImage(_userProfile!.photoURL!)
+                                      ? CachedNetworkImageProvider(_userProfile!.photoURL!)
                                       : null,
                                   onBackgroundImageError: _userProfile?.photoURL != null
                                       ? (exception, stackTrace) {
-                                          print('Error loading profile image: $exception');
+                                          // Silently handle error - fallback to default icon
                                         }
                                       : null,
                                   child: _userProfile?.photoURL == null || _userProfile!.photoURL!.isEmpty
@@ -768,6 +796,8 @@ class _WalkerProfilePageState extends State<WalkerProfilePage> {
                   const SizedBox(height: 32),
                 ],
               ),
+                );
+              },
             ),
     );
   }

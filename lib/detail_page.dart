@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:walkmypet/models.dart';
 import 'package:walkmypet/booking_authentication_page.dart';
 import 'package:walkmypet/booking/booking_page.dart';
@@ -285,9 +287,44 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                           ),
                         ],
                       ),
-                      child: CircleAvatar(
-                        radius: _imageSize / 2,
-                        backgroundImage: AssetImage(widget.person.imageUrl),
+                      child: ClipOval(
+                        child: SizedBox(
+                          width: _imageSize,
+                          height: _imageSize,
+                          child: widget.person.imageUrl.startsWith('http')
+                              ? CachedNetworkImage(
+                                  imageUrl: widget.person.imageUrl,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
+                                    color: (widget.person is Walker ? const Color(0xFF6366F1) : const Color(0xFFEC4899))
+                                        .withAlpha((0.1 * 255).round()),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        color: widget.person is Walker ? const Color(0xFF6366F1) : const Color(0xFFEC4899),
+                                        strokeWidth: 3,
+                                      ),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) => Container(
+                                    color: (widget.person is Walker ? const Color(0xFF6366F1) : const Color(0xFFEC4899))
+                                        .withAlpha((0.1 * 255).round()),
+                                    child: Icon(
+                                      widget.person is Walker ? Icons.person : Icons.pets,
+                                      color: widget.person is Walker ? const Color(0xFF6366F1) : const Color(0xFFEC4899),
+                                      size: _imageSize * 0.4,
+                                    ),
+                                  ),
+                                )
+                              : Container(
+                                  color: (widget.person is Walker ? const Color(0xFF6366F1) : const Color(0xFFEC4899))
+                                      .withAlpha((0.1 * 255).round()),
+                                  child: Icon(
+                                    widget.person is Walker ? Icons.person : Icons.pets,
+                                    color: widget.person is Walker ? const Color(0xFF6366F1) : const Color(0xFFEC4899),
+                                    size: _imageSize * 0.4,
+                                  ),
+                                ),
+                        ),
                       ),
                     ),
                   ),
@@ -708,13 +745,24 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                           child: Material(
                             color: Colors.transparent,
                             child: InkWell(
-                              onTap: () {
+                              onTap: () async {
                                 final authProvider = Provider.of<app_auth.AuthProvider>(context, listen: false);
+                                final currentUser = FirebaseAuth.instance.currentUser;
 
-                                // Check if user is authenticated and has completed onboarding
-                                if (authProvider.isAuthenticated && authProvider.hasCompletedOnboarding) {
-                                  // User is logged in - go directly to booking page
+                                print('🔍 Detail Page - Auth Check:');
+                                print('  Provider isAuthenticated: ${authProvider.isAuthenticated}');
+                                print('  Provider hasCompletedOnboarding: ${authProvider.hasCompletedOnboarding}');
+                                print('  Provider isLoading: ${authProvider.isLoading}');
+                                print('  Provider userProfile: ${authProvider.userProfile}');
+                                print('  Firebase currentUser: ${currentUser?.uid}');
+                                print('  Firebase currentUser email: ${currentUser?.email}');
+
+                                // Check if user is authenticated using Firebase Auth directly
+                                if (currentUser != null) {
+                                  // User is logged in - check if they're trying to book a walker
                                   if (isWalker) {
+                                    // They're viewing a walker, navigate to booking page
+                                    print('✅ User authenticated, navigating to booking page');
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -724,16 +772,17 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                                       ),
                                     );
                                   } else {
-                                    // For owners, show message
+                                    // They're viewing an owner - show message that booking isn't available
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Only pet owners can book walkers'),
+                                        content: Text('You can book pet walkers, not pet owners'),
                                         backgroundColor: Color(0xFFEF4444),
                                       ),
                                     );
                                   }
                                 } else {
                                   // User not logged in - go to authentication page
+                                  print('❌ User not authenticated, navigating to auth page');
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -741,7 +790,7 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                                         personName: isWalker
                                             ? widget.person.name
                                             : (widget.person as Owner).dogName,
-                                        isWalker: !isWalker,
+                                        isWalker: false, // They want to book, so they'll sign up as owner
                                       ),
                                     ),
                                   );
