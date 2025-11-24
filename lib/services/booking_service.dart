@@ -42,10 +42,15 @@ class BookingService {
     return _firestore
         .collection('bookings')
         .where('ownerId', isEqualTo: ownerId)
-        .orderBy('date', descending: false)
+        // Removed .orderBy() to avoid requiring composite index
+        // We'll sort in the app instead
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Booking.fromFirestore(doc)).toList());
+        .map((snapshot) {
+          final bookings = snapshot.docs.map((doc) => Booking.fromFirestore(doc)).toList();
+          // Sort by date in the app
+          bookings.sort((a, b) => a.date.compareTo(b.date));
+          return bookings;
+        });
   }
 
   /// Get all bookings for a walker
@@ -53,10 +58,15 @@ class BookingService {
     return _firestore
         .collection('bookings')
         .where('walkerId', isEqualTo: walkerId)
-        .orderBy('date', descending: false)
+        // Removed .orderBy() to avoid requiring composite index
+        // We'll sort in the app instead
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Booking.fromFirestore(doc)).toList());
+        .map((snapshot) {
+          final bookings = snapshot.docs.map((doc) => Booking.fromFirestore(doc)).toList();
+          // Sort by date in the app
+          bookings.sort((a, b) => a.date.compareTo(b.date));
+          return bookings;
+        });
   }
 
   /// Get bookings for a specific date range

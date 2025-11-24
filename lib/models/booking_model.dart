@@ -23,6 +23,8 @@ class Booking {
   final String? notes;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final List<String>? services; // List of service names
+  final Map<String, dynamic>? serviceDetails; // {serviceName: {duration: 60, price: 25}}
 
   Booking({
     required this.id,
@@ -40,6 +42,8 @@ class Booking {
     this.notes,
     required this.createdAt,
     this.updatedAt,
+    this.services,
+    this.serviceDetails,
   });
 
   factory Booking.fromFirestore(DocumentSnapshot doc) {
@@ -63,6 +67,10 @@ class Booking {
       notes: data['notes'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
+      services: data['services'] != null ? List<String>.from(data['services']) : null,
+      serviceDetails: data['serviceDetails'] != null
+          ? Map<String, dynamic>.from(data['serviceDetails'])
+          : null,
     );
   }
 
@@ -82,6 +90,8 @@ class Booking {
       'notes': notes,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
+      'services': services,
+      'serviceDetails': serviceDetails,
     };
   }
 
@@ -101,6 +111,8 @@ class Booking {
     String? notes,
     DateTime? createdAt,
     DateTime? updatedAt,
+    List<String>? services,
+    Map<String, dynamic>? serviceDetails,
   }) {
     return Booking(
       id: id ?? this.id,
@@ -118,6 +130,8 @@ class Booking {
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      services: services ?? this.services,
+      serviceDetails: serviceDetails ?? this.serviceDetails,
     );
   }
 }

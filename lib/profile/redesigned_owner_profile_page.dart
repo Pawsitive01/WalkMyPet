@@ -5,8 +5,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:walkmypet/services/user_service.dart';
 import 'package:walkmypet/services/auth_service.dart';
 import 'package:walkmypet/services/image_upload_service.dart';
-import 'package:walkmypet/booking/my_bookings_page.dart';
+import 'package:walkmypet/booking/my_bookings_page_redesigned.dart';
 import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
+import 'package:walkmypet/widgets/location_picker.dart';
 
 class RedesignedOwnerProfilePage extends StatefulWidget {
   const RedesignedOwnerProfilePage({super.key});
@@ -35,6 +36,9 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
   final TextEditingController _cityController = TextEditingController();
   final TextEditingController _suburbController = TextEditingController();
   final TextEditingController _postcodeController = TextEditingController();
+
+  double? _selectedLatitude;
+  double? _selectedLongitude;
 
   // Australian states and territories
   final List<String> _australianStates = [
@@ -896,7 +900,7 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const MyBookingsPage()),
+              MaterialPageRoute(builder: (context) => const MyBookingsPageRedesigned()),
             );
           },
           borderRadius: BorderRadius.circular(20),
@@ -966,16 +970,113 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
           const SizedBox(height: 16),
           _buildTextField('Age (years)', _petAgeController, Icons.cake_outlined, isDark, TextInputType.number),
           const SizedBox(height: 16),
-          _buildLocationDropdown(isDark),
-          const SizedBox(height: 16),
-          _buildTextField('City', _cityController, Icons.location_city, isDark),
-          const SizedBox(height: 16),
-          _buildTextField('Suburb (Optional)', _suburbController, Icons.home, isDark),
-          const SizedBox(height: 16),
-          _buildTextField('Postcode', _postcodeController, Icons.pin, isDark, TextInputType.number),
+          // Map Picker for Location
+          _buildLocationPicker(isDark),
           const SizedBox(height: 24),
           _buildSaveButton(isDark),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLocationPicker(bool isDark) {
+    // Combined location string for display
+    final String fullLocation = [_cityController.text, _selectedState ?? '', _postcodeController.text]
+        .where((s) => s.isNotEmpty)
+        .join(', ');
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: () async {
+          final result = await Navigator.push<LocationPickerResult>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LocationPicker(
+                initialLatitude: _selectedLatitude,
+                initialLongitude: _selectedLongitude,
+              ),
+            ),
+          );
+
+          if (result != null) {
+            setState(() {
+              _selectedLatitude = result.latitude;
+              _selectedLongitude = result.longitude;
+              // Parse the address to fill in the fields
+              final addressParts = result.address.split(', ');
+              if (addressParts.isNotEmpty) {
+                _cityController.text = addressParts.first;
+              }
+              if (addressParts.length > 1) {
+                _selectedState = addressParts[1];
+              }
+              if (addressParts.length > 2) {
+                _postcodeController.text = addressParts.last;
+              }
+            });
+          }
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(
+                fullLocation.isNotEmpty
+                    ? Icons.map_rounded
+                    : Icons.add_location_alt_rounded,
+                size: 22,
+                color: const Color(0xFFEC4899),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Location',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      fullLocation.isNotEmpty
+                          ? fullLocation
+                          : 'Tap to select location',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: fullLocation.isNotEmpty
+                            ? (isDark ? Colors.white : const Color(0xFF1F2937))
+                            : (isDark ? Colors.grey[400] : Colors.grey[400]),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: isDark ? Colors.grey[400] : Colors.grey[400],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

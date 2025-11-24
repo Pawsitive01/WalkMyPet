@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:walkmypet/services/user_service.dart';
 import 'package:walkmypet/services/auth_service.dart';
 import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
+import 'package:walkmypet/widgets/location_picker.dart';
 
 class RedesignedWalkerProfilePage extends StatefulWidget {
   const RedesignedWalkerProfilePage({super.key});
@@ -30,6 +31,9 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _bioController = TextEditingController();
   final TextEditingController _hourlyRateController = TextEditingController();
+
+  double? _selectedLatitude;
+  double? _selectedLongitude;
 
   @override
   void initState() {
@@ -964,13 +968,8 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
             isSmallScreen,
           ),
           SizedBox(height: isSmallScreen ? 12 : 16),
-          _buildTextField(
-            'Location',
-            _locationController,
-            Icons.location_on_outlined,
-            isDark,
-            isSmallScreen,
-          ),
+          // Map Picker for Location
+          _buildLocationPicker(isDark, isSmallScreen),
           SizedBox(height: isSmallScreen ? 12 : 16),
           _buildTextField(
             'Hourly Rate (\$)',
@@ -993,6 +992,113 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
           SizedBox(height: isSmallScreen ? 20 : 24),
           _buildSaveButton(isDark, isSmallScreen),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLocationPicker(bool isDark, bool isSmallScreen) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: () async {
+          final result = await Navigator.push<LocationPickerResult>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LocationPicker(
+                initialLatitude: _selectedLatitude,
+                initialLongitude: _selectedLongitude,
+              ),
+            ),
+          );
+
+          if (result != null) {
+            setState(() {
+              _selectedLatitude = result.latitude;
+              _selectedLongitude = result.longitude;
+              _locationController.text = result.address;
+            });
+          }
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: isSmallScreen ? 16 : 20,
+            vertical: isSmallScreen ? 14 : 16,
+          ),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                margin: EdgeInsets.only(right: isSmallScreen ? 10 : 12),
+                padding: EdgeInsets.all(isSmallScreen ? 8 : 10),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  _locationController.text.isNotEmpty
+                      ? Icons.map_rounded
+                      : Icons.add_location_alt_rounded,
+                  size: isSmallScreen ? 18 : 20,
+                  color: Colors.white,
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Location',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 12 : 13,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? Colors.white60 : const Color(0xFF6B7280),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _locationController.text.isNotEmpty
+                          ? _locationController.text
+                          : 'Tap to select location',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 15 : 16,
+                        fontWeight: FontWeight.w500,
+                        color: _locationController.text.isNotEmpty
+                            ? (isDark ? Colors.white : const Color(0xFF1F2937))
+                            : (isDark ? Colors.white38 : const Color(0xFF9CA3AF)),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

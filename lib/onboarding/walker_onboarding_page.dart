@@ -6,6 +6,7 @@ import 'package:walkmypet/services/image_upload_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:walkmypet/profile/redesigned_walker_profile_page.dart';
 import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
+import 'package:walkmypet/widgets/location_picker.dart';
 
 class WalkerOnboardingPage extends StatefulWidget {
   const WalkerOnboardingPage({super.key});
@@ -26,6 +27,8 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
   // Form data
   String walkerName = '';
   String location = '';
+  double? _selectedLatitude;
+  double? _selectedLongitude;
   String bio = '';
   int yearsOfExperience = 0;
   bool hasPoliceClearance = false;
@@ -700,16 +703,111 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
       title: 'Where do you operate?',
       subtitle: 'This helps us connect you with nearby pet owners.',
       isSmallScreen: isSmallScreen,
-      child: _buildModernTextField(
-        value: location,
-        hint: 'e.g., Adelaide, Australia',
-        icon: Icons.location_on_rounded,
-        isSmallScreen: isSmallScreen,
-        onChanged: (value) {
-          setState(() {
-            location = value;
-          });
-        },
+      child: Column(
+        children: [
+          // Map Picker Button
+          InkWell(
+            onTap: () async {
+              final result = await Navigator.push<LocationPickerResult>(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LocationPicker(
+                    initialLatitude: _selectedLatitude,
+                    initialLongitude: _selectedLongitude,
+                  ),
+                ),
+              );
+
+              if (result != null) {
+                setState(() {
+                  _selectedLatitude = result.latitude;
+                  _selectedLongitude = result.longitude;
+                  location = result.address;
+                });
+              }
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
+              decoration: BoxDecoration(
+                color: location.isNotEmpty
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: location.isNotEmpty
+                      ? Colors.white.withValues(alpha: 0.4)
+                      : Colors.white.withValues(alpha: 0.2),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(isSmallScreen ? 10 : 12),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF10B981), Color(0xFF059669)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      location.isNotEmpty
+                          ? Icons.map_rounded
+                          : Icons.add_location_alt_rounded,
+                      color: Colors.white,
+                      size: isSmallScreen ? 22 : 24,
+                    ),
+                  ),
+                  SizedBox(width: isSmallScreen ? 12 : 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          location.isNotEmpty
+                              ? 'Location Selected'
+                              : 'Select your location',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: isSmallScreen ? 15 : 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (location.isNotEmpty) ...[
+                          SizedBox(height: 4),
+                          Text(
+                            location,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: isSmallScreen ? 13 : 14,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ] else ...[
+                          SizedBox(height: 4),
+                          Text(
+                            'Tap to open map',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              fontSize: isSmallScreen ? 13 : 14,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: Colors.white.withValues(alpha: 0.5),
+                    size: 16,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
       onContinue: location.isNotEmpty ? _nextStep : null,
     );

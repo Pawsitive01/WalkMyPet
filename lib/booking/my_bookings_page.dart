@@ -1,15 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:walkmypet/booking/my_bookings_page_redesigned.dart';
+
+/// DEPRECATED: This page has been replaced by MyBookingsPageRedesigned
+/// This file now redirects to the new page for backwards compatibility
+@Deprecated('Use MyBookingsPageRedesigned instead')
+class MyBookingsPage extends StatelessWidget {
+  const MyBookingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Redirect to the redesigned page
+    return const MyBookingsPageRedesigned();
+  }
+}
+
+// OLD IMPLEMENTATION BELOW - KEPT FOR REFERENCE
+// Delete this entire file once migration is complete
+
+/*
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'package:walkmypet/models/booking_model.dart';
 import 'package:walkmypet/services/booking_service.dart';
 
-class MyBookingsPage extends StatefulWidget {
-  const MyBookingsPage({super.key});
+class _MyBookingsPageOld extends StatefulWidget {
+  const _MyBookingsPageOld({super.key});
 
   @override
-  State<MyBookingsPage> createState() => _MyBookingsPageState();
+  State<_MyBookingsPageOld> createState() => _MyBookingsPageState();
 }
 
 class _MyBookingsPageState extends State<MyBookingsPage> {
@@ -662,3 +681,4 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
     );
   }
 }
+*/
