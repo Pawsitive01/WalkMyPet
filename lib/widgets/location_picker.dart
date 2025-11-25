@@ -1,3 +1,4 @@
+import 'dart:math' show sin, cos, sqrt, atan2, pi;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:walkmypet/services/location_service.dart';
@@ -52,8 +53,60 @@ class _LocationPickerState extends State<LocationPicker> {
           LatLng(widget.initialLatitude!, widget.initialLongitude!);
       _updateAddress(_selectedLocation!);
     } else {
-      _getCurrentLocation();
+      // Try to get last known location first (instant), then get accurate location
+      _getLocationProgressive();
     }
+  }
+
+  /// Progressive location loading (Uber-like): Show last known location instantly, then update with accurate location
+  Future<void> _getLocationProgressive() async {
+    setState(() => _isGettingCurrentLocation = true);
+
+    // First, try to get last known location (instant)
+    final lastKnown = await _locationService.getLastKnownLocation();
+    if (lastKnown != null) {
+      final location = LatLng(lastKnown.latitude, lastKnown.longitude);
+      setState(() {
+        _selectedLocation = location;
+      });
+
+      _mapController?.animateCamera(
+        CameraUpdate.newLatLngZoom(location, 15),
+      );
+
+      // Start loading address in background
+      _updateAddress(location);
+    }
+
+    // Then get accurate current location
+    final position = await _locationService.getCurrentLocation();
+
+    if (position != null) {
+      final location = LatLng(position.latitude, position.longitude);
+
+      // Only update if location changed significantly (more than 50 meters)
+      if (_selectedLocation == null ||
+          _calculateDistance(_selectedLocation!, location) > 0.05) {
+        setState(() {
+          _selectedLocation = location;
+        });
+
+        // Smooth animation to new location
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(location, 15),
+        );
+
+        await _updateAddress(location);
+      }
+    } else if (_selectedLocation == null) {
+      // Only use default if we have no location at all
+      setState(() {
+        _selectedLocation = _defaultLocation;
+      });
+      await _updateAddress(_defaultLocation);
+    }
+
+    setState(() => _isGettingCurrentLocation = false);
   }
 
   Future<void> _getCurrentLocation() async {
@@ -67,37 +120,61 @@ class _LocationPickerState extends State<LocationPicker> {
         _selectedLocation = location;
       });
 
+      // Smooth camera animation
       _mapController?.animateCamera(
-        CameraUpdate.newLatLngZoom(location, 15),
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: location,
+            zoom: 16,
+            tilt: 0,
+          ),
+        ),
       );
 
       await _updateAddress(location);
-    } else {
-      // Use default location if can't get current
-      setState(() {
-        _selectedLocation = _defaultLocation;
-      });
-      await _updateAddress(_defaultLocation);
     }
 
     setState(() => _isGettingCurrentLocation = false);
   }
 
+  /// Calculate distance between two points in km
+  double _calculateDistance(LatLng start, LatLng end) {
+    const earthRadius = 6371; // km
+    final dLat = _toRadians(end.latitude - start.latitude);
+    final dLng = _toRadians(end.longitude - start.longitude);
+
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_toRadians(start.latitude)) *
+            cos(_toRadians(end.latitude)) *
+            sin(dLng / 2) *
+            sin(dLng / 2);
+
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return earthRadius * c;
+  }
+
+  double _toRadians(double degrees) => degrees * (pi / 180);
+
+  /// Update address with debouncing (Uber-like smooth experience)
   Future<void> _updateAddress(LatLng location) async {
     setState(() {
       _isLoadingAddress = true;
       _selectedAddress = 'Getting address...';
     });
 
-    final address = await _locationService.getAddressFromCoordinates(
+    // Use debounced address lookup to prevent excessive API calls
+    await _locationService.getDebouncedAddressFromCoordinates(
       location.latitude,
       location.longitude,
+      onAddressReady: (address) {
+        if (mounted) {
+          setState(() {
+            _selectedAddress = address ?? 'Address not found';
+            _isLoadingAddress = false;
+          });
+        }
+      },
     );
-
-    setState(() {
-      _selectedAddress = address ?? 'Address not found';
-      _isLoadingAddress = false;
-    });
   }
 
   void _onMapTapped(LatLng location) {
@@ -436,6 +513,7 @@ class _LocationPickerState extends State<LocationPicker> {
   @override
   void dispose() {
     _mapController?.dispose();
+    _locationService.dispose();
     super.dispose();
   }
 }

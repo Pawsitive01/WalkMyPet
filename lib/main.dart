@@ -755,57 +755,8 @@ class _WalkerListState extends State<WalkerList> with SingleTickerProviderStateM
   late List<Animation<double>> _itemAnimations;
   final UserService _userService = UserService();
   List<Walker> _walkers = [];
-
-  static const _dummyWalkers = [
-    Walker(
-      name: 'John Doe',
-      rating: 4.5,
-      reviews: 120,
-      hourlyRate: 25,
-      location: 'Adelaide, Australia',
-      completedWalks: 150,
-      imageUrl: 'assets/images/walker1.jpg',
-      bio: 'I am a dog lover and I have been walking dogs for 5 years. I am very responsible and I will take good care of your dog.',
-      hasPoliceClearance: true,
-      services: ['Walking', 'Sitting'],
-      servicePrices: {
-        'Walking': 25,
-        'Sitting': 35,
-      },
-    ),
-    Walker(
-      name: 'Jane Smith',
-      rating: 5.0,
-      reviews: 200,
-      hourlyRate: 30,
-      location: 'Los Angeles, CA',
-      completedWalks: 250,
-      imageUrl: 'assets/images/walker2.jpg',
-      bio: 'I am a certified dog walker and I have been working with dogs for over 10 years. I am also a certified dog trainer.',
-      hasPoliceClearance: false,
-      services: ['Walking', 'Grooming', 'Sitting'],
-      servicePrices: {
-        'Walking': 30,
-        'Grooming': 45,
-        'Sitting': 40,
-      },
-    ),
-    Walker(
-      name: 'Sam Wilson',
-      rating: 4.2,
-      reviews: 90,
-      hourlyRate: 22,
-      location: 'Adelaide, Australia',
-      completedWalks: 120,
-      imageUrl: 'assets/images/walker3.jpg',
-      bio: 'I am a student and I love dogs. I am available for walks in the afternoon and on weekends.',
-      hasPoliceClearance: true,
-      services: ['Walking'],
-      servicePrices: {
-        'Walking': 22,
-      },
-    ),
-  ];
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -844,48 +795,37 @@ class _WalkerListState extends State<WalkerList> with SingleTickerProviderStateM
 
       if (mounted) {
         setState(() {
-          _walkers = loadedWalkers.isNotEmpty ? loadedWalkers : _dummyWalkers;
+          _walkers = loadedWalkers;
+          _isLoading = false;
+          _errorMessage = null;
         });
 
         // Create staggered animations for each item
-        _itemAnimations = List.generate(
-          _walkers.length,
-          (index) => Tween<double>(begin: 0.0, end: 1.0).animate(
-            CurvedAnimation(
-              parent: _controller,
-              curve: Interval(
-                index * 0.2,
-                0.6 + (index * 0.2),
-                curve: Curves.easeOutCubic,
+        if (_walkers.isNotEmpty) {
+          _itemAnimations = List.generate(
+            _walkers.length,
+            (index) => Tween<double>(begin: 0.0, end: 1.0).animate(
+              CurvedAnimation(
+                parent: _controller,
+                curve: Interval(
+                  index * 0.2,
+                  0.6 + (index * 0.2),
+                  curve: Curves.easeOutCubic,
+                ),
               ),
             ),
-          ),
-        );
+          );
 
-        _controller.forward();
+          _controller.forward();
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _walkers = _dummyWalkers;
+          _walkers = [];
+          _isLoading = false;
+          _errorMessage = 'Failed to load pet walkers. Please try again.';
         });
-
-        // Create staggered animations for each item
-        _itemAnimations = List.generate(
-          _walkers.length,
-          (index) => Tween<double>(begin: 0.0, end: 1.0).animate(
-            CurvedAnimation(
-              parent: _controller,
-              curve: Interval(
-                index * 0.2,
-                0.6 + (index * 0.2),
-                curve: Curves.easeOutCubic,
-              ),
-            ),
-          ),
-        );
-
-        _controller.forward();
       }
     }
   }
@@ -898,6 +838,113 @@ class _WalkerListState extends State<WalkerList> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Show loading state
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+      );
+    }
+
+    // Show error state
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: isDark ? Colors.grey[600] : Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _errorMessage!,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _isLoading = true;
+                  });
+                  _loadWalkers();
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Show empty state
+    if (_walkers.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.directions_walk_outlined,
+                size: 80,
+                color: isDark ? Colors.grey[600] : Colors.grey[400],
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'No Pet Walkers Yet',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Pet walkers will appear here once they complete their profile setup.',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _isLoading = true;
+                  });
+                  _loadWalkers();
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Refresh'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Show walkers list
     return ListView.builder(
       padding: const EdgeInsets.only(top: 20, bottom: 20),
       itemCount: _walkers.length,
