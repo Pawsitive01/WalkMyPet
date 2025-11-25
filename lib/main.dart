@@ -773,6 +773,7 @@ class _WalkerListState extends State<WalkerList> with SingleTickerProviderStateM
     try {
       final users = await _userService.getPetWalkers();
 
+      // Filter for walkers who completed onboarding and map to Walker model
       final loadedWalkers = users.where((user) {
         final data = user.toFirestore();
         return data['onboardingComplete'] == true;

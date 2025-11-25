@@ -1,0 +1,22 @@
+<svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Foreground only (transparent background for adaptive icon) -->
+
+  <!-- Paw Print (White) -->
+  <g transform="translate(512, 512)" fill="#FFFFFF">
+    <!-- Main Pad (bottom, larger) -->
+    <ellipse cx="0" cy="80" rx="140" ry="120"/>
+
+    <!-- Toe Pads (4 smaller ovals) -->
+    <!-- Left toe -->
+    <ellipse cx="-105" cy="-40" rx="55" ry="65" transform="rotate(-15 -105 -40)"/>
+
+    <!-- Left-center toe -->
+    <ellipse cx="-35" cy="-100" rx="55" ry="70" transform="rotate(-5 -35 -100)"/>
+
+    <!-- Right-center toe -->
+    <ellipse cx="35" cy="-100" rx="55" ry="70" transform="rotate(5 35 -100)"/>
+
+    <!-- Right toe -->
+    <ellipse cx="105" cy="-40" rx="55" ry="65" transform="rotate(15 105 -40)"/>
+  </g>
+</svg>

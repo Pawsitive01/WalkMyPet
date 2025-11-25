@@ -555,11 +555,15 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              gradient: const LinearGradient(
+                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.3),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -573,14 +577,14 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
                   style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFEC4899),
+                    color: Colors.white,
                     letterSpacing: 0.3,
                   ),
                 ),
                 const SizedBox(width: 8),
                 const Icon(
                   Icons.arrow_forward_rounded,
-                  color: Color(0xFFEC4899),
+                  color: Colors.white,
                   size: 22,
                 ),
               ],

@@ -36,6 +36,37 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
   double? _selectedLatitude;
   double? _selectedLongitude;
 
+  // Services editing
+  List<String> _selectedServices = [];
+  Map<String, int> _servicePrices = {};
+
+  final List<Map<String, dynamic>> _availableServices = [
+    {
+      'name': 'Walking',
+      'icon': Icons.directions_walk_rounded,
+      'description': 'Daily dog walks',
+      'gradient': [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+    },
+    {
+      'name': 'Sitting',
+      'icon': Icons.home_work_rounded,
+      'description': 'Pet sitting at home',
+      'gradient': [Color(0xFF10B981), Color(0xFF059669)],
+    },
+    {
+      'name': 'Grooming',
+      'icon': Icons.cleaning_services_rounded,
+      'description': 'Basic grooming services',
+      'gradient': [Color(0xFFF59E0B), Color(0xFFD97706)],
+    },
+    {
+      'name': 'Training',
+      'icon': Icons.school_rounded,
+      'description': 'Basic obedience training',
+      'gradient': [Color(0xFFEC4899), Color(0xFFDB2777)],
+    },
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -82,6 +113,16 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
           _locationController.text = data['location'] ?? '';
           _bioController.text = data['bio'] ?? '';
           _hourlyRateController.text = (data['hourlyRate'] ?? 25).toString();
+          _selectedLatitude = data['latitude']?.toDouble();
+          _selectedLongitude = data['longitude']?.toDouble();
+
+          // Load services
+          if (data['services'] != null) {
+            _selectedServices = List<String>.from(data['services']);
+          }
+          if (data['servicePrices'] != null) {
+            _servicePrices = Map<String, int>.from(data['servicePrices']);
+          }
         }
         
         _animationController.forward();
@@ -888,13 +929,31 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
                 ),
               ),
               const SizedBox(width: 12),
-              Text(
-                'Services',
-                style: TextStyle(
-                  fontSize: isSmallScreen ? 15 : 16,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white : const Color(0xFF1F2937),
-                  letterSpacing: -0.2,
+              Expanded(
+                child: Text(
+                  'Services',
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 15 : 16,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : const Color(0xFF1F2937),
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ),
+              // Edit button
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _showEditServicesDialog(isDark, isSmallScreen),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(
+                      Icons.edit_outlined,
+                      size: 18,
+                      color: const Color(0xFF6366F1),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -1310,6 +1369,477 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
               ),
       ),
     );
+  }
+
+  Future<void> _showEditServicesDialog(bool isDark, bool isSmallScreen) async {
+    // Create copies for editing
+    List<String> tempSelectedServices = List.from(_selectedServices);
+    Map<String, int> tempServicePrices = Map.from(_servicePrices);
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : const Color(0xFFE5E7EB),
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.category_outlined,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Edit Services',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white : const Color(0xFF1F2937),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(
+                          Icons.close_rounded,
+                          color: isDark ? Colors.white70 : Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Services Selection
+                        Text(
+                          'Select Services',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white : const Color(0xFF1F2937),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Choose the services you offer',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark ? Colors.white60 : Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        ..._availableServices.map((service) {
+                          final isSelected =
+                              tempSelectedServices.contains(service['name']);
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  setModalState(() {
+                                    if (isSelected) {
+                                      tempSelectedServices
+                                          .remove(service['name']);
+                                      tempServicePrices.remove(service['name']);
+                                    } else {
+                                      tempSelectedServices
+                                          .add(service['name'] as String);
+                                      tempServicePrices[service['name'] as String] = 25;
+                                    }
+                                  });
+                                },
+                                borderRadius: BorderRadius.circular(16),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? const Color(0xFF6366F1)
+                                            .withValues(alpha: 0.1)
+                                        : isDark
+                                            ? Colors.white.withValues(alpha: 0.05)
+                                            : const Color(0xFFF8F9FA),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? const Color(0xFF6366F1)
+                                          : isDark
+                                              ? Colors.white.withValues(alpha: 0.1)
+                                              : const Color(0xFFE5E7EB),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          gradient: isSelected
+                                              ? LinearGradient(
+                                                  colors: service['gradient']
+                                                      as List<Color>,
+                                                )
+                                              : null,
+                                          color: isSelected
+                                              ? null
+                                              : isDark
+                                                  ? Colors.white
+                                                      .withValues(alpha: 0.1)
+                                                  : Colors.grey[200],
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Icon(
+                                          service['icon'] as IconData,
+                                          color: isSelected
+                                              ? Colors.white
+                                              : const Color(0xFF6366F1),
+                                          size: 22,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              service['name'] as String,
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w700,
+                                                color: isDark
+                                                    ? Colors.white
+                                                    : const Color(0xFF1F2937),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              service['description'] as String,
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: isDark
+                                                    ? Colors.white60
+                                                    : Colors.grey[600],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (isSelected)
+                                        const Icon(
+                                          Icons.check_circle_rounded,
+                                          color: Color(0xFF10B981),
+                                          size: 26,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+
+                        // Pricing Section
+                        if (tempSelectedServices.isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          Text(
+                            'Set Your Rates',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white : const Color(0xFF1F2937),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Set hourly rates for each service',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDark ? Colors.white60 : Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          ...tempSelectedServices.map((serviceName) {
+                            final serviceData = _availableServices.firstWhere(
+                              (s) => s['name'] == serviceName,
+                              orElse: () => _availableServices[0],
+                            );
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? Colors.white.withValues(alpha: 0.05)
+                                      : const Color(0xFFF8F9FA),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? Colors.white.withValues(alpha: 0.1)
+                                        : const Color(0xFFE5E7EB),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: serviceData['gradient']
+                                              as List<Color>,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(
+                                        serviceData['icon'] as IconData,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Text(
+                                        serviceName,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark
+                                              ? Colors.white
+                                              : const Color(0xFF1F2937),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Text(
+                                      '\$',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF6366F1),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    SizedBox(
+                                      width: 70,
+                                      child: TextFormField(
+                                        initialValue: tempServicePrices[serviceName]
+                                                ?.toString() ??
+                                            '25',
+                                        onChanged: (value) {
+                                          if (value.isEmpty) {
+                                            tempServicePrices[serviceName] = 0;
+                                          } else {
+                                            tempServicePrices[serviceName] =
+                                                int.tryParse(value) ?? 0;
+                                          }
+                                        },
+                                        keyboardType: TextInputType.number,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          color: isDark
+                                              ? Colors.white
+                                              : const Color(0xFF1F2937),
+                                        ),
+                                        decoration: InputDecoration(
+                                          hintText: '25',
+                                          border: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            borderSide: const BorderSide(
+                                              color: Color(0xFF6366F1),
+                                              width: 2,
+                                            ),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            borderSide: BorderSide(
+                                              color: const Color(0xFF6366F1)
+                                                  .withValues(alpha: 0.3),
+                                              width: 2,
+                                            ),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            borderSide: const BorderSide(
+                                              color: Color(0xFF6366F1),
+                                              width: 2,
+                                            ),
+                                          ),
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 12,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '/hr',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark
+                                            ? Colors.white60
+                                            : Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Save Button
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : const Color(0xFFE5E7EB),
+                      ),
+                    ),
+                  ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: tempSelectedServices.isEmpty
+                          ? null
+                          : () async {
+                              HapticFeedback.mediumImpact();
+                              Navigator.pop(context);
+
+                              // Update state
+                              setState(() {
+                                _selectedServices = tempSelectedServices;
+                                _servicePrices = tempServicePrices;
+                              });
+
+                              // Save to Firebase
+                              await _saveServicesToFirebase();
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6366F1),
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor:
+                            isDark ? Colors.grey[800] : Colors.grey[300],
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check_circle_rounded, size: 24),
+                          SizedBox(width: 12),
+                          Text(
+                            'Save Services',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _saveServicesToFirebase() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      // Calculate average rate
+      final rates = _servicePrices.values.toList();
+      final avgRate = rates.isNotEmpty
+          ? rates.reduce((a, b) => a + b) / rates.length
+          : 25.0;
+
+      await _userService.updateUser(user.uid, {
+        'services': _selectedServices,
+        'servicePrices': _servicePrices,
+        'hourlyRate': avgRate.round(),
+      });
+
+      if (mounted) {
+        setState(() => _isSaving = false);
+        _showSuccessSnackBar('Services updated successfully');
+        await _loadProfile();
+        await Provider.of<app_auth.AuthProvider>(context, listen: false)
+            .refreshUserProfile();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        _showErrorSnackBar('Failed to update services');
+      }
+    }
   }
 
   Widget _buildSignOutDialog() {

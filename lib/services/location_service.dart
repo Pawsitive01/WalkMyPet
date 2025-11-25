@@ -132,15 +132,18 @@ class LocationService {
     _debounceTimer?.cancel();
 
     // Create new timer
-    final completer = Completer<String?>();
-
     _debounceTimer = Timer(delay, () async {
-      final address = await getAddressFromCoordinates(latitude, longitude);
-      onAddressReady(address);
-      completer.complete(address);
+      try {
+        final address = await getAddressFromCoordinates(latitude, longitude);
+        onAddressReady(address);
+      } catch (e) {
+        // Handle error gracefully
+        onAddressReady('Address not found');
+      }
     });
 
-    return completer.future;
+    // Return null immediately - the callback will be called when ready
+    return null;
   }
 
   /// Get formatted address (shorter version)

@@ -96,14 +96,14 @@ class _LocationPickerState extends State<LocationPicker> {
           CameraUpdate.newLatLngZoom(location, 15),
         );
 
-        await _updateAddress(location);
+        _updateAddress(location);
       }
     } else if (_selectedLocation == null) {
       // Only use default if we have no location at all
       setState(() {
         _selectedLocation = _defaultLocation;
       });
-      await _updateAddress(_defaultLocation);
+      _updateAddress(_defaultLocation);
     }
 
     setState(() => _isGettingCurrentLocation = false);
@@ -131,7 +131,7 @@ class _LocationPickerState extends State<LocationPicker> {
         ),
       );
 
-      await _updateAddress(location);
+      _updateAddress(location);
     }
 
     setState(() => _isGettingCurrentLocation = false);
@@ -156,14 +156,14 @@ class _LocationPickerState extends State<LocationPicker> {
   double _toRadians(double degrees) => degrees * (pi / 180);
 
   /// Update address with debouncing (Uber-like smooth experience)
-  Future<void> _updateAddress(LatLng location) async {
+  void _updateAddress(LatLng location) {
     setState(() {
       _isLoadingAddress = true;
       _selectedAddress = 'Getting address...';
     });
 
     // Use debounced address lookup to prevent excessive API calls
-    await _locationService.getDebouncedAddressFromCoordinates(
+    _locationService.getDebouncedAddressFromCoordinates(
       location.latitude,
       location.longitude,
       onAddressReady: (address) {
@@ -186,12 +186,20 @@ class _LocationPickerState extends State<LocationPicker> {
 
   void _confirmLocation() {
     if (_selectedLocation != null) {
+      // Ensure we have a valid address, fallback to coordinates if needed
+      String finalAddress = _selectedAddress;
+      if (finalAddress.isEmpty ||
+          finalAddress == 'Loading...' ||
+          finalAddress == 'Getting address...') {
+        finalAddress = '${_selectedLocation!.latitude.toStringAsFixed(4)}, ${_selectedLocation!.longitude.toStringAsFixed(4)}';
+      }
+
       Navigator.pop(
         context,
         LocationPickerResult(
           latitude: _selectedLocation!.latitude,
           longitude: _selectedLocation!.longitude,
-          address: _selectedAddress,
+          address: finalAddress,
         ),
       );
     }

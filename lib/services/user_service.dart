@@ -297,7 +297,6 @@ class UserService {
     try {
       final querySnapshot = await _firestore
           .collection('walkers')
-          .where('onboardingComplete', isEqualTo: true)
           .get();
 
       return querySnapshot.docs

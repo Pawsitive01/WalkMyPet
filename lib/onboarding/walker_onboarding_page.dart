@@ -130,6 +130,8 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
           _currentStep = progress['currentStep'] ?? 0;
           walkerName = progress['walkerName'] ?? '';
           location = progress['location'] ?? '';
+          _selectedLatitude = progress['selectedLatitude']?.toDouble();
+          _selectedLongitude = progress['selectedLongitude']?.toDouble();
           bio = progress['bio'] ?? '';
           yearsOfExperience = progress['yearsOfExperience'] ?? 0;
           hasPoliceClearance = progress['hasPoliceClearance'] ?? false;
@@ -155,6 +157,8 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
           'currentStep': _currentStep,
           'walkerName': walkerName,
           'location': location,
+          'selectedLatitude': _selectedLatitude,
+          'selectedLongitude': _selectedLongitude,
           'bio': bio,
           'yearsOfExperience': yearsOfExperience,
           'hasPoliceClearance': hasPoliceClearance,
@@ -241,6 +245,8 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
       await _userService.updateUser(user.uid, {
         'displayName': walkerName,
         'location': location,
+        'latitude': _selectedLatitude,
+        'longitude': _selectedLongitude,
         'bio': bio,
         'yearsOfExperience': yearsOfExperience,
         'hasPoliceClearance': hasPoliceClearance,
@@ -572,12 +578,19 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
             duration: const Duration(milliseconds: 200),
             padding: EdgeInsets.symmetric(vertical: isSmallScreen ? 14 : 16),
             decoration: BoxDecoration(
-              color: isEnabled ? Colors.white : Colors.white.withValues(alpha: 0.5),
+              gradient: isEnabled
+                  ? const LinearGradient(
+                      colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    )
+                  : null,
+              color: isEnabled ? null : Colors.white.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(16),
               boxShadow: isEnabled
                   ? [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: const Color(0xFF6366F1).withValues(alpha: 0.3),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -588,13 +601,13 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (_isLoading)
-                  SizedBox(
+                  const SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        const Color(0xFF6366F1),
+                        Colors.white,
                       ),
                     ),
                   )
@@ -604,14 +617,14 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                     style: TextStyle(
                       fontSize: isSmallScreen ? 16 : 17,
                       fontWeight: FontWeight.w700,
-                      color: isEnabled ? const Color(0xFF6366F1) : const Color(0xFF6366F1).withValues(alpha: 0.5),
+                      color: isEnabled ? Colors.white : Colors.white.withValues(alpha: 0.5),
                       letterSpacing: 0.2,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Icon(
                     Icons.arrow_forward_rounded,
-                    color: isEnabled ? const Color(0xFF6366F1) : const Color(0xFF6366F1).withValues(alpha: 0.5),
+                    color: isEnabled ? Colors.white : Colors.white.withValues(alpha: 0.5),
                     size: 20,
                   ),
                 ],
@@ -628,6 +641,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
       title: 'Become a\nPet Walker! 🚶',
       subtitle: 'Join our community of trusted pet walkers and start earning while doing what you love.',
       isSmallScreen: isSmallScreen,
+      onContinue: _nextStep, // Allow continuing from welcome page
       child: Container(
         padding: EdgeInsets.all(isSmallScreen ? 24 : 32),
         decoration: BoxDecoration(
@@ -725,6 +739,8 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                   _selectedLongitude = result.longitude;
                   location = result.address;
                 });
+                // Save progress immediately after location is selected
+                _saveProgress();
               }
             },
             borderRadius: BorderRadius.circular(16),
@@ -921,7 +937,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
             icon: Icons.info_outline_rounded,
             title: 'Not yet',
             subtitle: 'I can get one later',
-            isSelected: hasPoliceClearance == false && _currentStep == 4,
+            isSelected: hasPoliceClearance == false,
             isSmallScreen: isSmallScreen,
             onTap: () {
               HapticFeedback.selectionClick();
@@ -933,6 +949,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
           ),
         ],
       ),
+      onContinue: _nextStep, // Always allow continuing - both options are valid
     );
   }
 
@@ -1125,15 +1142,15 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
           const SizedBox(width: 8),
           SizedBox(
             width: isSmallScreen ? 70 : 80,
-            child: TextField(
-              controller: TextEditingController(
-                text: servicePrices[service]?.toString() ?? '25',
-              )..selection = TextSelection.collapsed(
-                  offset: servicePrices[service]?.toString().length ?? 2),
+            child: TextFormField(
+              key: ValueKey('price_$service'),
+              initialValue: servicePrices[service]?.toString() ?? '25',
               onChanged: (value) {
-                setState(() {
-                  servicePrices[service] = int.tryParse(value) ?? 25;
-                });
+                if (value.isEmpty) {
+                  servicePrices[service] = 0;
+                } else {
+                  servicePrices[service] = int.tryParse(value) ?? 0;
+                }
               },
               keyboardType: TextInputType.number,
               style: TextStyle(
