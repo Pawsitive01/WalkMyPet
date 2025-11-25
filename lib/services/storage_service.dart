@@ -13,7 +13,6 @@ class StorageService {
       String downloadUrl = await taskSnapshot.ref.getDownloadURL();
       return downloadUrl;
     } catch (e) {
-      print(e);
       rethrow;
     }
   }

@@ -141,7 +141,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
         _updateProgress();
       }
     } catch (e) {
-      print('Error loading progress: $e');
+        // Error handled silently
     }
   }
 
@@ -165,7 +165,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
         },
       });
     } catch (e) {
-      print('Error saving progress: $e');
+        // Error handled silently
     }
   }
 
@@ -229,7 +229,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
         try {
           _profileImageUrl = await _imageUploadService.uploadProfileImage(_profileImage!);
         } catch (e) {
-          print('Error uploading profile image: $e');
+        // Error handled silently
         }
       }
 
@@ -294,6 +294,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
         }
       }
     } catch (e) {
+        // Error handled silently
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -327,10 +328,10 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
             ? Container(
                 margin: EdgeInsets.only(left: 12, top: safePadding.top > 20 ? 4 : 8, bottom: 8),
                 child: Material(
-                  color: Colors.white.withOpacity(0.95),
+                  color: Colors.white.withValues(alpha: 0.95),
                   borderRadius: BorderRadius.circular(14),
                   elevation: 0,
-                  shadowColor: Colors.black.withOpacity(0.1),
+                  shadowColor: Colors.black.withValues(alpha: 0.1),
                   child: InkWell(
                     onTap: _previousStep,
                     borderRadius: BorderRadius.circular(14),
@@ -351,7 +352,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
             Container(
               margin: EdgeInsets.only(right: 12, top: safePadding.top > 20 ? 4 : 8, bottom: 8),
               child: Material(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(20),
                 child: InkWell(
                   onTap: _nextStep,
@@ -459,7 +460,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                 child: Container(
                   height: 5,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: FractionallySizedBox(
@@ -471,7 +472,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.white.withOpacity(0.3),
+                            color: Colors.white.withValues(alpha: 0.3),
                             blurRadius: 8,
                             spreadRadius: 1,
                           ),
@@ -536,7 +537,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                       style: TextStyle(
                         fontSize: isSmallScreen ? 15 : 16,
                         fontWeight: FontWeight.w500,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         height: 1.4,
                       ),
                       textAlign: TextAlign.center,
@@ -571,12 +572,12 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
             duration: const Duration(milliseconds: 200),
             padding: EdgeInsets.symmetric(vertical: isSmallScreen ? 14 : 16),
             decoration: BoxDecoration(
-              color: isEnabled ? Colors.white : Colors.white.withOpacity(0.5),
+              color: isEnabled ? Colors.white : Colors.white.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(16),
               boxShadow: isEnabled
                   ? [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -603,14 +604,14 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                     style: TextStyle(
                       fontSize: isSmallScreen ? 16 : 17,
                       fontWeight: FontWeight.w700,
-                      color: isEnabled ? const Color(0xFF6366F1) : const Color(0xFF6366F1).withOpacity(0.5),
+                      color: isEnabled ? const Color(0xFF6366F1) : const Color(0xFF6366F1).withValues(alpha: 0.5),
                       letterSpacing: 0.2,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Icon(
                     Icons.arrow_forward_rounded,
-                    color: isEnabled ? const Color(0xFF6366F1) : const Color(0xFF6366F1).withOpacity(0.5),
+                    color: isEnabled ? const Color(0xFF6366F1) : const Color(0xFF6366F1).withValues(alpha: 0.5),
                     size: 20,
                   ),
                 ],
@@ -630,10 +631,10 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
       child: Container(
         padding: EdgeInsets.all(isSmallScreen ? 24 : 32),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
+          color: Colors.white.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
             width: 1.5,
           ),
         ),
@@ -642,7 +643,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
             Container(
               padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -667,7 +668,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
               style: TextStyle(
                 fontSize: isSmallScreen ? 13 : 14,
                 fontWeight: FontWeight.w500,
-                color: Colors.white.withOpacity(0.85),
+                color: Colors.white.withValues(alpha: 0.85),
                 height: 1.4,
               ),
               textAlign: TextAlign.center,
@@ -872,10 +873,10 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                 vertical: isSmallScreen ? 10 : 12,
               ),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.white : Colors.white.withOpacity(0.15),
+                color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
+                  color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.3),
                   width: 1.5,
                 ),
               ),
@@ -965,10 +966,10 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                   duration: const Duration(milliseconds: 200),
                   padding: EdgeInsets.all(isSmallScreen ? 16 : 18),
                   decoration: BoxDecoration(
-                    color: isSelected ? Colors.white : Colors.white.withOpacity(0.15),
+                    color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
+                      color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.3),
                       width: 1.5,
                     ),
                   ),
@@ -982,12 +983,12 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                                   colors: service['gradient'] as List<Color>,
                                 )
                               : null,
-                          color: isSelected ? null : Colors.white.withOpacity(0.2),
+                          color: isSelected ? null : Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
                           service['icon'] as IconData,
-                          color: isSelected ? Colors.white : Colors.white.withOpacity(0.8),
+                          color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.8),
                           size: isSmallScreen ? 20 : 24,
                         ),
                       ),
@@ -1012,7 +1013,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                                 fontWeight: FontWeight.w500,
                                 color: isSelected
                                     ? const Color(0xFF64748B)
-                                    : Colors.white.withOpacity(0.7),
+                                    : Colors.white.withValues(alpha: 0.7),
                               ),
                             ),
                           ],
@@ -1079,7 +1080,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -1153,7 +1154,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: const Color(0xFF6366F1).withOpacity(0.3),
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -1217,10 +1218,10 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                   vertical: isSmallScreen ? 10 : 12,
                 ),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.white : Colors.white.withOpacity(0.15),
+                  color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
+                    color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.3),
                     width: 1.5,
                   ),
                 ),
@@ -1265,7 +1266,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 16,
               offset: const Offset(0, 4),
             ),
@@ -1322,9 +1323,9 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
               height: isSmallScreen ? 160 : 180,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                   width: 3,
                 ),
                 image: _profileImage != null
@@ -1341,7 +1342,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                         Icon(
                           Icons.add_a_photo_rounded,
                           size: isSmallScreen ? 48 : 56,
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 0.7),
                         ),
                         SizedBox(height: isSmallScreen ? 10 : 12),
                         Text(
@@ -1349,7 +1350,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                           style: TextStyle(
                             fontSize: isSmallScreen ? 14 : 15,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                           ),
                         ),
                       ],
@@ -1423,10 +1424,10 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
         child: Container(
           padding: EdgeInsets.symmetric(vertical: isSmallScreen ? 16 : 18),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: Colors.white.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withValues(alpha: 0.3),
               width: 1.5,
             ),
           ),
@@ -1486,7 +1487,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF6366F1).withOpacity(0.1),
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Icons.camera_alt_rounded, color: Color(0xFF6366F1), size: 22),
@@ -1502,7 +1503,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF6366F1).withOpacity(0.1),
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Icons.photo_library_rounded, color: Color(0xFF6366F1), size: 22),
@@ -1531,6 +1532,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
         });
       }
     } catch (e) {
+        // Error handled silently
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toString())),
@@ -1548,6 +1550,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
         });
       }
     } catch (e) {
+        // Error handled silently
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toString())),
@@ -1585,7 +1588,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -1642,7 +1645,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
           Container(
             padding: EdgeInsets.all(isSmallScreen ? 12 : 14),
             decoration: BoxDecoration(
-              color: const Color(0xFF6366F1).withOpacity(0.1),
+              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
@@ -1654,7 +1657,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                 ),
                 SizedBox(width: isSmallScreen ? 8 : 10),
                 Text(
-                  '\${avgRate.round()}/hr average',
+                  '${avgRate.round()}/hr average',
                   style: TextStyle(
                     fontSize: isSmallScreen ? 15 : 16,
                     fontWeight: FontWeight.w700,
@@ -1669,7 +1672,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                       vertical: isSmallScreen ? 4 : 6,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withOpacity(0.15),
+                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -1757,7 +1760,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
         Container(
           padding: EdgeInsets.all(isSmallScreen ? 8 : 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF6366F1).withOpacity(0.1),
+            color: const Color(0xFF6366F1).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
@@ -1810,7 +1813,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -1881,10 +1884,10 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
           duration: const Duration(milliseconds: 200),
           padding: EdgeInsets.all(isSmallScreen ? 16 : 18),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.white.withOpacity(0.15),
+            color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
+              color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.3),
               width: 1.5,
             ),
           ),
@@ -1893,13 +1896,13 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
               Container(
                 padding: EdgeInsets.all(isSmallScreen ? 10 : 12),
                 decoration: BoxDecoration(
-                  color: isSelected ? color.withOpacity(0.15) : null,
+                  color: isSelected ? color.withValues(alpha: 0.15) : null,
                   gradient: isSelected
                       ? null
                       : LinearGradient(
                           colors: [
-                            Colors.white.withOpacity(0.2),
-                            Colors.white.withOpacity(0.1),
+                            Colors.white.withValues(alpha: 0.2),
+                            Colors.white.withValues(alpha: 0.1),
                           ],
                         ),
                   borderRadius: BorderRadius.circular(12),
@@ -1931,7 +1934,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
                         fontWeight: FontWeight.w500,
                         color: isSelected
                             ? const Color(0xFF64748B)
-                            : Colors.white.withOpacity(0.7),
+                            : Colors.white.withValues(alpha: 0.7),
                       ),
                     ),
                   ],

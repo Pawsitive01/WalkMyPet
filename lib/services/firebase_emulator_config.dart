@@ -17,41 +17,31 @@ class FirebaseEmulatorConfig {
   /// Call this after Firebase.initializeApp() to connect to emulators
   static Future<void> connectToEmulators() async {
     if (!_useEmulators) {
-      print('🔥 Using production Firebase Storage');
-      print('📦 Make sure Firebase Storage is enabled in Firebase Console');
-      print('🔐 Storage Rules: Allow authenticated users to upload images');
       return;
     }
 
     try {
-      print('🧪 Connecting to Firebase Emulators...');
 
       // Connect Firebase Auth to emulator
       await FirebaseAuth.instance.useAuthEmulator(
         _emulatorHost,
         _authEmulatorPort,
       );
-      print('✅ Auth Emulator connected: $_emulatorHost:$_authEmulatorPort');
 
       // Connect Firestore to emulator
       FirebaseFirestore.instance.useFirestoreEmulator(
         _emulatorHost,
         _firestoreEmulatorPort,
       );
-      print('✅ Firestore Emulator connected: $_emulatorHost:$_firestoreEmulatorPort');
 
       // Connect Storage to emulator
       await FirebaseStorage.instance.useStorageEmulator(
         _emulatorHost,
         _storageEmulatorPort,
       );
-      print('✅ Storage Emulator connected: $_emulatorHost:$_storageEmulatorPort');
 
-      print('✅ All Firebase Emulators connected successfully!');
-      print('📊 Emulator UI available at: http://$_emulatorHost:4000');
     } catch (e) {
-      print('⚠️ Error connecting to emulators: $e');
-      print('⚠️ Make sure emulators are running: firebase emulators:start');
+        // Error handled silently
     }
   }
 

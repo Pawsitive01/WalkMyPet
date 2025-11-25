@@ -63,29 +63,24 @@ class _MyBookingsPageRedesignedState extends State<MyBookingsPageRedesigned>
   Future<void> _loadBookings() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      print('❌ My Bookings: No user logged in');
       setState(() => _isLoading = false);
       _showSnackBar('Please log in to view bookings', const Color(0xFFF59E0B));
       return;
     }
 
-    print('📱 My Bookings: Loading bookings for user ${user.uid}');
     setState(() => _isLoading = true);
 
     try {
       _bookingService.getOwnerBookings(user.uid).listen(
         (bookings) {
-          print('✅ My Bookings: Received ${bookings.length} bookings from Firebase');
           if (mounted) {
             setState(() {
               _bookingsByDate = _groupBookingsByDate(bookings);
               _isLoading = false;
             });
-            print('📊 My Bookings: Grouped into ${_bookingsByDate.length} dates');
           }
         },
         onError: (error) {
-          print('❌ My Bookings: Stream error: $error');
           if (mounted) {
             setState(() => _isLoading = false);
             _showSnackBar('Error loading bookings: $error', const Color(0xFFEF4444));
@@ -93,7 +88,6 @@ class _MyBookingsPageRedesignedState extends State<MyBookingsPageRedesigned>
         },
       );
     } catch (e) {
-      print('❌ My Bookings: Exception: $e');
       if (mounted) {
         setState(() => _isLoading = false);
         _showSnackBar('Error loading bookings: $e', const Color(0xFFEF4444));

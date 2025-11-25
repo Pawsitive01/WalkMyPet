@@ -6,6 +6,7 @@ import 'package:walkmypet/services/user_service.dart';
 import 'package:walkmypet/services/auth_service.dart';
 import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
 import 'package:walkmypet/widgets/location_picker.dart';
+import 'package:walkmypet/onboarding/walker_onboarding_page.dart';
 
 class RedesignedWalkerProfilePage extends StatefulWidget {
   const RedesignedWalkerProfilePage({super.key});
@@ -86,7 +87,6 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
         _animationController.forward();
       }
     } catch (e) {
-      print('Error loading profile: $e');
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -215,10 +215,10 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
           ? Container(
               margin: const EdgeInsets.only(left: 8, top: 8, bottom: 8),
               child: Material(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.white,
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 elevation: 0,
-                shadowColor: Colors.black.withOpacity(0.05),
+                shadowColor: Colors.black.withValues(alpha: 0.05),
                 child: InkWell(
                   onTap: () {
                     HapticFeedback.lightImpact();
@@ -251,7 +251,7 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
         Container(
           margin: const EdgeInsets.only(right: 4, top: 8, bottom: 8),
           child: Material(
-            color: isDark ? Colors.white.withOpacity(0.1) : Colors.white,
+            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white,
             borderRadius: BorderRadius.circular(12),
             child: InkWell(
               onTap: () {
@@ -273,7 +273,7 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
         Container(
           margin: const EdgeInsets.only(right: 8, top: 8, bottom: 8),
           child: Material(
-            color: isDark ? Colors.white.withOpacity(0.1) : Colors.white,
+            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white,
             borderRadius: BorderRadius.circular(12),
             child: PopupMenuButton<String>(
               icon: Icon(
@@ -340,6 +340,8 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
   }
 
   Widget _buildBody(bool isDark, bool isSmallScreen) {
+    final bool needsOnboarding = _userProfile?.toFirestore()['onboardingComplete'] != true;
+
     return FadeTransition(
       opacity: _fadeAnimation,
       child: SlideTransition(
@@ -352,6 +354,10 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
                 children: [
                   SizedBox(height: MediaQuery.of(context).padding.top + 60),
                   _buildProfileHeader(isDark, isSmallScreen),
+                  if (needsOnboarding) ...[
+                    SizedBox(height: isSmallScreen ? 12 : 16),
+                    _buildCompleteSetupBanner(isDark),
+                  ],
                   SizedBox(height: isSmallScreen ? 20 : 24),
                   _buildStatsRow(isDark, isSmallScreen),
                   SizedBox(height: isSmallScreen ? 24 : 32),
@@ -383,17 +389,17 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
                     colors: [
-                      const Color(0xFF6366F1).withOpacity(0.1),
-                      const Color(0xFF8B5CF6).withOpacity(0.1),
+                      const Color(0xFF6366F1).withValues(alpha: 0.1),
+                      const Color(0xFF8B5CF6).withValues(alpha: 0.1),
                     ],
                   ),
                   border: Border.all(
-                    color: isDark ? Colors.white.withOpacity(0.1) : const Color(0xFFE5E7EB),
+                    color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE5E7EB),
                     width: 3,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
                       blurRadius: 24,
                       offset: const Offset(0, 8),
                     ),
@@ -428,7 +434,7 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF10B981).withOpacity(0.3),
+                        color: const Color(0xFF10B981).withValues(alpha: 0.3),
                         blurRadius: 8,
                         spreadRadius: 1,
                       ),
@@ -481,13 +487,13 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      const Color(0xFF6366F1).withOpacity(0.1),
-                      const Color(0xFF8B5CF6).withOpacity(0.1),
+                      const Color(0xFF6366F1).withValues(alpha: 0.1),
+                      const Color(0xFF8B5CF6).withValues(alpha: 0.1),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: const Color(0xFF6366F1).withOpacity(0.3),
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.3),
                     width: 1.5,
                   ),
                 ),
@@ -517,13 +523,97 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
     );
   }
 
+  Widget _buildCompleteSetupBanner(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const WalkerOnboardingPage(),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFBBF24), Color(0xFFF59E0B)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFBBF24).withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.info_outline,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Complete Your Profile',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Finish setting up to unlock all features',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildDefaultAvatar(bool isSmallScreen) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFF6366F1).withOpacity(0.15),
-            const Color(0xFF8B5CF6).withOpacity(0.15),
+            const Color(0xFF6366F1).withValues(alpha: 0.15),
+            const Color(0xFF8B5CF6).withValues(alpha: 0.15),
           ],
         ),
       ),
@@ -545,11 +635,11 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFE5E7EB),
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -572,9 +662,9 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  (isDark ? Colors.white : Colors.grey).withOpacity(0.0),
-                  (isDark ? Colors.white : Colors.grey).withOpacity(0.2),
-                  (isDark ? Colors.white : Colors.grey).withOpacity(0.0),
+                  (isDark ? Colors.white : Colors.grey).withValues(alpha: 0.0),
+                  (isDark ? Colors.white : Colors.grey).withValues(alpha: 0.2),
+                  (isDark ? Colors.white : Colors.grey).withValues(alpha: 0.0),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -595,9 +685,9 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  (isDark ? Colors.white : Colors.grey).withOpacity(0.0),
-                  (isDark ? Colors.white : Colors.grey).withOpacity(0.2),
-                  (isDark ? Colors.white : Colors.grey).withOpacity(0.0),
+                  (isDark ? Colors.white : Colors.grey).withValues(alpha: 0.0),
+                  (isDark ? Colors.white : Colors.grey).withValues(alpha: 0.2),
+                  (isDark ? Colors.white : Colors.grey).withValues(alpha: 0.0),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -630,7 +720,7 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
         Container(
           padding: EdgeInsets.all(isSmallScreen ? 8 : 10),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, size: isSmallScreen ? 20 : 24, color: color),
@@ -712,11 +802,11 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFE5E7EB),
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -768,11 +858,11 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFE5E7EB),
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -822,13 +912,13 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      const Color(0xFF6366F1).withOpacity(0.12),
-                      const Color(0xFF8B5CF6).withOpacity(0.12),
+                      const Color(0xFF6366F1).withValues(alpha: 0.12),
+                      const Color(0xFF8B5CF6).withValues(alpha: 0.12),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: const Color(0xFF6366F1).withOpacity(0.3),
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.3),
                     width: 1.5,
                   ),
                 ),
@@ -856,11 +946,11 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFE5E7EB),
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -1117,7 +1207,7 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -1155,13 +1245,13 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFE5E7EB),
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB),
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFE5E7EB),
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB),
               width: 1.5,
             ),
           ),
@@ -1188,11 +1278,11 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
           backgroundColor: const Color(0xFF6366F1),
           foregroundColor: Colors.white,
           elevation: 0,
-          disabledBackgroundColor: const Color(0xFF6366F1).withOpacity(0.5),
+          disabledBackgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          shadowColor: const Color(0xFF6366F1).withOpacity(0.3),
+          shadowColor: const Color(0xFF6366F1).withValues(alpha: 0.3),
         ),
         child: _isSaving
             ? SizedBox(
@@ -1233,7 +1323,7 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFEF4444).withOpacity(0.1),
+              color: const Color(0xFFEF4444).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(

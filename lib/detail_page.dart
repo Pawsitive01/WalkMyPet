@@ -1,12 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:walkmypet/models.dart';
 import 'package:walkmypet/booking_authentication_page.dart';
 import 'package:walkmypet/booking/booking_page.dart';
-import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
 import 'package:walkmypet/design_system.dart';
 
 class DetailPage extends StatefulWidget {
@@ -746,23 +744,13 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                             color: Colors.transparent,
                             child: InkWell(
                               onTap: () async {
-                                final authProvider = Provider.of<app_auth.AuthProvider>(context, listen: false);
                                 final currentUser = FirebaseAuth.instance.currentUser;
-
-                                print('🔍 Detail Page - Auth Check:');
-                                print('  Provider isAuthenticated: ${authProvider.isAuthenticated}');
-                                print('  Provider hasCompletedOnboarding: ${authProvider.hasCompletedOnboarding}');
-                                print('  Provider isLoading: ${authProvider.isLoading}');
-                                print('  Provider userProfile: ${authProvider.userProfile}');
-                                print('  Firebase currentUser: ${currentUser?.uid}');
-                                print('  Firebase currentUser email: ${currentUser?.email}');
 
                                 // Check if user is authenticated using Firebase Auth directly
                                 if (currentUser != null) {
                                   // User is logged in - check if they're trying to book a walker
                                   if (isWalker) {
                                     // They're viewing a walker, navigate to booking page
-                                    print('✅ User authenticated, navigating to booking page');
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -782,7 +770,6 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                                   }
                                 } else {
                                   // User not logged in - go to authentication page
-                                  print('❌ User not authenticated, navigating to auth page');
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(

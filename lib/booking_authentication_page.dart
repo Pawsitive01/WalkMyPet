@@ -864,7 +864,6 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
 
       try {
         if (_isSignUp) {
-          print('📝 Creating new account for: ${_emailController.text.trim()}');
 
           // Sign up with email and password
           final userCredential = await _authService.signUpWithEmail(
@@ -873,21 +872,16 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
           );
 
           if (userCredential != null) {
-            print('✅ Firebase Auth account created: ${userCredential.user?.uid}');
 
             // Create user profile in Firestore
-            print('💾 Creating Firestore user profile...');
             await _userService.createUser(
               email: _emailController.text.trim(),
               userType: widget.isWalker ? UserType.petWalker : UserType.petOwner,
               displayName: widget.personName,
             );
 
-            print('✅ Firestore user profile created successfully');
-            print('👤 User type: ${widget.isWalker ? "Pet Walker" : "Pet Owner"}');
           }
         } else {
-          print('🔐 Signing in user: ${_emailController.text.trim()}');
 
           // Sign in with email and password
           final userCredential = await _authService.signInWithEmail(
@@ -896,7 +890,6 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
           );
 
           if (userCredential != null) {
-            print('✅ User signed in: ${userCredential.user?.uid}');
 
             // Verify user type matches the flow they're trying to access
             final userDoc = await _userService.getUser(userCredential.user!.uid);
@@ -974,7 +967,6 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
           }
         }
       } catch (e) {
-        print('❌ Authentication error: $e');
 
         if (mounted) {
           setState(() {
@@ -1015,14 +1007,10 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
         _isLoading = true;
       });
 
-      print('🔵 Initiating Google Sign-In...');
 
       final userCredential = await _authService.signInWithGoogle();
 
       if (userCredential != null && mounted) {
-        print('✅ Google Sign-In successful');
-        print('👤 User: ${userCredential.user?.displayName} (${userCredential.user?.email})');
-        print('🆔 UID: ${userCredential.user?.uid}');
 
         // Check if user already exists with a different type
         final existingUser = await _userService.getUser(userCredential.user!.uid);
@@ -1043,7 +1031,6 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
         }
 
         // Create or update user profile in Firestore
-        print('💾 Creating/updating Firestore profile...');
         await _userService.createUser(
           email: userCredential.user?.email ?? '',
           userType: widget.isWalker ? UserType.petWalker : UserType.petOwner,
@@ -1051,8 +1038,6 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
           photoURL: userCredential.user?.photoURL,
         );
 
-        print('✅ Firestore profile created/updated');
-        print('👤 User type: ${widget.isWalker ? "Pet Walker" : "Pet Owner"}');
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1113,10 +1098,8 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
           }
         }
       } else {
-        print('⚠️ Google Sign-In cancelled by user');
       }
     } catch (e) {
-      print('❌ Google Sign-In error: $e');
 
       if (mounted) {
         // More user-friendly error messages

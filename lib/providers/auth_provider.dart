@@ -33,7 +33,7 @@ class AuthProvider with ChangeNotifier {
         // Load user profile from Firestore
         _userProfile = await _userService.getUser(user.uid);
       } catch (e) {
-        print('Error loading user profile: $e');
+        // Silent error handling
       }
     } else {
       _userProfile = null;
@@ -50,7 +50,7 @@ class AuthProvider with ChangeNotifier {
       _userProfile = await _userService.getUser(_user!.uid);
       notifyListeners();
     } catch (e) {
-      print('Error refreshing user profile: $e');
+      // Silent error handling
     }
   }
 
@@ -64,11 +64,6 @@ class AuthProvider with ChangeNotifier {
   bool get isOwner => userType == 'petOwner';
 
   Future<void> signOut() async {
-    try {
-      await _auth.signOut();
-    } catch (e) {
-      print('Error signing out: $e');
-      rethrow;
-    }
+    await _auth.signOut();
   }
 }

@@ -10,7 +10,6 @@ class LocationService {
     // Check if location services are enabled
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      print('❌ Location: Location services are disabled');
       return false;
     }
 
@@ -19,17 +18,14 @@ class LocationService {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        print('❌ Location: Location permissions are denied');
         return false;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      print('❌ Location: Location permissions are permanently denied');
       return false;
     }
 
-    print('✅ Location: Permissions granted');
     return true;
   }
 
@@ -39,17 +35,14 @@ class LocationService {
       final hasPermission = await checkAndRequestPermission();
       if (!hasPermission) return null;
 
-      print('📍 Location: Getting current position...');
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
         ),
       );
 
-      print('✅ Location: Got position: ${position.latitude}, ${position.longitude}');
       return position;
     } catch (e) {
-      print('❌ Location: Error getting current location: $e');
       return null;
     }
   }
@@ -58,11 +51,9 @@ class LocationService {
   Future<String?> getAddressFromCoordinates(
       double latitude, double longitude) async {
     try {
-      print('🗺️ Location: Converting coordinates to address...');
       final placemarks = await placemarkFromCoordinates(latitude, longitude);
 
       if (placemarks.isEmpty) {
-        print('⚠️ Location: No placemarks found, using coordinates');
         return '${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}';
       }
 
@@ -76,16 +67,12 @@ class LocationService {
       ].where((component) => component != null && component.isNotEmpty);
 
       if (addressComponents.isEmpty) {
-        print('⚠️ Location: No address components, using coordinates');
         return '${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}';
       }
 
       final address = addressComponents.join(', ');
-      print('✅ Location: Address: $address');
       return address;
     } catch (e) {
-      print('❌ Location: Error converting to address: $e');
-      print('⚠️ Location: Falling back to coordinates');
       // Fallback to coordinates if geocoding fails
       return '${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}';
     }
@@ -109,7 +96,6 @@ class LocationService {
 
       return parts.join(', ');
     } catch (e) {
-      print('❌ Location: Error formatting address: $e');
       return null;
     }
   }

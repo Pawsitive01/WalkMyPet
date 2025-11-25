@@ -8,6 +8,7 @@ import 'package:walkmypet/services/image_upload_service.dart';
 import 'package:walkmypet/booking/my_bookings_page_redesigned.dart';
 import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
 import 'package:walkmypet/widgets/location_picker.dart';
+import 'package:walkmypet/onboarding/owner_onboarding_page.dart';
 
 class RedesignedOwnerProfilePage extends StatefulWidget {
   const RedesignedOwnerProfilePage({super.key});
@@ -39,18 +40,6 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
 
   double? _selectedLatitude;
   double? _selectedLongitude;
-
-  // Australian states and territories
-  final List<String> _australianStates = [
-    'New South Wales',
-    'Victoria',
-    'Queensland',
-    'Western Australia',
-    'South Australia',
-    'Tasmania',
-    'Australian Capital Territory',
-    'Northern Territory',
-  ];
 
   String? _selectedState;
 
@@ -158,8 +147,6 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
       // Upload image to Firebase Storage
       final imageUrl = await _imageUploadService.uploadProfileImage(imageData);
 
-      print('💾 Saving image URL to Firestore...');
-      print('   URL: $imageUrl');
 
       // Update UI immediately with new image URL
       if (mounted && _userProfile != null) {
@@ -181,7 +168,6 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
           );
           _isUploadingImage = false;
         });
-        print('✅ UI updated with new image immediately!');
       }
 
       // Update user profile with new profile photo URL (not pet image)
@@ -189,7 +175,6 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
         'photoURL': imageUrl,
       });
 
-      print('✅ Image URL saved to Firestore');
 
       if (mounted) {
         _showSuccessSnackBar('Profile photo updated successfully');
@@ -384,6 +369,8 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
                   });
                 }
 
+                final bool needsOnboarding = _userProfile?.toFirestore()['onboardingComplete'] != true;
+
                 return canPop
                     ? CustomScrollView(
                         slivers: [
@@ -393,6 +380,10 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
                               children: [
                                 const SizedBox(height: 20),
                                 _buildProfileHeader(isDark),
+                                if (needsOnboarding) ...[
+                                  const SizedBox(height: 16),
+                                  _buildCompleteSetupBanner(isDark),
+                                ],
                                 const SizedBox(height: 32),
                                 if (_isEditing) _buildEditForm(isDark) else _buildInfoCards(isDark),
                                 const SizedBox(height: 32),
@@ -406,6 +397,10 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
                           children: [
                             const SizedBox(height: 20),
                             _buildProfileHeader(isDark),
+                            if (needsOnboarding) ...[
+                              const SizedBox(height: 16),
+                              _buildCompleteSetupBanner(isDark),
+                            ],
                             const SizedBox(height: 32),
                             if (_isEditing) _buildEditForm(isDark) else _buildInfoCards(isDark),
                             const SizedBox(height: 32),
@@ -711,6 +706,90 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildCompleteSetupBanner(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const OwnerOnboardingPage(),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFBBF24), Color(0xFFF59E0B)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFBBF24).withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.info_outline,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Complete Your Profile',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Finish setting up to unlock all features',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1127,67 +1206,6 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
             borderSide: const BorderSide(color: Color(0xFFEC4899), width: 2),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildLocationDropdown(bool isDark) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: DropdownButtonFormField<String>(
-        initialValue: _selectedState,
-        decoration: InputDecoration(
-          labelText: 'State',
-          labelStyle: TextStyle(
-            color: isDark ? Colors.grey[400] : Colors.grey[600],
-          ),
-          prefixIcon: const Icon(Icons.location_on_outlined, size: 22, color: Color(0xFFEC4899)),
-          filled: true,
-          fillColor: Colors.transparent,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE5E7EB),
-            ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE5E7EB),
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFFEC4899), width: 2),
-          ),
-        ),
-        dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: isDark ? Colors.white : const Color(0xFF1F2937),
-        ),
-        items: _australianStates.map((state) {
-          return DropdownMenuItem<String>(
-            value: state,
-            child: Text(state),
-          );
-        }).toList(),
-        onChanged: (value) {
-          setState(() {
-            _selectedState = value;
-          });
-        },
       ),
     );
   }

@@ -20,42 +20,34 @@ import 'package:walkmypet/design_system.dart';
 import 'firebase_options.dart';
 
 void main() async {
-  print('🚀 App starting...');
-
   WidgetsFlutterBinding.ensureInitialized();
-  print('✅ Flutter binding initialized');
 
   bool firebaseInitialized = false;
   String? firebaseError;
 
   try {
-    print('🔥 Initializing Firebase...');
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     ).timeout(
       const Duration(seconds: 10),
       onTimeout: () {
-        print('⚠️ Firebase initialization timeout - continuing without Firebase');
         throw Exception('Firebase initialization timeout');
       },
     );
     firebaseInitialized = true;
-    print('✅ Firebase initialized successfully');
 
     // Connect to Firebase Emulators in debug mode
     await FirebaseEmulatorConfig.connectToEmulators();
   } catch (e) {
     firebaseError = e.toString();
-    print('❌ Firebase initialization error: $e');
-    print('⚠️ App will continue without Firebase');
   }
 
-  print('🎨 Starting app UI...');
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
-        ChangeNotifierProvider(create: (context) => app_auth.AuthProvider()),
+        if (firebaseInitialized)
+          ChangeNotifierProvider(create: (context) => app_auth.AuthProvider()),
       ],
       child: MyApp(
         firebaseInitialized: firebaseInitialized,
@@ -63,7 +55,6 @@ void main() async {
       ),
     ),
   );
-  print('✅ App started successfully');
 }
 
 class ThemeProvider with ChangeNotifier {
@@ -217,8 +208,6 @@ class _InitializationWrapperState extends State<InitializationWrapper> {
   }
 
   Future<void> _initialize() async {
-    print('📱 Initializing app UI...');
-
     // Small delay to ensure everything is settled
     await Future.delayed(const Duration(milliseconds: 500));
 
@@ -226,7 +215,6 @@ class _InitializationWrapperState extends State<InitializationWrapper> {
       setState(() {
         _isReady = true;
       });
-      print('✅ App UI ready');
     }
   }
 
@@ -359,10 +347,10 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
     _animController.forward(from: 0);
   }
 
-  List<Widget> _getWidgetOptions(app_auth.AuthProvider authProvider) {
+  List<Widget> _getWidgetOptions(app_auth.AuthProvider? authProvider) {
     final Widget fourthTab;
 
-    if (authProvider.isAuthenticated) {
+    if (authProvider != null && authProvider.isAuthenticated) {
       // Show profile page for all authenticated users
       // If user type is not set yet, default to owner profile
       if (authProvider.userProfile != null) {
@@ -391,7 +379,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final authProvider = Provider.of<app_auth.AuthProvider>(context);
+    final authProvider = Provider.of<app_auth.AuthProvider?>(context);
     final isDark = themeProvider.themeMode == ThemeMode.dark;
     final widgetOptions = _getWidgetOptions(authProvider);
 
@@ -434,7 +422,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
     );
   }
 
-  Widget _buildModernAppBar(BuildContext context, ThemeProvider themeProvider, app_auth.AuthProvider authProvider, bool isDark) {
+  Widget _buildModernAppBar(BuildContext context, ThemeProvider themeProvider, app_auth.AuthProvider? authProvider, bool isDark) {
     return Container(
       height: 150,
       decoration: BoxDecoration(
@@ -507,7 +495,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            authProvider.isAuthenticated && authProvider.userProfile != null
+                            authProvider != null && authProvider.isAuthenticated && authProvider.userProfile != null
                                 ? 'Welcome, ${authProvider.userProfile!.displayName ?? "User"}!'
                                 : 'Find your perfect match',
                             style: TextStyle(
@@ -590,11 +578,11 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                           ),
                         ),
                         PopupMenuItem<String>(
-                          value: authProvider.isAuthenticated ? 'signout' : 'signin',
+                          value: (authProvider != null && authProvider.isAuthenticated) ? 'signout' : 'signin',
                           child: Row(
                             children: [
                               Icon(
-                                authProvider.isAuthenticated
+                                (authProvider != null && authProvider.isAuthenticated)
                                     ? Icons.logout_rounded
                                     : Icons.login_rounded,
                                 size: 20,
@@ -602,7 +590,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                authProvider.isAuthenticated ? 'Sign Out' : 'Sign In',
+                                (authProvider != null && authProvider.isAuthenticated) ? 'Sign Out' : 'Sign In',
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
@@ -618,7 +606,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                           themeProvider.toggleTheme();
                         } else if (value == 'profile') {
                           // Navigate to profile based on user state
-                          if (authProvider.isAuthenticated && authProvider.userProfile != null) {
+                          if (authProvider != null && authProvider.isAuthenticated && authProvider.userProfile != null) {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -635,6 +623,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                           }
                         } else if (value == 'signout') {
                           // Sign out the user
+                          if (authProvider == null) return;
                           try {
                             await authProvider.signOut();
                             if (mounted) {
@@ -677,9 +666,9 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
     );
   }
 
-  Widget _buildModernNavBar(BuildContext context, app_auth.AuthProvider authProvider, bool isDark) {
+  Widget _buildModernNavBar(BuildContext context, app_auth.AuthProvider? authProvider, bool isDark) {
     // Determine the icon and label for the fourth nav item
-    final bool isAuthenticated = authProvider.isAuthenticated;
+    final bool isAuthenticated = authProvider != null && authProvider.isAuthenticated;
     final IconData fourthIcon = isAuthenticated ? Icons.person_rounded : Icons.person_add_rounded;
     final String fourthLabel = isAuthenticated ? 'Profile' : 'Register';
 
@@ -876,7 +865,6 @@ class _WalkerListState extends State<WalkerList> with SingleTickerProviderStateM
         _controller.forward();
       }
     } catch (e) {
-      print('Error loading walkers: $e');
       if (mounted) {
         setState(() {
           _walkers = _dummyWalkers;
@@ -965,11 +953,8 @@ class _OwnerListState extends State<OwnerList> with SingleTickerProviderStateMix
     try {
       final users = await _userService.getPetOwners();
 
-      print('📊 Loaded ${users.length} owners from Firebase');
-
       final loadedOwners = users.map((user) {
         final data = user.toFirestore();
-        print('  Owner: ${data['displayName']} - ${data['dogName']} (${data['dogBreed']})');
         return Owner(
           name: data['displayName'] ?? 'Unknown',
           dogName: data['dogName'] ?? 'Pet',
@@ -1012,7 +997,6 @@ class _OwnerListState extends State<OwnerList> with SingleTickerProviderStateMix
         }
       }
     } catch (e) {
-      print('Error loading owners: $e');
       if (mounted) {
         setState(() {
           _owners = [];
@@ -1487,21 +1471,12 @@ class _WalkerCardState extends State<WalkerCard> {
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () async {
-                            final authProvider = Provider.of<app_auth.AuthProvider>(context, listen: false);
-                            final currentUser = FirebaseAuth.instance.currentUser;
-
-                            print('🔍 Walker Card - Auth Check:');
-                            print('  Provider isAuthenticated: ${authProvider.isAuthenticated}');
-                            print('  Provider hasCompletedOnboarding: ${authProvider.hasCompletedOnboarding}');
-                            print('  Provider isLoading: ${authProvider.isLoading}');
-                            print('  Provider userProfile: ${authProvider.userProfile}');
-                            print('  Firebase currentUser: ${currentUser?.uid}');
-                            print('  Firebase currentUser email: ${currentUser?.email}');
+                            final authProvider = Provider.of<app_auth.AuthProvider?>(context, listen: false);
+                            final currentUser = authProvider != null ? FirebaseAuth.instance.currentUser : null;
 
                             // Check if user is authenticated using Firebase Auth directly
                             if (currentUser != null) {
                               // User is logged in - go directly to booking page
-                              print('✅ User authenticated, navigating to booking page');
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -1512,7 +1487,6 @@ class _WalkerCardState extends State<WalkerCard> {
                               );
                             } else {
                               // User not logged in - go to authentication page
-                              print('❌ User not authenticated, navigating to auth page');
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -1934,21 +1908,12 @@ class _OwnerCardState extends State<OwnerCard> {
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () async {
-                            final authProvider = Provider.of<app_auth.AuthProvider>(context, listen: false);
-                            final currentUser = FirebaseAuth.instance.currentUser;
-
-                            print('🔍 Owner Card - Auth Check:');
-                            print('  Provider isAuthenticated: ${authProvider.isAuthenticated}');
-                            print('  Provider hasCompletedOnboarding: ${authProvider.hasCompletedOnboarding}');
-                            print('  Provider isLoading: ${authProvider.isLoading}');
-                            print('  Provider userProfile: ${authProvider.userProfile}');
-                            print('  Firebase currentUser: ${currentUser?.uid}');
-                            print('  Firebase currentUser email: ${currentUser?.email}');
+                            final authProvider = Provider.of<app_auth.AuthProvider?>(context, listen: false);
+                            final currentUser = authProvider != null ? FirebaseAuth.instance.currentUser : null;
 
                             // Check if user is authenticated using Firebase Auth directly
                             if (currentUser != null) {
                               // User is logged in - go to their profile page
-                              print('✅ User authenticated, navigating to profile page');
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -1957,7 +1922,6 @@ class _OwnerCardState extends State<OwnerCard> {
                               );
                             } else {
                               // User not logged in - go to authentication page
-                              print('❌ User not authenticated, navigating to auth page');
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(

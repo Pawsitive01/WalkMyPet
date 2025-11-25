@@ -80,7 +80,6 @@ class _CheckoutPageState extends State<CheckoutPage> with SingleTickerProviderSt
       return;
     }
 
-    print('💳 Checkout: Starting payment with ${_selectedPaymentMethod.toString()}');
     setState(() => _isProcessing = true);
 
     try {
@@ -94,15 +93,10 @@ class _CheckoutPageState extends State<CheckoutPage> with SingleTickerProviderSt
       // For Apple Pay: Use pay package
 
       bool paymentSuccessful = await _simulatePayment(_selectedPaymentMethod!);
-      print('💳 Checkout: Payment result: $paymentSuccessful');
 
       if (paymentSuccessful) {
         // Create booking after successful payment
-        print('📝 Checkout: Creating booking for owner ${widget.bookingData.ownerId}');
-        print('📝 Checkout: Booking details: ${widget.bookingData.toFirestore()}');
-
-        final bookingId = await _bookingService.createBooking(widget.bookingData);
-        print('✅ Checkout: Booking created with ID: $bookingId');
+        await _bookingService.createBooking(widget.bookingData);
 
         if (mounted) {
           _showSnackBar(
@@ -111,32 +105,26 @@ class _CheckoutPageState extends State<CheckoutPage> with SingleTickerProviderSt
             Icons.check_circle_rounded,
           );
 
-          print('🧭 Checkout: Waiting 1.5s before navigation...');
           await Future.delayed(const Duration(milliseconds: 1500));
 
           if (mounted) {
-            print('🧭 Checkout: Navigating to My Bookings page...');
             // Pop back to previous screens first, then navigate to My Bookings
             Navigator.of(context).pop(); // Pop checkout page
             Navigator.of(context).pop(); // Pop booking page
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) {
-                  print('🧭 Checkout: Building MyBookingsPageRedesigned...');
                   return const MyBookingsPageRedesigned();
                 },
               ),
             );
-            print('🧭 Checkout: Navigation command sent');
           } else {
-            print('❌ Checkout: Widget not mounted, skipping navigation');
           }
         }
       } else {
         throw 'Payment failed';
       }
     } catch (e) {
-      print('❌ Checkout: Error during payment: $e');
       if (mounted) {
         _showSnackBar(
           'Payment failed: $e',

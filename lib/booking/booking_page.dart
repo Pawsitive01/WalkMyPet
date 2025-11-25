@@ -5,7 +5,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:walkmypet/models.dart';
 import 'package:walkmypet/models/booking_model.dart';
-import 'package:walkmypet/services/booking_service.dart';
 import 'package:walkmypet/services/user_service.dart';
 import 'package:walkmypet/booking/checkout_page.dart';
 import 'package:walkmypet/design_system.dart';
@@ -22,13 +21,12 @@ class BookingPage extends StatefulWidget {
 
 class _BookingPageState extends State<BookingPage> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final BookingService _bookingService = BookingService();
   final UserService _userService = UserService();
 
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
-  Map<String, int> _serviceDurations = {};
-  Set<String> _selectedServices = {};
+  final Map<String, int> _serviceDurations = {};
+  final Set<String> _selectedServices = {};
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   double? _selectedLatitude;

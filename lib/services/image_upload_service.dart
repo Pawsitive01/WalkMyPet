@@ -41,7 +41,6 @@ class ImageUploadService {
       }
       return null;
     } catch (e) {
-      print('Error picking image from camera: $e');
       throw 'Failed to access camera: ${e.toString()}';
     }
   }
@@ -100,7 +99,6 @@ class ImageUploadService {
         return null;
       }
     } catch (e) {
-      print('Error picking image from gallery: $e');
       throw 'Failed to access gallery: ${e.toString()}';
     }
   }
@@ -109,35 +107,23 @@ class ImageUploadService {
   /// Takes a Map with 'bytes', 'name', and optional 'path' from picker methods
   Future<String> uploadProfileImage(Map<String, dynamic> imageData) async {
     try {
-      print('═══════════════════════════════════════');
-      print('🚀 STARTING IMAGE UPLOAD DEBUG');
-      print('═══════════════════════════════════════');
 
       final user = _auth.currentUser;
       if (user == null) {
         throw Exception('No authenticated user found');
       }
-      print('✅ User authenticated: ${user.uid}');
 
       // Get bytes from the image data
       final Uint8List bytes = imageData['bytes'] as Uint8List;
       final String? imageName = imageData['name'] as String?;
 
-      print('✅ Image data received');
-      print('   Name: $imageName');
-      print('   Size: ${bytes.length} bytes (${(bytes.length / 1024).toStringAsFixed(2)} KB)');
-      print('   Platform: Desktop=$isDesktop, Web=$kIsWeb');
 
       // Check Firebase Storage instance
-      print('🔍 Checking Firebase Storage instance...');
-      print('   Storage bucket: ${_storage.bucket}');
 
       // Create a reference to the storage location
       final String fileName = 'profile_${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      print('📁 Storage path: profile_images/$fileName');
 
       final Reference storageRef = _storage.ref().child('profile_images/$fileName');
-      print('✅ Storage reference created: ${storageRef.fullPath}');
 
       // Create metadata
       final metadata = SettableMetadata(
@@ -149,56 +135,24 @@ class ImageUploadService {
           'originalName': imageName ?? 'unknown',
         },
       );
-      print('✅ Metadata created');
 
-      print('📤 Starting upload with putData()...');
-      print('   Using Uint8List - works on ALL platforms (web, mobile, desktop)');
 
       // Upload using putData() with Uint8List - universal cross-platform method
       UploadTask uploadTask;
       try {
         uploadTask = storageRef.putData(bytes, metadata);
-        print('✅ Upload task created successfully');
       } catch (e) {
-        print('❌ FAILED to create upload task');
-        print('   Error type: ${e.runtimeType}');
-        print('   Error message: $e');
-        print('   Stack trace: ${StackTrace.current}');
         rethrow;
       }
 
-      // Monitor upload progress
-      print('👀 Setting up progress monitoring...');
-      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-        final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        print('📊 Upload progress: ${progress.toStringAsFixed(2)}% (${snapshot.bytesTransferred}/${snapshot.totalBytes} bytes)');
-      });
-
       // Wait for upload to complete
-      print('⏳ Waiting for upload to complete...');
       final TaskSnapshot snapshot = await uploadTask;
-      print('✅ Upload completed successfully!');
-      print('   State: ${snapshot.state}');
-      print('   Bytes transferred: ${snapshot.bytesTransferred}');
 
       // Get download URL
-      print('🔗 Getting download URL...');
       final String downloadUrl = await snapshot.ref.getDownloadURL();
-      print('✅ Download URL obtained: $downloadUrl');
-      print('═══════════════════════════════════════');
-      print('🎉 IMAGE UPLOAD COMPLETE!');
-      print('═══════════════════════════════════════');
 
       return downloadUrl;
     } on FirebaseException catch (e) {
-      print('═══════════════════════════════════════');
-      print('❌ FIREBASE ERROR');
-      print('═══════════════════════════════════════');
-      print('Error code: ${e.code}');
-      print('Error message: ${e.message}');
-      print('Error plugin: ${e.plugin}');
-      print('Stack trace: ${e.stackTrace}');
-      print('═══════════════════════════════════════');
 
       // Provide specific error messages
       if (e.code == 'unauthorized' || e.code == 'permission-denied') {
@@ -213,13 +167,6 @@ class ImageUploadService {
         throw Exception('Firebase error [${e.code}]: ${e.message}');
       }
     } catch (e) {
-      print('═══════════════════════════════════════');
-      print('❌ UNEXPECTED ERROR');
-      print('═══════════════════════════════════════');
-      print('Error: $e');
-      print('Error type: ${e.runtimeType}');
-      print('Stack trace: ${StackTrace.current}');
-      print('═══════════════════════════════════════');
       throw Exception('Failed to upload image: ${e.toString()}');
     }
   }
@@ -234,7 +181,6 @@ class ImageUploadService {
       final Reference storageRef = _storage.refFromURL(imageUrl);
       await storageRef.delete();
     } catch (e) {
-      print('Error deleting image: $e');
       // Don't throw error - deletion failure shouldn't block user flow
     }
   }

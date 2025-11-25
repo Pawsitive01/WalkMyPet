@@ -95,7 +95,7 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
         _updateProgress();
       }
     } catch (e) {
-      print('Error loading progress: $e');
+        // Error handled silently
     }
   }
 
@@ -122,7 +122,7 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
         },
       });
     } catch (e) {
-      print('Error saving progress: $e');
+        // Error handled silently
     }
   }
 
@@ -185,7 +185,7 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
         try {
           _profileImageUrl = await _imageUploadService.uploadProfileImage(_profileImage!);
         } catch (e) {
-          print('Error uploading profile image: $e');
+        // Error handled silently
           // Continue without profile image if upload fails
         }
       }
@@ -195,7 +195,7 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
         try {
           _petImageUrl = await _imageUploadService.uploadProfileImage(_petImage!);
         } catch (e) {
-          print('Error uploading pet image: $e');
+        // Error handled silently
           // Continue without pet image if upload fails
         }
       }
@@ -266,6 +266,7 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
         }
       }
     } catch (e) {
+        // Error handled silently
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1127,6 +1128,7 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
         });
       }
     } catch (e) {
+        // Error handled silently
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toString())),
@@ -1144,6 +1146,7 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
         });
       }
     } catch (e) {
+        // Error handled silently
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toString())),
