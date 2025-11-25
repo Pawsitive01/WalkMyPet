@@ -21,6 +21,21 @@ class AppUser {
   final double? hourlyRate;
   final String? bio;
   final List<String>? availability;
+  final String? location;
+  final List<String>? services;
+  final Map<String, dynamic>? servicePrices;
+  final bool? onboardingComplete;
+  final double? rating;
+  final int? reviews;
+  final int? completedWalks;
+  final String? phoneNumber;
+  final bool? hasPoliceClearance;
+  final double? latitude;
+  final double? longitude;
+  final String? locationState;
+  final String? locationCity;
+  final String? locationSuburb;
+  final String? locationPostcode;
 
   AppUser({
     required this.id,
@@ -36,6 +51,21 @@ class AppUser {
     this.hourlyRate,
     this.bio,
     this.availability,
+    this.location,
+    this.services,
+    this.servicePrices,
+    this.onboardingComplete,
+    this.rating,
+    this.reviews,
+    this.completedWalks,
+    this.phoneNumber,
+    this.hasPoliceClearance,
+    this.latitude,
+    this.longitude,
+    this.locationState,
+    this.locationCity,
+    this.locationSuburb,
+    this.locationPostcode,
   });
 
   factory AppUser.fromFirestore(DocumentSnapshot doc) {
@@ -58,6 +88,25 @@ class AppUser {
       availability: data['availability'] != null
           ? List<String>.from(data['availability'])
           : null,
+      location: data['location'],
+      services: data['services'] != null
+          ? List<String>.from(data['services'])
+          : null,
+      servicePrices: data['servicePrices'] != null
+          ? Map<String, dynamic>.from(data['servicePrices'])
+          : null,
+      onboardingComplete: data['onboardingComplete'],
+      rating: data['rating']?.toDouble(),
+      reviews: data['reviews'],
+      completedWalks: data['completedWalks'],
+      phoneNumber: data['phoneNumber'],
+      hasPoliceClearance: data['hasPoliceClearance'],
+      latitude: data['latitude']?.toDouble(),
+      longitude: data['longitude']?.toDouble(),
+      locationState: data['locationState'],
+      locationCity: data['locationCity'],
+      locationSuburb: data['locationSuburb'],
+      locationPostcode: data['locationPostcode'],
     );
   }
 
@@ -75,6 +124,21 @@ class AppUser {
       'hourlyRate': hourlyRate,
       'bio': bio,
       'availability': availability,
+      'location': location,
+      'services': services,
+      'servicePrices': servicePrices,
+      'onboardingComplete': onboardingComplete,
+      'rating': rating,
+      'reviews': reviews,
+      'completedWalks': completedWalks,
+      'phoneNumber': phoneNumber,
+      'hasPoliceClearance': hasPoliceClearance,
+      'latitude': latitude,
+      'longitude': longitude,
+      'locationState': locationState,
+      'locationCity': locationCity,
+      'locationSuburb': locationSuburb,
+      'locationPostcode': locationPostcode,
     };
   }
 }

@@ -268,31 +268,73 @@ class _LocationPickerState extends State<LocationPicker> {
       ),
       body: Stack(
         children: [
-          // Map
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: _selectedLocation ?? _defaultLocation,
-              zoom: 15,
-            ),
-            onMapCreated: (controller) {
-              _mapController = controller;
-            },
-            onTap: _onMapTapped,
-            myLocationEnabled: true,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
-            mapToolbarEnabled: false,
-            markers: _selectedLocation != null
-                ? {
-                    Marker(
-                      markerId: const MarkerId('selected'),
-                      position: _selectedLocation!,
-                      icon: BitmapDescriptor.defaultMarkerWithHue(
-                        BitmapDescriptor.hueViolet,
-                      ),
+          // Map with error handling
+          Builder(
+            builder: (context) {
+              try {
+                return GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: _selectedLocation ?? _defaultLocation,
+                    zoom: 15,
+                  ),
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                  },
+                  onTap: _onMapTapped,
+                  myLocationEnabled: true,
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: false,
+                  mapToolbarEnabled: false,
+                  markers: _selectedLocation != null
+                      ? {
+                          Marker(
+                            markerId: const MarkerId('selected'),
+                            position: _selectedLocation!,
+                            icon: BitmapDescriptor.defaultMarkerWithHue(
+                              BitmapDescriptor.hueViolet,
+                            ),
+                          ),
+                        }
+                      : {},
+                );
+              } catch (e) {
+                return Container(
+                  color: DesignSystem.getSurface(isDark),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.map_outlined,
+                          size: 64,
+                          color: DesignSystem.getTextSecondary(isDark),
+                        ),
+                        SizedBox(height: DesignSystem.space2),
+                        Text(
+                          'Map unavailable',
+                          style: TextStyle(
+                            fontSize: DesignSystem.h2,
+                            fontWeight: FontWeight.w600,
+                            color: DesignSystem.getTextPrimary(isDark),
+                          ),
+                        ),
+                        SizedBox(height: DesignSystem.space1),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32),
+                          child: Text(
+                            'Please reload the page or use the mobile app',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: DesignSystem.getTextSecondary(isDark),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  }
-                : {},
+                  ),
+                );
+              }
+            },
           ),
 
           // Loading overlay for getting current location

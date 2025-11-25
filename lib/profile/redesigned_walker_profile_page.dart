@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:walkmypet/services/user_service.dart';
 import 'package:walkmypet/services/auth_service.dart';
+import 'package:walkmypet/services/image_upload_service.dart';
 import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
 import 'package:walkmypet/widgets/location_picker.dart';
 import 'package:walkmypet/onboarding/walker_onboarding_page.dart';
@@ -19,14 +20,16 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
     with SingleTickerProviderStateMixin {
   final UserService _userService = UserService();
   final AuthService _authService = AuthService();
+  final ImageUploadService _imageUploadService = ImageUploadService();
 
   AppUser? _userProfile;
-  bool _isLoading = true;
   bool _isEditing = false;
   bool _isSaving = false;
+  bool _isUploadingImage = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  Stream<AppUser?>? _userProfileStream;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
@@ -81,8 +84,16 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
       begin: const Offset(0, 0.05),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOut));
-    
-    _loadProfile();
+
+    _initializeStream();
+    _animationController.forward();
+  }
+
+  void _initializeStream() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _userProfileStream = _userService.userStream(user.uid);
+    }
   }
 
   @override
@@ -93,45 +104,6 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
     _bioController.dispose();
     _hourlyRateController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadProfile() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    try {
-      final profile = await _userService.getUser(user.uid);
-      if (mounted) {
-        setState(() {
-          _userProfile = profile;
-          _isLoading = false;
-        });
-
-        if (profile != null) {
-          final data = profile.toFirestore();
-          _nameController.text = data['displayName'] ?? '';
-          _locationController.text = data['location'] ?? '';
-          _bioController.text = data['bio'] ?? '';
-          _hourlyRateController.text = (data['hourlyRate'] ?? 25).toString();
-          _selectedLatitude = data['latitude']?.toDouble();
-          _selectedLongitude = data['longitude']?.toDouble();
-
-          // Load services
-          if (data['services'] != null) {
-            _selectedServices = List<String>.from(data['services']);
-          }
-          if (data['servicePrices'] != null) {
-            _servicePrices = Map<String, int>.from(data['servicePrices']);
-          }
-        }
-        
-        _animationController.forward();
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
   }
 
   Future<void> _saveProfile() async {
@@ -155,7 +127,6 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
           _isSaving = false;
         });
         _showSuccessSnackBar('Profile updated successfully');
-        await _loadProfile();
         await Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
       }
     } catch (e) {
@@ -164,6 +135,121 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
         _showErrorSnackBar('Failed to update profile');
       }
     }
+  }
+
+  Future<void> _handleImageUpload() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      // Show bottom sheet to choose image source
+      final imageSource = await showModalBottomSheet<String>(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) => _buildImageSourceBottomSheet(),
+      );
+
+      if (imageSource == null) return;
+
+      Map<String, dynamic>? imageData;
+      if (imageSource == 'camera') {
+        imageData = await _imageUploadService.pickImageFromCamera();
+      } else {
+        imageData = await _imageUploadService.pickImageFromGallery();
+      }
+
+      if (imageData == null) return;
+
+      setState(() => _isUploadingImage = true);
+
+      // Upload image to Firebase Storage
+      final imageUrl = await _imageUploadService.uploadProfileImage(imageData);
+
+      // Update user profile with new profile photo URL
+      await _userService.updateUser(user.uid, {
+        'photoURL': imageUrl,
+      });
+
+      if (mounted) {
+        setState(() => _isUploadingImage = false);
+        _showSuccessSnackBar('Profile photo updated successfully');
+        await Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isUploadingImage = false);
+        _showErrorSnackBar('Failed to upload image: ${e.toString()}');
+      }
+    }
+  }
+
+  Widget _buildImageSourceBottomSheet() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDesktop = _imageUploadService.isDesktop;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Choose Profile Photo',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : const Color(0xFF1F2937),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Only show camera option on mobile
+          if (!isDesktop) ...[
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.camera_alt, color: Color(0xFF6366F1)),
+              ),
+              title: Text('Take Photo', style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF1F2937))),
+              subtitle: Text('Use your camera', style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.grey[600])),
+              onTap: () => Navigator.pop(context, 'camera'),
+            ),
+            const SizedBox(height: 8),
+          ],
+          ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.photo_library, color: Color(0xFF6366F1)),
+            ),
+            title: Text(isDesktop ? 'Choose Photo' : 'Choose from Gallery', style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF1F2937))),
+            subtitle: Text(isDesktop ? 'Select an image file' : 'Select from your photos', style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.grey[600])),
+            onTap: () => Navigator.pop(context, 'gallery'),
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleSignOut() async {
@@ -224,6 +310,25 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
     );
   }
 
+  void _updateControllersWithProfile(AppUser? profile) {
+    if (profile != null && !_isEditing) {
+      _nameController.text = profile.displayName ?? '';
+      _locationController.text = profile.location ?? '';
+      _bioController.text = profile.bio ?? '';
+      _hourlyRateController.text = (profile.hourlyRate ?? 25).toString();
+      _selectedLatitude = profile.latitude;
+      _selectedLongitude = profile.longitude;
+
+      // Load services
+      if (profile.services != null) {
+        _selectedServices = List<String>.from(profile.services!);
+      }
+      if (profile.servicePrices != null) {
+        _servicePrices = Map<String, int>.from(profile.servicePrices!);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -234,13 +339,34 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
       backgroundColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF8F9FA),
       extendBodyBehindAppBar: true,
       appBar: _buildModernAppBar(isDark),
-      body: _isLoading
-          ? const Center(
+      body: StreamBuilder<AppUser?>(
+        stream: _userProfileStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
               child: CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
               ),
-            )
-          : _buildBody(isDark, isSmallScreen),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                'Error loading profile',
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+            );
+          }
+
+          _userProfile = snapshot.data;
+          _updateControllersWithProfile(_userProfile);
+
+          return _buildBody(isDark, isSmallScreen);
+        },
+      ),
     );
   }
 
@@ -381,7 +507,7 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
   }
 
   Widget _buildBody(bool isDark, bool isSmallScreen) {
-    final bool needsOnboarding = _userProfile?.toFirestore()['onboardingComplete'] != true;
+    final bool needsOnboarding = _userProfile?.onboardingComplete != true;
 
     return FadeTransition(
       opacity: _fadeAnimation,
@@ -421,47 +547,96 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
       children: [
         Stack(
           children: [
-            Hero(
-              tag: 'profile-image',
-              child: Container(
-                width: isSmallScreen ? 100 : 120,
-                height: isSmallScreen ? 100 : 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF6366F1).withValues(alpha: 0.1),
-                      const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+            GestureDetector(
+              onTap: _handleImageUpload,
+              child: Hero(
+                tag: 'profile-image',
+                child: Container(
+                  width: isSmallScreen ? 100 : 120,
+                  height: isSmallScreen ? 100 : 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF6366F1).withValues(alpha: 0.1),
+                        const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+                      ],
+                    ),
+                    border: Border.all(
+                      color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE5E7EB),
+                      width: 3,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
                     ],
                   ),
-                  border: Border.all(
-                    color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE5E7EB),
-                    width: 3,
+                  child: ClipOval(
+                    child: _isUploadingImage
+                        ? Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                const Color(0xFF6366F1),
+                              ),
+                            ),
+                          )
+                        : _userProfile?.photoURL != null
+                            ? Image.network(
+                                _userProfile!.photoURL!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    _buildDefaultAvatar(isSmallScreen),
+                              )
+                            : _buildDefaultAvatar(isSmallScreen),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: ClipOval(
-                  child: _userProfile?.photoURL != null
-                      ? Image.network(
-                          _userProfile!.photoURL!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              _buildDefaultAvatar(isSmallScreen),
-                        )
-                      : _buildDefaultAvatar(isSmallScreen),
                 ),
               ),
             ),
-            if (_userProfile?.toFirestore()['hasPoliceClearance'] == true)
+            if (!_isUploadingImage)
               Positioned(
                 bottom: 0,
                 right: 0,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _handleImageUpload,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: EdgeInsets.all(isSmallScreen ? 7 : 8),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                        ),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF8F9FA),
+                          width: 3,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.camera_alt_rounded,
+                        size: isSmallScreen ? 14 : 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (_userProfile?.hasPoliceClearance == true)
+              Positioned(
+                bottom: 0,
+                left: 0,
                 child: Container(
                   padding: EdgeInsets.all(isSmallScreen ? 5 : 6),
                   decoration: BoxDecoration(
@@ -583,14 +758,14 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFFBBF24), Color(0xFFF59E0B)],
+                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFFBBF24).withValues(alpha: 0.3),
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -667,78 +842,66 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
   }
 
   Widget _buildStatsRow(bool isDark, bool isSmallScreen) {
-    final data = _userProfile?.toFirestore() ?? {};
-
     return Container(
       margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 16 : 20),
-      padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
+      padding: EdgeInsets.all(isSmallScreen ? 18 : 24),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+            ? [
+                const Color(0xFF1E1E1E),
+                const Color(0xFF252525),
+              ]
+            : [
+                Colors.white,
+                const Color(0xFFFAFAFA),
+              ],
+        ),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB),
+          color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE5E7EB),
+          width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-            blurRadius: 20,
+            color: const Color(0xFF6366F1).withValues(alpha: isDark ? 0.15 : 0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+            spreadRadius: -4,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
+            blurRadius: 16,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildStatItem(
             isDark,
             Icons.star_rounded,
-            '${data['rating'] ?? 5.0}',
+            '${_userProfile?.rating ?? 5.0}',
             'Rating',
             const Color(0xFFFBBF24),
             isSmallScreen,
           ),
-          Container(
-            width: 1,
-            height: isSmallScreen ? 35 : 40,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  (isDark ? Colors.white : Colors.grey).withValues(alpha: 0.0),
-                  (isDark ? Colors.white : Colors.grey).withValues(alpha: 0.2),
-                  (isDark ? Colors.white : Colors.grey).withValues(alpha: 0.0),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-          ),
+          SizedBox(width: isSmallScreen ? 8 : 12),
           _buildStatItem(
             isDark,
             Icons.directions_walk_rounded,
-            '${data['completedWalks'] ?? 0}',
+            '${_userProfile?.completedWalks ?? 0}',
             'Walks',
             const Color(0xFF6366F1),
             isSmallScreen,
           ),
-          Container(
-            width: 1,
-            height: isSmallScreen ? 35 : 40,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  (isDark ? Colors.white : Colors.grey).withValues(alpha: 0.0),
-                  (isDark ? Colors.white : Colors.grey).withValues(alpha: 0.2),
-                  (isDark ? Colors.white : Colors.grey).withValues(alpha: 0.0),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-          ),
+          SizedBox(width: isSmallScreen ? 8 : 12),
           _buildStatItem(
             isDark,
             Icons.rate_review_outlined,
-            '${data['reviews'] ?? 0}',
+            '${_userProfile?.reviews ?? 0}',
             'Reviews',
             const Color(0xFFEC4899),
             isSmallScreen,
@@ -756,42 +919,83 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
     Color color,
     bool isSmallScreen,
   ) {
-    return Column(
-      children: [
-        Container(
-          padding: EdgeInsets.all(isSmallScreen ? 8 : 10),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: isSmallScreen ? 20 : 24, color: color),
+    return Expanded(
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          vertical: isSmallScreen ? 12 : 16,
+          horizontal: isSmallScreen ? 8 : 12,
         ),
-        SizedBox(height: isSmallScreen ? 6 : 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: isSmallScreen ? 18 : 20,
-            fontWeight: FontWeight.w800,
-            color: isDark ? Colors.white : const Color(0xFF1F2937),
-            letterSpacing: -0.3,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              color.withValues(alpha: isDark ? 0.15 : 0.08),
+              color.withValues(alpha: isDark ? 0.08 : 0.04),
+            ],
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: isSmallScreen ? 12 : 13,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white60 : const Color(0xFF6B7280),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: color.withValues(alpha: 0.2),
+            width: 1.5,
           ),
         ),
-      ],
+        child: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.all(isSmallScreen ? 10 : 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [color, color.withValues(alpha: 0.8)],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(icon, size: isSmallScreen ? 20 : 24, color: Colors.white),
+            ),
+            SizedBox(height: isSmallScreen ? 8 : 10),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: isSmallScreen ? 20 : 24,
+                fontWeight: FontWeight.w900,
+                color: isDark ? Colors.white : const Color(0xFF1F2937),
+                letterSpacing: -0.5,
+                shadows: [
+                  Shadow(
+                    color: color.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: isSmallScreen ? 11 : 12,
+                fontWeight: FontWeight.w700,
+                color: color,
+                letterSpacing: 0.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildInfoCards(bool isDark, bool isSmallScreen) {
-    final data = _userProfile?.toFirestore() ?? {};
-
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 16 : 20),
       child: Column(
@@ -802,7 +1006,7 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
             title: 'Location',
             isSmallScreen: isSmallScreen,
             items: [
-              _InfoItem('', data['location'] ?? 'Not set'),
+              _InfoItem('', _userProfile?.location ?? 'Not set'),
             ],
           ),
           SizedBox(height: isSmallScreen ? 12 : 16),
@@ -812,17 +1016,17 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
             title: 'Rate & Experience',
             isSmallScreen: isSmallScreen,
             items: [
-              _InfoItem('Hourly Rate', '\$${data['hourlyRate'] ?? 25}/hr'),
-              _InfoItem('Experience', '${data['yearsOfExperience'] ?? 0} years'),
+              _InfoItem('Hourly Rate', '\$${_userProfile?.hourlyRate ?? 25}/hr'),
+              _InfoItem('Phone', _userProfile?.phoneNumber ?? 'Not set'),
             ],
           ),
-          if (data['services'] != null && (data['services'] as List).isNotEmpty) ...[
+          if (_userProfile?.services != null && _userProfile!.services!.isNotEmpty) ...[
             SizedBox(height: isSmallScreen ? 12 : 16),
-            _buildServicesCard(isDark, data['services'] as List, isSmallScreen),
+            _buildServicesCard(isDark, _userProfile!.services!, isSmallScreen),
           ],
-          if (data['bio'] != null && data['bio'].toString().isNotEmpty) ...[
+          if (_userProfile?.bio != null && _userProfile!.bio!.isNotEmpty) ...[
             SizedBox(height: isSmallScreen ? 12 : 16),
-            _buildBioCard(isDark, data['bio'].toString(), isSmallScreen),
+            _buildBioCard(isDark, _userProfile!.bio!, isSmallScreen),
           ],
         ],
       ),
@@ -894,17 +1098,36 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
   Widget _buildServicesCard(bool isDark, List services, bool isSmallScreen) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
+      padding: EdgeInsets.all(isSmallScreen ? 18 : 24),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+            ? [
+                const Color(0xFF1E1E1E),
+                const Color(0xFF252525),
+              ]
+            : [
+                Colors.white,
+                const Color(0xFFFAFAFA),
+              ],
+        ),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB),
+          color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE5E7EB),
+          width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+            color: const Color(0xFF6366F1).withValues(alpha: isDark ? 0.1 : 0.05),
             blurRadius: 20,
+            offset: const Offset(0, 8),
+            spreadRadius: -4,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
+            blurRadius: 16,
             offset: const Offset(0, 4),
           ),
         ],
@@ -960,34 +1183,72 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
           ),
           SizedBox(height: isSmallScreen ? 10 : 12),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 10,
+            runSpacing: 10,
             children: services.map((service) {
+              // Get gradient for this service
+              final serviceData = _availableServices.firstWhere(
+                (s) => s['name'] == service,
+                orElse: () => _availableServices[0],
+              );
+              final gradient = serviceData['gradient'] as List<Color>;
+              final icon = serviceData['icon'] as IconData;
+
               return Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: isSmallScreen ? 10 : 12,
-                  vertical: isSmallScreen ? 5 : 6,
+                  horizontal: isSmallScreen ? 12 : 14,
+                  vertical: isSmallScreen ? 8 : 10,
                 ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                     colors: [
-                      const Color(0xFF6366F1).withValues(alpha: 0.12),
-                      const Color(0xFF8B5CF6).withValues(alpha: 0.12),
+                      gradient[0].withValues(alpha: isDark ? 0.2 : 0.15),
+                      gradient[1].withValues(alpha: isDark ? 0.15 : 0.1),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                    color: gradient[0].withValues(alpha: 0.4),
                     width: 1.5,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: gradient[0].withValues(alpha: 0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                child: Text(
-                  service.toString(),
-                  style: TextStyle(
-                    fontSize: isSmallScreen ? 12 : 13,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF6366F1),
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(isSmallScreen ? 4 : 5),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: gradient,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(
+                        icon,
+                        size: isSmallScreen ? 12 : 14,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(width: isSmallScreen ? 6 : 8),
+                    Text(
+                      service.toString(),
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 12 : 13,
+                        fontWeight: FontWeight.w700,
+                        color: gradient[0],
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
                 ),
               );
             }).toList(),
@@ -1000,17 +1261,36 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
   Widget _buildBioCard(bool isDark, String bio, bool isSmallScreen) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
+      padding: EdgeInsets.all(isSmallScreen ? 18 : 24),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+            ? [
+                const Color(0xFF1E1E1E),
+                const Color(0xFF252525),
+              ]
+            : [
+                Colors.white,
+                const Color(0xFFFAFAFA),
+              ],
+        ),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E7EB),
+          color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE5E7EB),
+          width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+            color: const Color(0xFF8B5CF6).withValues(alpha: isDark ? 0.1 : 0.05),
             blurRadius: 20,
+            offset: const Offset(0, 8),
+            spreadRadius: -4,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
+            blurRadius: 16,
             offset: const Offset(0, 4),
           ),
         ],
@@ -1830,7 +2110,6 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
       if (mounted) {
         setState(() => _isSaving = false);
         _showSuccessSnackBar('Services updated successfully');
-        await _loadProfile();
         await Provider.of<app_auth.AuthProvider>(context, listen: false)
             .refreshUserProfile();
       }

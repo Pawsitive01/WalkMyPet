@@ -1471,27 +1471,57 @@ class _BookingPageState extends State<BookingPage> with SingleTickerProviderStat
               clipBehavior: Clip.antiAlias,
               child: Stack(
                 children: [
-                  GoogleMap(
-                    initialCameraPosition: CameraPosition(
-                      target: LatLng(_selectedLatitude!, _selectedLongitude!),
-                      zoom: 15,
-                    ),
-                    markers: {
-                      Marker(
-                        markerId: const MarkerId('selected'),
-                        position: LatLng(_selectedLatitude!, _selectedLongitude!),
-                        icon: BitmapDescriptor.defaultMarkerWithHue(
-                          BitmapDescriptor.hueViolet,
-                        ),
-                      ),
+                  Builder(
+                    builder: (context) {
+                      try {
+                        return GoogleMap(
+                          initialCameraPosition: CameraPosition(
+                            target: LatLng(_selectedLatitude!, _selectedLongitude!),
+                            zoom: 15,
+                          ),
+                          markers: {
+                            Marker(
+                              markerId: const MarkerId('selected'),
+                              position: LatLng(_selectedLatitude!, _selectedLongitude!),
+                              icon: BitmapDescriptor.defaultMarkerWithHue(
+                                BitmapDescriptor.hueViolet,
+                              ),
+                            ),
+                          },
+                          myLocationButtonEnabled: false,
+                          zoomControlsEnabled: false,
+                          mapToolbarEnabled: false,
+                          scrollGesturesEnabled: false,
+                          zoomGesturesEnabled: false,
+                          tiltGesturesEnabled: false,
+                          rotateGesturesEnabled: false,
+                        );
+                      } catch (e) {
+                        return Container(
+                          color: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.map_outlined,
+                                  size: 32,
+                                  color: isDark ? Colors.white60 : Colors.grey[600],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Map preview unavailable',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark ? Colors.white60 : Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
                     },
-                    myLocationButtonEnabled: false,
-                    zoomControlsEnabled: false,
-                    mapToolbarEnabled: false,
-                    scrollGesturesEnabled: false,
-                    zoomGesturesEnabled: false,
-                    tiltGesturesEnabled: false,
-                    rotateGesturesEnabled: false,
                   ),
                   // Tap overlay to open full map
                   Positioned.fill(

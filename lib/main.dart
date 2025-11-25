@@ -200,6 +200,7 @@ class InitializationWrapper extends StatefulWidget {
 
 class _InitializationWrapperState extends State<InitializationWrapper> {
   bool _isReady = false;
+  bool _bannerDismissed = false;
 
   @override
   void initState() {
@@ -268,8 +269,8 @@ class _InitializationWrapperState extends State<InitializationWrapper> {
       );
     }
 
-    // Show error banner if Firebase failed to initialize
-    if (widget.firebaseError != null) {
+    // Show error banner if Firebase failed to initialize and not dismissed
+    if (widget.firebaseError != null && !_bannerDismissed) {
       return Stack(
         children: [
           widget.child,
@@ -279,27 +280,78 @@ class _InitializationWrapperState extends State<InitializationWrapper> {
             right: 0,
             child: SafeArea(
               child: Material(
-                color: Colors.orange.shade700,
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.warning, color: Colors.white, size: 20),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        child: Text(
-                          'Running in offline mode',
-                          style: TextStyle(color: Colors.white, fontSize: 12),
+                color: Colors.transparent,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  height: _bannerDismissed ? 0 : null,
+                  child: Container(
+                    margin: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white, size: 20),
-                        onPressed: () {
-                          // Hide banner by rebuilding without it
-                          setState(() {});
-                        },
-                      ),
-                    ],
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.cloud_off_rounded, color: Colors.white, size: 16),
+                        ),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Offline Mode',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              Text(
+                                'Limited functionality available',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                _bannerDismissed = true;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              child: const Icon(Icons.close_rounded, color: Colors.white, size: 18),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
