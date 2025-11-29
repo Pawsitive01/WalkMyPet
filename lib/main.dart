@@ -14,6 +14,7 @@ import 'package:walkmypet/services/user_service.dart';
 import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
 import 'package:walkmypet/profile/redesigned_owner_profile_page.dart';
 import 'package:walkmypet/profile/redesigned_walker_profile_page.dart';
+import 'package:walkmypet/services/notification_service.dart';
 import 'package:flutter/services.dart';
 import 'package:walkmypet/design_system.dart';
 
@@ -171,6 +172,7 @@ class MyApp extends StatelessWidget {
           darkTheme: darkTheme,
           themeMode: themeProvider.themeMode,
           debugShowCheckedModeBanner: false,
+          navigatorKey: NotificationService.navigatorKey,
           home: InitializationWrapper(
             firebaseInitialized: firebaseInitialized,
             firebaseError: firebaseError,
@@ -459,7 +461,10 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
           ),
           Column(
             children: [
-              _buildModernAppBar(context, themeProvider, authProvider, isDark),
+              // Hide main app bar only for walker profile (has custom header)
+              // Show it for all other tabs including owner profile
+              if (!(_selectedIndex == 3 && authProvider?.isWalker == true))
+                _buildModernAppBar(context, themeProvider, authProvider, isDark),
               Expanded(
                 child: FadeTransition(
                   opacity: _animController,
@@ -657,22 +662,10 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                         if (value == 'theme') {
                           themeProvider.toggleTheme();
                         } else if (value == 'profile') {
-                          // Navigate to profile based on user state
-                          if (authProvider != null && authProvider.isAuthenticated && authProvider.userProfile != null) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => authProvider.isWalker
-                                    ? const RedesignedWalkerProfilePage()
-                                    : const RedesignedOwnerProfilePage(),
-                              ),
-                            );
-                          } else {
-                            // Navigate to register/profile tab
-                            setState(() {
-                              _selectedIndex = 3;
-                            });
-                          }
+                          // Navigate to profile tab
+                          setState(() {
+                            _selectedIndex = 3;
+                          });
                         } else if (value == 'signout') {
                           // Sign out the user
                           if (authProvider == null) return;
@@ -1576,7 +1569,50 @@ class _WalkerCardState extends State<WalkerCard> {
 
                             // Check if user is authenticated using Firebase Auth directly
                             if (currentUser != null) {
-                              // User is logged in - go directly to booking page
+                              // Check if user is a walker
+                              if (authProvider?.isWalker == true) {
+                                // Show message that walkers can't book other walkers
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Row(
+                                      children: [
+                                        const Icon(Icons.info_rounded, color: Colors.white, size: 20),
+                                        const SizedBox(width: 12),
+                                        const Expanded(
+                                          child: Text(
+                                            'You are signed in as a Pet Walker. Please register as a Pet Owner to book a walker.',
+                                            style: TextStyle(fontWeight: FontWeight.w600),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    behavior: SnackBarBehavior.floating,
+                                    backgroundColor: const Color(0xFF6366F1),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    margin: const EdgeInsets.all(16),
+                                    duration: const Duration(seconds: 4),
+                                    action: SnackBarAction(
+                                      label: 'Register',
+                                      textColor: Colors.white,
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => const BookingAuthenticationPage(
+                                              personName: 'Pet Owner',
+                                              isWalker: false,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+                              // User is logged in as owner - go directly to booking page
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(

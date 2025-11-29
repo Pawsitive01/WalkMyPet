@@ -1,14 +1,35 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:walkmypet/models/booking_model.dart';
+import 'package:walkmypet/services/notification_service.dart';
 
 class BookingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final NotificationService _notificationService = NotificationService();
 
   /// Create a new booking
   Future<String> createBooking(Booking booking) async {
     try {
       final docRef = await _firestore.collection('bookings').add(booking.toFirestore());
-      return docRef.id;
+      final bookingId = docRef.id;
+
+      // Send notification to walker about new booking request
+      await _notificationService.notifyWalkerOfBookingRequest(
+        walkerId: booking.walkerId,
+        bookingId: bookingId,
+        ownerName: booking.ownerName,
+        dogName: booking.dogName,
+      );
+
+      // Create in-app notification for walker
+      await _notificationService.createNotification(
+        userId: booking.walkerId,
+        title: 'New Booking Request',
+        message: '${booking.ownerName} wants to book a walk for ${booking.dogName}',
+        type: 'bookingRequest',
+        bookingId: bookingId,
+      );
+
+      return bookingId;
     } catch (e) {
       throw 'Failed to create booking: $e';
     }
@@ -104,11 +125,33 @@ class BookingService {
   }
 
   /// Cancel booking
-  Future<void> cancelBooking(String bookingId) async {
+  Future<void> cancelBooking(String bookingId, {String? cancelledBy}) async {
     try {
+      // Get booking details first
+      final booking = await getBooking(bookingId);
+      if (booking == null) throw 'Booking not found';
+
+      // Update booking status
       await updateBooking(bookingId, {
         'status': BookingStatus.cancelled.toString().split('.').last,
       });
+
+      // Send notification to the other party
+      final cancelledByName = cancelledBy ?? 'Walker';
+      await _notificationService.notifyBookingCancelled(
+        userId: booking.ownerId,
+        bookingId: bookingId,
+        cancelledBy: cancelledByName,
+      );
+
+      // Create in-app notification
+      await _notificationService.createNotification(
+        userId: booking.ownerId,
+        title: 'Booking Cancelled',
+        message: 'Your booking for ${booking.dogName} has been cancelled by $cancelledByName',
+        type: 'bookingCancelled',
+        bookingId: bookingId,
+      );
     } catch (e) {
       throw 'Failed to cancel booking: $e';
     }
@@ -117,9 +160,30 @@ class BookingService {
   /// Confirm booking
   Future<void> confirmBooking(String bookingId) async {
     try {
+      // Get booking details first
+      final booking = await getBooking(bookingId);
+      if (booking == null) throw 'Booking not found';
+
+      // Update booking status
       await updateBooking(bookingId, {
         'status': BookingStatus.confirmed.toString().split('.').last,
       });
+
+      // Send notification to owner
+      await _notificationService.notifyBookingConfirmed(
+        ownerId: booking.ownerId,
+        bookingId: bookingId,
+        walkerName: booking.walkerName,
+      );
+
+      // Create in-app notification
+      await _notificationService.createNotification(
+        userId: booking.ownerId,
+        title: 'Booking Confirmed!',
+        message: '${booking.walkerName} has confirmed your booking for ${booking.dogName}',
+        type: 'bookingConfirmed',
+        bookingId: bookingId,
+      );
     } catch (e) {
       throw 'Failed to confirm booking: $e';
     }

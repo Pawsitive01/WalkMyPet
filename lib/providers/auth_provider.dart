@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:walkmypet/services/user_service.dart';
+import 'package:walkmypet/services/notification_service.dart';
 
 class AuthProvider with ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final UserService _userService = UserService();
+  final NotificationService _notificationService = NotificationService();
 
   User? _user;
   AppUser? _userProfile;
@@ -32,6 +34,10 @@ class AuthProvider with ChangeNotifier {
       try {
         // Load user profile from Firestore
         _userProfile = await _userService.getUser(user.uid);
+
+        // Initialize notifications and save FCM token
+        await _notificationService.initialize();
+        await _notificationService.saveTokenToFirestore(user.uid);
       } catch (e) {
         // Silent error handling
       }
@@ -64,6 +70,10 @@ class AuthProvider with ChangeNotifier {
   bool get isOwner => userType == 'petOwner';
 
   Future<void> signOut() async {
+    // Remove FCM token before signing out
+    if (_user != null) {
+      await _notificationService.removeTokenFromFirestore(_user!.uid);
+    }
     await _auth.signOut();
   }
 }

@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:walkmypet/services/user_service.dart';
 import 'package:walkmypet/services/auth_service.dart';
 import 'package:walkmypet/services/image_upload_service.dart';
 import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
 import 'package:walkmypet/widgets/location_picker.dart';
 import 'package:walkmypet/onboarding/walker_onboarding_page.dart';
+import 'package:walkmypet/walker/scheduled_walks_page.dart';
+import 'package:walkmypet/walker/walker_notifications_page.dart';
+import 'package:walkmypet/walker/active_walks_page.dart';
 
 class RedesignedWalkerProfilePage extends StatefulWidget {
   const RedesignedWalkerProfilePage({super.key});
@@ -273,6 +277,126 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
     }
   }
 
+  void _showAccountBalance() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF10B981), Color(0xFF059669)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.account_balance_wallet_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Account Balance',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white : const Color(0xFF1F2937),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF10B981), Color(0xFF059669)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'Available Balance',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '\$0.00', // Placeholder - will be calculated from completed walks
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 36,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Total earnings from completed walks',
+              style: TextStyle(
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+                fontSize: 13,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showNotificationsPanel() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const WalkerNotificationsPage(),
+      ),
+    );
+  }
+
+  void _navigateToScheduledWalks() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ScheduledWalksPage(),
+      ),
+    );
+  }
+
+  void _navigateToActiveWalks() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ActiveWalksPage(),
+      ),
+    );
+  }
+
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -337,8 +461,6 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF8F9FA),
-      extendBodyBehindAppBar: true,
-      appBar: _buildModernAppBar(isDark),
       body: StreamBuilder<AppUser?>(
         stream: _userProfileStream,
         builder: (context, snapshot) {
@@ -370,141 +492,74 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
     );
   }
 
-  PreferredSizeWidget _buildModernAppBar(bool isDark) {
-    final canPop = Navigator.of(context).canPop();
+  Widget _buildNotificationIcon(bool isDark) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return Icon(
+        Icons.notifications_none_rounded,
+        color: isDark ? Colors.white : const Color(0xFF1F2937),
+        size: 22,
+      );
+    }
 
-    return AppBar(
-      elevation: 0,
-      backgroundColor: Colors.transparent,
-      surfaceTintColor: Colors.transparent,
-      systemOverlayStyle: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
-      leading: canPop
-          ? Container(
-              margin: const EdgeInsets.only(left: 8, top: 8, bottom: 8),
-              child: Material(
-                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                elevation: 0,
-                shadowColor: Colors.black.withValues(alpha: 0.05),
-                child: InkWell(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    Navigator.pop(context);
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: isDark ? Colors.white : const Color(0xFF1F2937),
-                      size: 18,
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('bookings')
+          .where('walkerId', isEqualTo: user.uid)
+          .where('status', isEqualTo: 'pending')
+          .snapshots(),
+      builder: (context, snapshot) {
+        final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(
+              count > 0 ? Icons.notifications_active_rounded : Icons.notifications_none_rounded,
+              color: isDark ? Colors.white : const Color(0xFF1F2937),
+              size: 22,
+            ),
+            if (count > 0)
+              Positioned(
+                right: -4,
+                top: -4,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                      width: 1.5,
+                    ),
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 18,
+                    minHeight: 18,
+                  ),
+                  child: Center(
+                    child: Text(
+                      count > 99 ? '99+' : count.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        height: 1,
+                      ),
                     ),
                   ),
                 ),
               ),
-            )
-          : null,
-      title: Text(
-        'Profile',
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-          color: isDark ? Colors.white : const Color(0xFF1F2937),
-          letterSpacing: -0.3,
-        ),
-      ),
-      centerTitle: false,
-      actions: [
-        Container(
-          margin: const EdgeInsets.only(right: 4, top: 8, bottom: 8),
-          child: Material(
-            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                _showErrorSnackBar('Notifications coming soon!');
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                child: Icon(
-                  Icons.notifications_none_rounded,
-                  color: isDark ? Colors.white : const Color(0xFF1F2937),
-                  size: 22,
-                ),
-              ),
-            ),
-          ),
-        ),
-        Container(
-          margin: const EdgeInsets.only(right: 8, top: 8, bottom: 8),
-          child: Material(
-            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            child: PopupMenuButton<String>(
-              icon: Icon(
-                Icons.more_vert_rounded,
-                color: isDark ? Colors.white : const Color(0xFF1F2937),
-                size: 22,
-              ),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              offset: const Offset(0, 50),
-              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-              elevation: 8,
-              onSelected: (value) {
-                HapticFeedback.selectionClick();
-                if (value == 'edit') {
-                  setState(() => _isEditing = !_isEditing);
-                } else if (value == 'logout') {
-                  _handleSignOut();
-                }
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'edit',
-                  child: Row(
-                    children: [
-                      Icon(
-                        _isEditing ? Icons.close_rounded : Icons.edit_outlined,
-                        size: 20,
-                        color: isDark ? Colors.white70 : const Color(0xFF6B7280),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        _isEditing ? 'Cancel Edit' : 'Edit Profile',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w500,
-                          color: isDark ? Colors.white : const Color(0xFF1F2937),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const PopupMenuDivider(height: 1),
-                const PopupMenuItem(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      Icon(Icons.logout_rounded, size: 20, color: Color(0xFFEF4444)),
-                      SizedBox(width: 12),
-                      Text(
-                        'Sign Out',
-                        style: TextStyle(
-                          color: Color(0xFFEF4444),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
+
 
   Widget _buildBody(bool isDark, bool isSmallScreen) {
     final bool needsOnboarding = _userProfile?.onboardingComplete != true;
@@ -519,7 +574,8 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
             SliverToBoxAdapter(
               child: Column(
                 children: [
-                  SizedBox(height: MediaQuery.of(context).padding.top + 60),
+                  _buildWalkerHeader(isDark),
+                  const SizedBox(height: 20),
                   _buildProfileHeader(isDark, isSmallScreen),
                   if (needsOnboarding) ...[
                     SizedBox(height: isSmallScreen ? 12 : 16),
@@ -537,6 +593,247 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWalkerHeader(bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF6366F1),
+            const Color(0xFF8B5CF6),
+          ],
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.elliptical(60, 30),
+          bottomRight: Radius.elliptical(60, 30),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6366F1).withValues(alpha: 0.25),
+            blurRadius: 30,
+            spreadRadius: 0,
+            offset: const Offset(0, 15),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: const Icon(Icons.directions_walk_rounded, size: 30, color: Colors.white),
+                  ),
+                  const SizedBox(width: 14),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Walker Profile',
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: -0.8,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Welcome, ${_userProfile?.displayName?.split(' ')[0] ?? 'Walker'}!',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withValues(alpha: 0.85),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: IconButton(
+                      icon: _buildNotificationIcon(true),
+                      onPressed: _showNotificationsPanel,
+                      tooltip: 'Notifications',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: PopupMenuButton<String>(
+                      icon: const Icon(
+                        Icons.menu_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                      tooltip: 'Menu',
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      offset: const Offset(0, 50),
+                      onSelected: (value) {
+                        HapticFeedback.selectionClick();
+                        if (value == 'edit') {
+                          setState(() => _isEditing = !_isEditing);
+                        } else if (value == 'active') {
+                          _navigateToActiveWalks();
+                        } else if (value == 'scheduled') {
+                          _navigateToScheduledWalks();
+                        } else if (value == 'balance') {
+                          _showAccountBalance();
+                        } else if (value == 'logout') {
+                          _handleSignOut();
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(
+                                _isEditing ? Icons.close_rounded : Icons.edit_outlined,
+                                size: 20,
+                                color: isDark ? Colors.white70 : const Color(0xFF6B7280),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                _isEditing ? 'Cancel Edit' : 'Edit Profile',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: isDark ? Colors.white : const Color(0xFF1F2937),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(height: 1),
+                        PopupMenuItem(
+                          value: 'active',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.directions_walk_rounded,
+                                size: 20,
+                                color: isDark ? Colors.white70 : const Color(0xFF6B7280),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Active Walks',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: isDark ? Colors.white : const Color(0xFF1F2937),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(height: 1),
+                        PopupMenuItem(
+                          value: 'scheduled',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.calendar_month_rounded,
+                                size: 20,
+                                color: isDark ? Colors.white70 : const Color(0xFF6B7280),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Scheduled Walks',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: isDark ? Colors.white : const Color(0xFF1F2937),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(height: 1),
+                        PopupMenuItem(
+                          value: 'balance',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.account_balance_wallet_rounded,
+                                size: 20,
+                                color: isDark ? Colors.white70 : const Color(0xFF6B7280),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Account Balance',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: isDark ? Colors.white : const Color(0xFF1F2937),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(height: 1),
+                        const PopupMenuItem(
+                          value: 'logout',
+                          child: Row(
+                            children: [
+                              Icon(Icons.logout_rounded, size: 20, color: Color(0xFFEF4444)),
+                              SizedBox(width: 12),
+                              Text(
+                                'Sign Out',
+                                style: TextStyle(
+                                  color: Color(0xFFEF4444),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -900,11 +1197,12 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
           SizedBox(width: isSmallScreen ? 8 : 12),
           _buildStatItem(
             isDark,
-            Icons.rate_review_outlined,
-            '${_userProfile?.reviews ?? 0}',
-            'Reviews',
+            Icons.calendar_month_rounded,
+            '0', // Placeholder - will be updated dynamically
+            'Scheduled',
             const Color(0xFFEC4899),
             isSmallScreen,
+            onTap: _navigateToScheduledWalks,
           ),
         ],
       ),
@@ -917,82 +1215,91 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
     String value,
     String label,
     Color color,
-    bool isSmallScreen,
-  ) {
-    return Expanded(
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          vertical: isSmallScreen ? 12 : 16,
-          horizontal: isSmallScreen ? 8 : 12,
-        ),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              color.withValues(alpha: isDark ? 0.15 : 0.08),
-              color.withValues(alpha: isDark ? 0.08 : 0.04),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: color.withValues(alpha: 0.2),
-            width: 1.5,
-          ),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(isSmallScreen ? 10 : 12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [color, color.withValues(alpha: 0.8)],
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Icon(icon, size: isSmallScreen ? 20 : 24, color: Colors.white),
-            ),
-            SizedBox(height: isSmallScreen ? 8 : 10),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: isSmallScreen ? 20 : 24,
-                fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : const Color(0xFF1F2937),
-                letterSpacing: -0.5,
-                shadows: [
-                  Shadow(
-                    color: color.withValues(alpha: 0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: isSmallScreen ? 11 : 12,
-                fontWeight: FontWeight.w700,
-                color: color,
-                letterSpacing: 0.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
+    bool isSmallScreen, {
+    VoidCallback? onTap,
+  }) {
+    Widget child = Container(
+      padding: EdgeInsets.symmetric(
+        vertical: isSmallScreen ? 12 : 16,
+        horizontal: isSmallScreen ? 8 : 12,
+      ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withValues(alpha: isDark ? 0.15 : 0.08),
+            color.withValues(alpha: isDark ? 0.08 : 0.04),
           ],
         ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(isSmallScreen ? 10 : 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [color, color.withValues(alpha: 0.8)],
+              ),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(icon, size: isSmallScreen ? 20 : 24, color: Colors.white),
+          ),
+          SizedBox(height: isSmallScreen ? 8 : 10),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: isSmallScreen ? 20 : 24,
+              fontWeight: FontWeight.w900,
+              color: isDark ? Colors.white : const Color(0xFF1F2937),
+              letterSpacing: -0.5,
+              shadows: [
+                Shadow(
+                  color: color.withValues(alpha: 0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: isSmallScreen ? 11 : 12,
+              fontWeight: FontWeight.w700,
+              color: color,
+              letterSpacing: 0.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
+
+    if (onTap != null) {
+      child = InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: child,
+      );
+    }
+
+    return Expanded(child: child);
   }
 
   Widget _buildInfoCards(bool isDark, bool isSmallScreen) {

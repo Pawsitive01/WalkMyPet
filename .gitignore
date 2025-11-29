@@ -52,3 +52,8 @@ firebase-emulator-data/
 **/firebase-debug.log
 **/firestore-debug.log
 **/ui-debug.log
+
+# Firebase service account keys (NEVER commit these!)
+**/serviceAccountKey*.json
+**/*service-account*.json
+lib/services/*.json
