@@ -285,3 +285,82 @@ export const onReviewCreated = functions.firestore
       return null;
     }
   });
+
+/**
+ * Cloud Function that triggers when a new message is created
+ * Sends a notification to the receiver
+ */
+export const onMessageCreated = functions.firestore
+  .document("messages/{messageId}")
+  .onCreate(async (snapshot: functions.firestore.QueryDocumentSnapshot, context: functions.EventContext) => {
+    const message = snapshot.data();
+    const messageId = context.params.messageId;
+
+    try {
+      // Get the FCM token for the receiver
+      const receiverDoc = await admin.firestore()
+        .collection("users")
+        .doc(message.receiverId)
+        .get();
+
+      if (!receiverDoc.exists) {
+        console.log(`Receiver ${message.receiverId} not found`);
+        return null;
+      }
+
+      const receiverData = receiverDoc.data();
+      const fcmToken = receiverData?.fcmToken;
+
+      if (!fcmToken) {
+        console.log(`Receiver ${message.receiverId} does not have an FCM token`);
+        return null;
+      }
+
+      // Truncate message content for preview
+      const messagePreview = message.content.length > 100
+        ? message.content.substring(0, 100) + "..."
+        : message.content;
+
+      // Prepare notification payload
+      const fcmMessage: admin.messaging.Message = {
+        token: fcmToken,
+        notification: {
+          title: `💬 ${message.senderName}`,
+          body: messagePreview,
+        },
+        data: {
+          messageId: messageId,
+          type: "message",
+          conversationId: message.conversationId,
+          senderId: message.senderId,
+          senderName: message.senderName,
+          content: message.content,
+        },
+        android: {
+          priority: "high",
+          notification: {
+            sound: "default",
+            channelId: "messages",
+            priority: "high",
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: "default",
+              badge: 1,
+            },
+          },
+        },
+      };
+
+      // Send the notification
+      const response = await admin.messaging().send(fcmMessage);
+      console.log(`Message notification sent to user ${message.receiverId}:`, response);
+
+      return response;
+    } catch (error) {
+      console.error("Error sending message notification:", error);
+      return null;
+    }
+  });

@@ -7,6 +7,8 @@ import 'package:walkmypet/booking_authentication_page.dart';
 import 'package:walkmypet/booking/booking_page.dart';
 import 'package:walkmypet/design_system.dart';
 import 'package:walkmypet/widgets/reviews_list.dart';
+import 'package:walkmypet/services/message_service.dart';
+import 'package:walkmypet/messaging/chat_page.dart';
 
 class DetailPage extends StatefulWidget {
   final Person person;
@@ -68,6 +70,80 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
     _scrollController.dispose();
     _statsAnimationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _startConversation(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please log in to send messages'),
+          backgroundColor: Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
+
+    if (widget.person.userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to start conversation'),
+          backgroundColor: Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+      ),
+    );
+
+    try {
+      final messageService = MessageService();
+
+      // Get or create conversation
+      final conversationId = await messageService.getOrCreateConversation(
+        userId1: user.uid,
+        userName1: user.displayName ?? 'User',
+        userPhoto1: user.photoURL ?? '',
+        userId2: widget.person.userId!,
+        userName2: widget.person.name,
+        userPhoto2: widget.person.imageUrl,
+      );
+
+      if (mounted) {
+        // Close loading dialog
+        Navigator.pop(context);
+
+        // Navigate to chat page
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatPage(
+              conversationId: conversationId,
+              otherUserId: widget.person.userId!,
+              otherUserName: widget.person.name,
+              otherUserPhoto: widget.person.imageUrl,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to start conversation: $e'),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+      }
+    }
   }
 
   // Professional subtle shrinking animation - Instagram-level polish
@@ -680,15 +756,7 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                           child: Material(
                             color: Colors.transparent,
                             child: InkWell(
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Messaging ${widget.person.name}...'),
-                                    behavior: SnackBarBehavior.floating,
-                                    backgroundColor: const Color(0xFF6366F1),
-                                  ),
-                                );
-                              },
+                              onTap: () => _startConversation(context),
                               borderRadius: BorderRadius.circular(DesignSystem.radiusSmall),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(vertical: DesignSystem.space2),
