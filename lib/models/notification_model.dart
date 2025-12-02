@@ -5,6 +5,7 @@ enum NotificationType {
   bookingConfirmed,
   bookingCancelled,
   bookingCompleted,
+  reviewReceived,
   message,
   general,
 }
@@ -96,6 +97,8 @@ class AppNotification {
         return NotificationType.bookingCancelled;
       case 'bookingCompleted':
         return NotificationType.bookingCompleted;
+      case 'reviewReceived':
+        return NotificationType.reviewReceived;
       case 'message':
         return NotificationType.message;
       default:

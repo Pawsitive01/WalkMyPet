@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:walkmypet/models/review_model.dart';
+import 'package:walkmypet/services/notification_service.dart';
 
 class ReviewService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final NotificationService _notificationService = NotificationService();
 
   // Create a new review
   Future<String> createReview(Review review) async {
@@ -11,6 +13,14 @@ class ReviewService {
 
       // Update the user's rating and review count
       await _updateUserRating(review.reviewedUserId);
+
+      // Send notification to the reviewed user
+      await _notificationService.notifyReviewReceived(
+        reviewedUserId: review.reviewedUserId,
+        reviewerName: review.reviewerName,
+        rating: review.rating,
+        comment: review.comment,
+      );
 
       return docRef.id;
     } catch (e) {

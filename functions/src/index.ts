@@ -204,3 +204,84 @@ export const onBookingStatusUpdated = functions.firestore
       return null;
     }
   });
+
+/**
+ * Cloud Function that triggers when a new review is created
+ * Sends a notification to the user being reviewed
+ */
+export const onReviewCreated = functions.firestore
+  .document("reviews/{reviewId}")
+  .onCreate(async (snapshot: functions.firestore.QueryDocumentSnapshot, context: functions.EventContext) => {
+    const review = snapshot.data();
+    const reviewId = context.params.reviewId;
+
+    try {
+      // Get the FCM token for the user being reviewed
+      const reviewedUserDoc = await admin.firestore()
+        .collection("users")
+        .doc(review.reviewedUserId)
+        .get();
+
+      if (!reviewedUserDoc.exists) {
+        console.log(`User ${review.reviewedUserId} not found`);
+        return null;
+      }
+
+      const reviewedUserData = reviewedUserDoc.data();
+      const fcmToken = reviewedUserData?.fcmToken;
+
+      if (!fcmToken) {
+        console.log(`User ${review.reviewedUserId} does not have an FCM token`);
+        return null;
+      }
+
+      // Format the rating with stars
+      const stars = "⭐".repeat(Math.round(review.rating));
+      const commentPreview = review.comment
+        ? (review.comment.length > 50 ? review.comment.substring(0, 50) + "..." : review.comment)
+        : "No comment provided";
+
+      // Prepare notification payload
+      const message: admin.messaging.Message = {
+        token: fcmToken,
+        notification: {
+          title: "⭐ New Review Received!",
+          body: `${review.reviewerName} left you a ${review.rating}-star review ${stars}`,
+        },
+        data: {
+          reviewId: reviewId,
+          type: "review_received",
+          reviewerId: review.reviewerId,
+          reviewerName: review.reviewerName,
+          rating: review.rating.toString(),
+          comment: review.comment || "",
+          commentPreview: commentPreview,
+        },
+        android: {
+          priority: "high",
+          notification: {
+            sound: "default",
+            channelId: "reviews",
+            priority: "default",
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: "default",
+              badge: 1,
+            },
+          },
+        },
+      };
+
+      // Send the notification
+      const response = await admin.messaging().send(message);
+      console.log(`Review notification sent to user ${review.reviewedUserId}:`, response);
+
+      return response;
+    } catch (error) {
+      console.error("Error sending review notification:", error);
+      return null;
+    }
+  });

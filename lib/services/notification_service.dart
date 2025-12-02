@@ -309,4 +309,25 @@ class NotificationService {
       bookingId: bookingId,
     );
   }
+
+  /// Create a review received notification
+  Future<void> notifyReviewReceived({
+    required String reviewedUserId,
+    required String reviewerName,
+    required double rating,
+    required String? comment,
+  }) async {
+    final stars = '⭐' * rating.round();
+    await createNotification(
+      userId: reviewedUserId,
+      title: 'New Review Received!',
+      message: '$reviewerName left you a $rating-star review $stars',
+      type: 'reviewReceived',
+      data: {
+        'reviewerName': reviewerName,
+        'rating': rating,
+        'comment': comment,
+      },
+    );
+  }
 }
