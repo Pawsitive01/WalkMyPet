@@ -1,4 +1,5 @@
 class Person {
+  final String? userId; // User ID for fetching reviews
   final String name;
   final double rating;
   final int reviews;
@@ -8,6 +9,7 @@ class Person {
   final bool hasPoliceClearance;
 
   const Person({
+    this.userId,
     required this.name,
     required this.rating,
     required this.reviews,
@@ -25,6 +27,7 @@ class Walker extends Person {
   final Map<String, int> servicePrices; // Prices for each service
 
   const Walker({
+    super.userId,
     required super.name,
     required super.rating,
     required super.reviews,
@@ -51,6 +54,7 @@ class Owner extends Person {
   final int likes;
 
   const Owner({
+    super.userId,
     required super.name,
     required super.rating,
     required super.reviews,

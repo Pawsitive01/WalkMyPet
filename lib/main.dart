@@ -825,6 +825,7 @@ class _WalkerListState extends State<WalkerList> with SingleTickerProviderStateM
       }).map((user) {
         final data = user.toFirestore();
         return Walker(
+          userId: user.id,
           name: data['displayName'] ?? 'Unknown',
           rating: (data['rating'] ?? 5.0).toDouble(),
           reviews: data['reviews'] ?? 0,
@@ -1049,6 +1050,7 @@ class _OwnerListState extends State<OwnerList> with SingleTickerProviderStateMix
       final loadedOwners = users.map((user) {
         final data = user.toFirestore();
         return Owner(
+          userId: user.id,
           name: data['displayName'] ?? 'Unknown',
           dogName: data['dogName'] ?? 'Pet',
           dogAge: int.tryParse((data['dogAge'] ?? '0').toString()) ?? 0,

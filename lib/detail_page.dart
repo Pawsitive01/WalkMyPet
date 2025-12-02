@@ -6,6 +6,7 @@ import 'package:walkmypet/models.dart';
 import 'package:walkmypet/booking_authentication_page.dart';
 import 'package:walkmypet/booking/booking_page.dart';
 import 'package:walkmypet/design_system.dart';
+import 'package:walkmypet/widgets/reviews_list.dart';
 
 class DetailPage extends StatefulWidget {
   final Person person;
@@ -213,7 +214,11 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
                         const SizedBox(height: DesignSystem.space3),
 
                         // Reviews Section
-                        _buildCompactReviews(widget.person, isDark, isWalker),
+                        if (widget.person.userId != null)
+                          ReviewsList(
+                            userId: widget.person.userId!,
+                            maxReviews: 5,
+                          ),
 
                         const SizedBox(height: 120),
                       ],
@@ -1145,232 +1150,6 @@ class _DetailPageState extends State<DetailPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildCompactReviews(Person person, bool isDark, bool isWalker) {
-    // Sample reviews data - in production, this would come from API
-    final reviews = [
-      {
-        'name': 'John Doe',
-        'initials': 'JD',
-        'rating': 5,
-        'time': '2d ago',
-        'text': 'Excellent service & very punctual. Highly recommend!',
-        'verified': true,
-      },
-      {
-        'name': 'Sarah Smith',
-        'initials': 'SS',
-        'rating': 5,
-        'time': '1w ago',
-        'text': 'Amazing experience! My dog absolutely loved the walk.',
-        'verified': true,
-      },
-      {
-        'name': 'Mike Johnson',
-        'initials': 'MJ',
-        'rating': 4,
-        'time': '2w ago',
-        'text': 'Great walker, very professional and caring.',
-        'verified': false,
-      },
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Reviews',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : const Color(0xFF0F172A),
-                letterSpacing: -0.3,
-              ),
-            ),
-            TextButton(
-              onPressed: () {},
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(0, 0),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: const Row(
-                children: [
-                  Text(
-                    'View All',
-                    style: TextStyle(
-                      fontSize: DesignSystem.caption,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF6366F1),
-                    ),
-                  ),
-                  SizedBox(width: 4),
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 12,
-                    color: Color(0xFF6366F1),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: DesignSystem.space2),
-
-        // Horizontal scrollable reviews
-        SizedBox(
-          height: 180,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: reviews.length,
-            padding: const EdgeInsets.only(right: DesignSystem.space2),
-            itemBuilder: (context, index) {
-              final review = reviews[index];
-              return Container(
-                width: 280,
-                margin: EdgeInsets.only(
-                  right: index < reviews.length - 1 ? DesignSystem.space2 : 0,
-                ),
-                padding: const EdgeInsets.all(DesignSystem.space3),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isDark
-                        ? [
-                            const Color(0xFF1E293B),
-                            const Color(0xFF0F172A),
-                          ]
-                        : [
-                            const Color(0xFFFFFFFF),
-                            const Color(0xFFF8FAFC),
-                          ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(DesignSystem.radiusLarge),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.white.withAlpha((0.1 * 255).round())
-                        : Colors.black.withAlpha((0.05 * 255).round()),
-                    width: 1,
-                  ),
-                  boxShadow: DesignSystem.shadowCard(Colors.black),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: isWalker
-                                  ? [const Color(0xFF6366F1), const Color(0xFF8B5CF6)]
-                                  : [const Color(0xFFEC4899), const Color(0xFF8B5CF6)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: (isWalker ? const Color(0xFF6366F1) : const Color(0xFFEC4899))
-                                    .withAlpha((0.3 * 255).round()),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              review['initials'] as String,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: DesignSystem.caption,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: DesignSystem.space2),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      review['name'] as String,
-                                      style: TextStyle(
-                                        fontSize: DesignSystem.caption,
-                                        fontWeight: FontWeight.w700,
-                                        color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  if (review['verified'] as bool) ...[
-                                    const SizedBox(width: 4),
-                                    const Icon(
-                                      Icons.verified_rounded,
-                                      size: 14,
-                                      color: Color(0xFF10B981),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: List.generate(
-                                  5,
-                                  (starIndex) => Icon(
-                                    starIndex < (review['rating'] as int)
-                                        ? Icons.star_rounded
-                                        : Icons.star_border_rounded,
-                                    color: const Color(0xFFFBBF24),
-                                    size: 14,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Text(
-                          review['time'] as String,
-                          style: TextStyle(
-                            fontSize: DesignSystem.small,
-                            color: isDark ? Colors.grey[500] : Colors.grey[500],
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: DesignSystem.space2),
-                    Expanded(
-                      child: Text(
-                        '"${review['text']}"',
-                        style: TextStyle(
-                          fontSize: DesignSystem.caption,
-                          fontStyle: FontStyle.italic,
-                          color: isDark ? Colors.grey[400] : Colors.grey[700],
-                          height: 1.5,
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildServicesSection(bool isDark, List<String> services) {
     return Container(

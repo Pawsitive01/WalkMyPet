@@ -4,6 +4,8 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'package:walkmypet/models/booking_model.dart';
 import 'package:walkmypet/services/booking_service.dart';
+import 'package:walkmypet/services/review_service.dart';
+import 'package:walkmypet/widgets/review_dialog.dart';
 
 class MyBookingsPageRedesigned extends StatefulWidget {
   const MyBookingsPageRedesigned({super.key});
@@ -15,6 +17,7 @@ class MyBookingsPageRedesigned extends StatefulWidget {
 class _MyBookingsPageRedesignedState extends State<MyBookingsPageRedesigned>
     with SingleTickerProviderStateMixin {
   final BookingService _bookingService = BookingService();
+  final ReviewService _reviewService = ReviewService();
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
@@ -1098,6 +1101,57 @@ class _MyBookingsPageRedesignedState extends State<MyBookingsPageRedesigned>
                       ),
                     ),
                   ],
+
+                  // Leave Review Button (only for completed bookings)
+                  if (booking.status == BookingStatus.completed) ...[
+                    const SizedBox(height: 16),
+                    FutureBuilder<bool>(
+                      future: _reviewService.hasUserReviewedBooking(
+                        booking.id,
+                        FirebaseAuth.instance.currentUser?.uid ?? '',
+                      ),
+                      builder: (context, snapshot) {
+                        final hasReviewed = snapshot.data ?? false;
+
+                        return SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: hasReviewed
+                                ? null
+                                : () => _showReviewDialog(booking),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: hasReviewed
+                                  ? (isDark ? Colors.grey[700] : Colors.grey[300])
+                                  : const Color(0xFFFBBF24),
+                              foregroundColor: hasReviewed
+                                  ? (isDark ? Colors.grey[500] : Colors.grey[600])
+                                  : Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: hasReviewed ? 0 : 4,
+                              shadowColor: hasReviewed
+                                  ? Colors.transparent
+                                  : const Color(0xFFFBBF24).withAlpha((0.4 * 255).round()),
+                            ),
+                            icon: Icon(
+                              hasReviewed ? Icons.check_circle_rounded : Icons.star_rounded,
+                              size: 20,
+                            ),
+                            label: Text(
+                              hasReviewed ? 'Review Submitted' : 'Leave a Review',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1105,6 +1159,29 @@ class _MyBookingsPageRedesignedState extends State<MyBookingsPageRedesigned>
         ),
       ),
     );
+  }
+
+  Future<void> _showReviewDialog(Booking booking) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      _showSnackBar('Please log in to leave a review', const Color(0xFFEF4444));
+      return;
+    }
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => ReviewDialog(
+        bookingId: booking.id,
+        walkerId: booking.walkerId,
+        walkerName: booking.walkerName,
+        dogName: booking.dogName,
+      ),
+    );
+
+    if (result == true && mounted) {
+      _showSnackBar('Review submitted successfully!', const Color(0xFF10B981));
+      setState(() {}); // Refresh to update the button state
+    }
   }
 
   Widget _buildDetailRow({
