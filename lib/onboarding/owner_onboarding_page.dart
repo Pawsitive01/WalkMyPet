@@ -265,13 +265,35 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
           );
         }
       }
-    } catch (e) {
-        // Error handled silently
+    } catch (e, stackTrace) {
+      // Print detailed error for debugging
+      print('🚨 Onboarding Save Error:');
+      print('Error Type: ${e.runtimeType}');
+      print('Error Message: $e');
+      print('Stack Trace: $stackTrace');
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            content: Row(
+              children: [
+                const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Failed to save profile: ${e.toString().replaceAll('Exception: ', '')}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFFEF4444),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 6),
           ),
         );
       }
