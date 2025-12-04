@@ -1,52 +1,26 @@
-
 {
   "project_info": {
-    "project_number": "830819672498",
-    "project_id": "walkmypet-dff4e",
-    "storage_bucket": "walkmypet-dff4e.firebasestorage.app"
+    "project_number": "885639863246",
+    "project_id": "walkmypet-47e03",
+    "storage_bucket": "walkmypet-47e03.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:830819672498:android:85d440cad23fde384c04ab",
+        "mobilesdk_app_id": "1:885639863246:android:dbac8511ae6a1c1acae99f",
         "android_client_info": {
           "package_name": "com.WalkMyPet.walkmypet"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "830819672498-bcr0eq8gt3p019lrt1dckb2h4an5trjj.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.WalkMyPet.walkmypet",
-            "certificate_hash": "3ef48c017402e9d2050ed12694ace9a1363646b7"
-          }
-        },
-        {
-          "client_id": "830819672498-tdds6igchpc9j5fq369e38ikqs6h2lkt.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDAuAH15j5txXTqccjKOoBTYvi3E5i4bIQ"
+          "current_key": "AIzaSyAY3MWESY1wvWjzAOCaHaAO0h8WOQRFk9s"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "830819672498-tdds6igchpc9j5fq369e38ikqs6h2lkt.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "830819672498-itqqbrfir856gq330q3vnf1ls0mjhk00.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.walkmypet.walkmypet"
-              }
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

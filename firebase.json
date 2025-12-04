@@ -1,1 +1,41 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"walkmypet-dff4e","appId":"1:830819672498:android:ab70ae04eb47954b4c04ab","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"walkmypet-dff4e","configurations":{"web":"1:830819672498:web:63405f1dc4b8af514c04ab"}}}}},"firestore":{"rules":"firestore.rules"},"storage":{"rules":"storage.rules"},"emulators":{"auth":{"port":9099},"firestore":{"port":8080},"storage":{"port":9199},"ui":{"enabled":true}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "walkmypet-47e03",
+          "appId": "1:885639863246:android:dbac8511ae6a1c1acae99f",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "walkmypet-47e03",
+          "configurations": {
+            "web": "TODO: Register web app in Firebase Console first"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "storage": {
+      "port": 9199
+    },
+    "ui": {
+      "enabled": true
+    }
+  }
+}

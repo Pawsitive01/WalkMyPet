@@ -966,12 +966,34 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
             }
           }
         }
-      } catch (e) {
+      } catch (e, stackTrace) {
+        // Print detailed error to console for debugging
+        print('🚨 Authentication Error:');
+        print('Error Type: ${e.runtimeType}');
+        print('Error Message: $e');
+        print('Stack Trace: $stackTrace');
 
         if (mounted) {
           setState(() {
             _isLoading = false;
           });
+
+          // Get a clean error message
+          String errorMessage = e.toString();
+
+          // Remove common prefixes
+          errorMessage = errorMessage
+              .replaceAll('Exception: ', '')
+              .replaceAll('FirebaseAuthException: ', '')
+              .replaceAll('[firebase_auth/operation-not-allowed] ', '');
+
+          // If error message is empty or just "error", provide helpful default
+          if (errorMessage.isEmpty || errorMessage.toLowerCase() == 'error') {
+            errorMessage = 'Authentication failed. Please check:\n'
+                '• Email/Password auth is enabled in Firebase Console\n'
+                '• Your internet connection\n'
+                '• Email and password are valid';
+          }
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -981,7 +1003,7 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      e.toString().replaceAll('Exception: ', ''),
+                      errorMessage,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -993,7 +1015,7 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
                 borderRadius: BorderRadius.circular(12),
               ),
               margin: const EdgeInsets.all(16),
-              duration: const Duration(seconds: 4),
+              duration: const Duration(seconds: 6),
             ),
           );
         }
@@ -1099,7 +1121,12 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
         }
       } else {
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      // Print detailed error to console for debugging
+      print('🚨 Google Sign-In Error:');
+      print('Error Type: ${e.runtimeType}');
+      print('Error Message: $e');
+      print('Stack Trace: $stackTrace');
 
       if (mounted) {
         // More user-friendly error messages
@@ -1111,6 +1138,11 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
           errorMessage = 'Sign-in cancelled';
         } else if (e.toString().contains('ERROR_INVALID_CREDENTIAL')) {
           errorMessage = 'Invalid credentials. Please try again.';
+        } else if (e.toString().contains('operation-not-allowed')) {
+          errorMessage = 'Google Sign-In is not enabled in Firebase Console';
+        } else {
+          // Show the actual error for debugging
+          errorMessage = e.toString().replaceAll('Exception: ', '');
         }
 
         ScaffoldMessenger.of(context).showSnackBar(

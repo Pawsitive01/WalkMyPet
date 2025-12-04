@@ -43,31 +43,36 @@ class DefaultFirebaseOptions {
     }
   }
 
+  // TODO: Web app not configured yet
+  // To configure web:
+  // 1. Go to https://console.firebase.google.com/project/walkmypet-47e03/settings/general
+  // 2. Click the Web icon (</>) to add a web app
+  // 3. Register the app and copy the appId
+  // 4. Update the appId below
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAGR7OrLSL1yW47Ep7jzg5T5Ex7lBfuzCI',
-    appId: '1:830819672498:web:63405f1dc4b8af514c04ab',
-    messagingSenderId: '830819672498',
-    projectId: 'walkmypet-dff4e',
-    authDomain: 'walkmypet-dff4e.firebaseapp.com',
-    storageBucket: 'walkmypet-dff4e.firebasestorage.app',
-    measurementId: 'G-0PEDJWGKRJ',
+    apiKey: 'AIzaSyAY3MWESY1wvWjzAOCaHaAO0h8WOQRFk9s',
+    appId: '1:885639863246:web:PLACEHOLDER_UPDATE_THIS',
+    messagingSenderId: '885639863246',
+    projectId: 'walkmypet-47e03',
+    authDomain: 'walkmypet-47e03.firebaseapp.com',
+    storageBucket: 'walkmypet-47e03.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDAuAH15j5txXTqccjKOoBTYvi3E5i4bIQ',
-    appId: '1:830819672498:android:85d440cad23fde384c04ab',
-    messagingSenderId: '830819672498',
-    projectId: 'walkmypet-dff4e',
-    storageBucket: 'walkmypet-dff4e.firebasestorage.app',
+    apiKey: 'AIzaSyAY3MWESY1wvWjzAOCaHaAO0h8WOQRFk9s',
+    appId: '1:885639863246:android:dbac8511ae6a1c1acae99f',
+    messagingSenderId: '885639863246',
+    projectId: 'walkmypet-47e03',
+    storageBucket: 'walkmypet-47e03.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBouinu6HhkApZsR3jCqH2usQ1OJRhDBAU',
-    appId: '1:830819672498:ios:a988adce52abc3eb4c04ab',
-    messagingSenderId: '830819672498',
-    projectId: 'walkmypet-dff4e',
-    storageBucket: 'walkmypet-dff4e.firebasestorage.app',
-    iosBundleId: 'com.walkmypet.walkmypet',
+    apiKey: 'AIzaSyCUVTyfJWG_tLqpS4pRxo4_QGc49tAsL4g',
+    appId: '1:885639863246:ios:08b8208286a76d56cae99f',
+    messagingSenderId: '885639863246',
+    projectId: 'walkmypet-47e03',
+    storageBucket: 'walkmypet-47e03.firebasestorage.app',
+    iosBundleId: 'com.WalkMyPet.walkmypet',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(

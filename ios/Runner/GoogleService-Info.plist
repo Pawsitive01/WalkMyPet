@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyBouinu6HhkApZsR3jCqH2usQ1OJRhDBAU</string>
+	<string>AIzaSyCUVTyfJWG_tLqpS4pRxo4_QGc49tAsL4g</string>
 	<key>GCM_SENDER_ID</key>
-	<string>830819672498</string>
+	<string>885639863246</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.walkmypet.walkmypet</string>
+	<string>com.WalkMyPet.walkmypet</string>
 	<key>PROJECT_ID</key>
-	<string>walkmypet-dff4e</string>
+	<string>walkmypet-47e03</string>
 	<key>STORAGE_BUCKET</key>
-	<string>walkmypet-dff4e.firebasestorage.app</string>
+	<string>walkmypet-47e03.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:830819672498:ios:a988adce52abc3eb4c04ab</string>
+	<string>1:885639863246:ios:08b8208286a76d56cae99f</string>
 </dict>
 </plist>
