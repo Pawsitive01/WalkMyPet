@@ -852,6 +852,41 @@ class _MyBookingsPageRedesignedState extends State<MyBookingsPageRedesigned>
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
+                                if (booking.isRecurring) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFF6366F1),
+                                          Color(0xFFEC4899),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.repeat_rounded,
+                                          size: 10,
+                                          color: Colors.white,
+                                        ),
+                                        SizedBox(width: 2),
+                                        Text(
+                                          'RECURRING',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ],

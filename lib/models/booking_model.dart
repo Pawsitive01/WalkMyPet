@@ -25,6 +25,8 @@ class Booking {
   final DateTime? updatedAt;
   final List<String>? services; // List of service names
   final Map<String, dynamic>? serviceDetails; // {serviceName: {duration: 60, price: 25}}
+  final String? recurringBookingId; // Reference to parent recurring booking
+  final bool isRecurring; // Whether this booking is part of a recurring series
 
   Booking({
     required this.id,
@@ -44,6 +46,8 @@ class Booking {
     this.updatedAt,
     this.services,
     this.serviceDetails,
+    this.recurringBookingId,
+    this.isRecurring = false,
   });
 
   factory Booking.fromFirestore(DocumentSnapshot doc) {
@@ -71,6 +75,8 @@ class Booking {
       serviceDetails: data['serviceDetails'] != null
           ? Map<String, dynamic>.from(data['serviceDetails'])
           : null,
+      recurringBookingId: data['recurringBookingId'],
+      isRecurring: data['isRecurring'] ?? false,
     );
   }
 
@@ -92,6 +98,8 @@ class Booking {
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
       'services': services,
       'serviceDetails': serviceDetails,
+      'recurringBookingId': recurringBookingId,
+      'isRecurring': isRecurring,
     };
   }
 
@@ -113,6 +121,8 @@ class Booking {
     DateTime? updatedAt,
     List<String>? services,
     Map<String, dynamic>? serviceDetails,
+    String? recurringBookingId,
+    bool? isRecurring,
   }) {
     return Booking(
       id: id ?? this.id,
@@ -132,6 +142,8 @@ class Booking {
       updatedAt: updatedAt ?? this.updatedAt,
       services: services ?? this.services,
       serviceDetails: serviceDetails ?? this.serviceDetails,
+      recurringBookingId: recurringBookingId ?? this.recurringBookingId,
+      isRecurring: isRecurring ?? this.isRecurring,
     );
   }
 }

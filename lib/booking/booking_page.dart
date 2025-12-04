@@ -7,6 +7,7 @@ import 'package:walkmypet/models.dart';
 import 'package:walkmypet/models/booking_model.dart';
 import 'package:walkmypet/services/user_service.dart';
 import 'package:walkmypet/booking/checkout_page.dart';
+import 'package:walkmypet/booking/recurring_booking_page.dart';
 import 'package:walkmypet/design_system.dart';
 import 'package:walkmypet/widgets/location_picker.dart';
 
@@ -434,6 +435,8 @@ class _BookingPageState extends State<BookingPage> with SingleTickerProviderStat
             _buildLocationSection(isDark),
             SizedBox(height: DesignSystem.space3),
             _buildNotesSection(isDark),
+            SizedBox(height: DesignSystem.space3),
+            _buildRecurringOption(isDark),
             SizedBox(height: DesignSystem.space3),
             _buildPriceSummary(isDark),
             SizedBox(height: DesignSystem.space3),
@@ -1719,6 +1722,137 @@ class _BookingPageState extends State<BookingPage> with SingleTickerProviderStat
               color: isDark ? Colors.white : const Color(0xFF0F172A),
               fontSize: 15,
               fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecurringOption(bool isDark) {
+    return Container(
+      padding: EdgeInsets.all(DesignSystem.space2_5),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            DesignSystem.walkerPrimary.withValues(alpha: 0.1),
+            DesignSystem.walkerSecondary.withValues(alpha: 0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
+        border: Border.all(
+          color: DesignSystem.walkerPrimary.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(DesignSystem.space1),
+                decoration: BoxDecoration(
+                  gradient: DesignSystem.walkerGradient,
+                  borderRadius: BorderRadius.circular(DesignSystem.radiusSmall),
+                ),
+                child: const Icon(
+                  Icons.repeat_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              SizedBox(width: DesignSystem.space1_5),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Need Regular Walks?',
+                      style: TextStyle(
+                        color: DesignSystem.getTextPrimary(isDark),
+                        fontSize: DesignSystem.h3,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: DesignSystem.space0_5),
+                    Text(
+                      'Set up recurring bookings to save time',
+                      style: TextStyle(
+                        color: DesignSystem.getTextSecondary(isDark),
+                        fontSize: DesignSystem.small,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: DesignSystem.space2),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _selectedServices.isEmpty
+                  ? null
+                  : () {
+                      // Prepare booking data to pass to recurring booking page
+                      final bookingData = {
+                        'dogName': widget.walker.name, // Will be replaced with actual dog name
+                        'time': _selectedTime.format(context),
+                        'duration': _serviceDurations.values.isNotEmpty
+                            ? _serviceDurations.values.reduce((a, b) => a > b ? a : b)
+                            : 60,
+                        'location': _locationController.text.trim(),
+                        'price': _totalPrice,
+                        'notes': _notesController.text.trim(),
+                        'services': _selectedServices.toList(),
+                        'serviceDetails': <String, dynamic>{},
+                      };
+
+                      // Add service details
+                      final serviceDetails = bookingData['serviceDetails'] as Map<String, dynamic>;
+                      for (var service in _selectedServices) {
+                        serviceDetails[service] = {
+                          'duration': _serviceDurations[service] ??
+                              (_isFixedPriceService(service) ? 0 : 60),
+                          'price': widget.walker.servicePrices[service] ??
+                              widget.walker.hourlyRate,
+                        };
+                      }
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => RecurringBookingPage(
+                            walker: widget.walker,
+                            bookingData: bookingData,
+                          ),
+                        ),
+                      );
+                    },
+              icon: const Icon(Icons.calendar_month_rounded),
+              label: Text(
+                'Set Up Recurring Booking',
+                style: TextStyle(
+                  fontSize: DesignSystem.body,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: DesignSystem.walkerPrimary,
+                side: BorderSide(
+                  color: DesignSystem.walkerPrimary,
+                  width: 2,
+                ),
+                padding: EdgeInsets.symmetric(
+                  vertical: DesignSystem.space2,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
+                ),
+              ),
             ),
           ),
         ],
