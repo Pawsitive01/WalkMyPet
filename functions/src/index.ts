@@ -4,11 +4,14 @@ import * as admin from "firebase-admin";
 // Initialize Firebase Admin
 admin.initializeApp();
 
+// Set the region to Australia Southeast (Sydney)
+const region = "australia-southeast1";
+
 /**
  * Cloud Function that triggers when a new booking is created
  * Sends a push notification to the walker to confirm the booking
  */
-export const onBookingCreated = functions.firestore
+export const onBookingCreated = functions.region(region).firestore
   .document("bookings/{bookingId}")
   .onCreate(async (snapshot: functions.firestore.QueryDocumentSnapshot, context: functions.EventContext) => {
     const booking = snapshot.data();
@@ -109,7 +112,7 @@ export const onBookingCreated = functions.firestore
  * Cloud Function that triggers when a booking status is updated
  * Sends a notification to the owner when walker confirms or rejects
  */
-export const onBookingStatusUpdated = functions.firestore
+export const onBookingStatusUpdated = functions.region(region).firestore
   .document("bookings/{bookingId}")
   .onUpdate(async (change: functions.Change<functions.firestore.QueryDocumentSnapshot>, context: functions.EventContext) => {
     const before = change.before.data();
@@ -209,7 +212,7 @@ export const onBookingStatusUpdated = functions.firestore
  * Cloud Function that triggers when a new review is created
  * Sends a notification to the user being reviewed
  */
-export const onReviewCreated = functions.firestore
+export const onReviewCreated = functions.region(region).firestore
   .document("reviews/{reviewId}")
   .onCreate(async (snapshot: functions.firestore.QueryDocumentSnapshot, context: functions.EventContext) => {
     const review = snapshot.data();
@@ -290,7 +293,7 @@ export const onReviewCreated = functions.firestore
  * Cloud Function that triggers when a new message is created
  * Sends a notification to the receiver
  */
-export const onMessageCreated = functions.firestore
+export const onMessageCreated = functions.region(region).firestore
   .document("messages/{messageId}")
   .onCreate(async (snapshot: functions.firestore.QueryDocumentSnapshot, context: functions.EventContext) => {
     const message = snapshot.data();

@@ -57,3 +57,4 @@ firebase-emulator-data/
 **/serviceAccountKey*.json
 **/*service-account*.json
 lib/services/*.json
+install.cmd

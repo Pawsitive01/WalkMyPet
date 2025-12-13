@@ -4,10 +4,9 @@ import 'package:google_sign_in/google_sign_in.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    // TODO: Add Web client ID from new Firebase project (walkmypet-47e03)
-    // To get this: Firebase Console > Authentication > Sign-in method > Google > Web SDK configuration
-    // Leave as null for now - Google Sign-In will work on mobile without this
-    // clientId: 'YOUR_NEW_WEB_CLIENT_ID.apps.googleusercontent.com',
+    // Web client ID for walkmypet-47e03 project
+    // This enables Google Sign-In across all platforms including web
+    clientId: '885639863246-mqpmrq9j0ulgd0511tmp64ma1id9peck.apps.googleusercontent.com',
   );
 
   // Get current user

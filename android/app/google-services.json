@@ -12,7 +12,12 @@
           "package_name": "com.WalkMyPet.walkmypet"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "885639863246-ff6oheukb5aj5gomdaus3l0nhlnj4564.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAY3MWESY1wvWjzAOCaHaAO0h8WOQRFk9s"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "885639863246-ff6oheukb5aj5gomdaus3l0nhlnj4564.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "885639863246-o64nhevffrnvhcj103ffhtf1vcikq30j.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.WalkMyPet.walkmypet"
+              }
+            }
+          ]
         }
       }
     }

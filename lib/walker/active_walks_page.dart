@@ -118,8 +118,8 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
     );
 
     if (confirm == true && mounted) {
-      // TODO: Navigate to walk tracking screen or update booking status
-      // For now, show a success message
+      // Future enhancement: Navigate to walk tracking screen or update booking status
+      // Currently showing a success message to confirm walk started
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Started walk for ${booking.dogName}'),
