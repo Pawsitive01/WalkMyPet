@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 enum BookingStatus {
   pending,
   confirmed,
+  awaitingConfirmation,
   completed,
   cancelled,
 }
@@ -27,6 +28,10 @@ class Booking {
   final Map<String, dynamic>? serviceDetails; // {serviceName: {duration: 60, price: 25}}
   final String? recurringBookingId; // Reference to parent recurring booking
   final bool isRecurring; // Whether this booking is part of a recurring series
+  final DateTime? completedByWalkerAt; // When walker marked complete
+  final DateTime? confirmedByOwnerAt; // When owner confirmed completion
+  final bool? paymentProcessed; // Payment settlement completed
+  final String? transactionId; // Reference to transaction record
 
   Booking({
     required this.id,
@@ -48,6 +53,10 @@ class Booking {
     this.serviceDetails,
     this.recurringBookingId,
     this.isRecurring = false,
+    this.completedByWalkerAt,
+    this.confirmedByOwnerAt,
+    this.paymentProcessed,
+    this.transactionId,
   });
 
   factory Booking.fromFirestore(DocumentSnapshot doc) {
@@ -77,6 +86,10 @@ class Booking {
           : null,
       recurringBookingId: data['recurringBookingId'],
       isRecurring: data['isRecurring'] ?? false,
+      completedByWalkerAt: (data['completedByWalkerAt'] as Timestamp?)?.toDate(),
+      confirmedByOwnerAt: (data['confirmedByOwnerAt'] as Timestamp?)?.toDate(),
+      paymentProcessed: data['paymentProcessed'],
+      transactionId: data['transactionId'],
     );
   }
 
@@ -100,6 +113,10 @@ class Booking {
       'serviceDetails': serviceDetails,
       'recurringBookingId': recurringBookingId,
       'isRecurring': isRecurring,
+      'completedByWalkerAt': completedByWalkerAt != null ? Timestamp.fromDate(completedByWalkerAt!) : null,
+      'confirmedByOwnerAt': confirmedByOwnerAt != null ? Timestamp.fromDate(confirmedByOwnerAt!) : null,
+      'paymentProcessed': paymentProcessed,
+      'transactionId': transactionId,
     };
   }
 
@@ -123,6 +140,10 @@ class Booking {
     Map<String, dynamic>? serviceDetails,
     String? recurringBookingId,
     bool? isRecurring,
+    DateTime? completedByWalkerAt,
+    DateTime? confirmedByOwnerAt,
+    bool? paymentProcessed,
+    String? transactionId,
   }) {
     return Booking(
       id: id ?? this.id,
@@ -144,6 +165,10 @@ class Booking {
       serviceDetails: serviceDetails ?? this.serviceDetails,
       recurringBookingId: recurringBookingId ?? this.recurringBookingId,
       isRecurring: isRecurring ?? this.isRecurring,
+      completedByWalkerAt: completedByWalkerAt ?? this.completedByWalkerAt,
+      confirmedByOwnerAt: confirmedByOwnerAt ?? this.confirmedByOwnerAt,
+      paymentProcessed: paymentProcessed ?? this.paymentProcessed,
+      transactionId: transactionId ?? this.transactionId,
     );
   }
 }

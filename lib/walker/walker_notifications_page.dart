@@ -169,7 +169,12 @@ class _WalkerNotificationsPageState extends State<WalkerNotificationsPage>
         }
 
         if (snapshot.hasError) {
-          return _buildEmptyState('Error loading notifications', isDark);
+          debugPrint('Error loading notifications: ${snapshot.error}');
+          return _buildErrorState(
+            'Error loading notifications',
+            'Please check your connection and try again.\n\nIf the issue persists, the app may need to configure a Firestore index.',
+            isDark,
+          );
         }
 
         final notifications = snapshot.data?.docs ?? [];
@@ -414,6 +419,74 @@ class _WalkerNotificationsPageState extends State<WalkerNotificationsPage>
             textAlign: TextAlign.center,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String title, String message, bool isDark) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFFEF4444).withValues(alpha: 0.1),
+                    const Color(0xFFDC2626).withValues(alpha: 0.05),
+                  ],
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 64,
+                color: isDark ? Colors.red[400] : Colors.red[500],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.grey[400] : Colors.grey[700],
+                letterSpacing: -0.3,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.grey[600] : Colors.grey[500],
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {}); // Trigger rebuild to retry
+              },
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Retry'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6366F1),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

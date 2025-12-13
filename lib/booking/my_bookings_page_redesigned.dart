@@ -177,6 +177,8 @@ class _MyBookingsPageRedesignedState extends State<MyBookingsPageRedesigned>
         return const Color(0xFFF59E0B);
       case BookingStatus.confirmed:
         return const Color(0xFF6366F1);
+      case BookingStatus.awaitingConfirmation:
+        return const Color(0xFF3B82F6);
       case BookingStatus.completed:
         return const Color(0xFF10B981);
       case BookingStatus.cancelled:
@@ -190,6 +192,8 @@ class _MyBookingsPageRedesignedState extends State<MyBookingsPageRedesigned>
         return Icons.schedule_rounded;
       case BookingStatus.confirmed:
         return Icons.check_circle_rounded;
+      case BookingStatus.awaitingConfirmation:
+        return Icons.hourglass_bottom_rounded;
       case BookingStatus.completed:
         return Icons.verified_rounded;
       case BookingStatus.cancelled:

@@ -632,6 +632,8 @@ class _ManageRecurringBookingsPageState
         return const Color(0xFFF59E0B);
       case BookingStatus.confirmed:
         return const Color(0xFF10B981);
+      case BookingStatus.awaitingConfirmation:
+        return const Color(0xFF3B82F6);
       case BookingStatus.completed:
         return const Color(0xFF6366F1);
       case BookingStatus.cancelled:

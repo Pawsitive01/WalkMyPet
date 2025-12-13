@@ -211,6 +211,16 @@ class _InitializationWrapperState extends State<InitializationWrapper> {
   }
 
   Future<void> _initialize() async {
+    // Initialize NotificationService if Firebase is initialized
+    if (widget.firebaseInitialized) {
+      try {
+        await NotificationService().initialize();
+        debugPrint('NotificationService initialized successfully');
+      } catch (e) {
+        debugPrint('Error initializing NotificationService: $e');
+      }
+    }
+
     // Small delay to ensure everything is settled
     await Future.delayed(const Duration(milliseconds: 500));
 

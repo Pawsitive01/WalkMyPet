@@ -504,11 +504,14 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('bookings')
-          .where('walkerId', isEqualTo: user.uid)
-          .where('status', isEqualTo: 'pending')
+          .collection('notifications')
+          .where('userId', isEqualTo: user.uid)
+          .where('isRead', isEqualTo: false)
           .snapshots(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          debugPrint('Error loading notification count: ${snapshot.error}');
+        }
         final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
 
         return Stack(

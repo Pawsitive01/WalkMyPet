@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:walkmypet/booking/booking_confirmation_page.dart';
 import 'package:walkmypet/booking/my_bookings_page_redesigned.dart';
 
@@ -15,13 +16,113 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class NotificationService {
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   // Navigation key to navigate from notification handlers
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+  /// Initialize local notifications and create Android channels
+  Future<void> _initializeLocalNotifications() async {
+    // Android initialization settings
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    // iOS initialization settings
+    const DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+
+    // Combined initialization settings
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsIOS,
+    );
+
+    await _localNotifications.initialize(initializationSettings);
+
+    // Create Android notification channels
+    await _createAndroidChannels();
+  }
+
+  /// Create Android notification channels
+  Future<void> _createAndroidChannels() async {
+    // Booking requests channel
+    const AndroidNotificationChannel bookingRequestsChannel =
+        AndroidNotificationChannel(
+      'booking_requests',
+      'Booking Requests',
+      description: 'Notifications for new booking requests',
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+    );
+
+    // Booking updates channel
+    const AndroidNotificationChannel bookingUpdatesChannel =
+        AndroidNotificationChannel(
+      'booking_updates',
+      'Booking Updates',
+      description: 'Notifications for booking status updates',
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+    );
+
+    // Messages channel
+    const AndroidNotificationChannel messagesChannel =
+        AndroidNotificationChannel(
+      'messages',
+      'Messages',
+      description: 'Notifications for new messages',
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+    );
+
+    // Reviews channel
+    const AndroidNotificationChannel reviewsChannel =
+        AndroidNotificationChannel(
+      'reviews',
+      'Reviews',
+      description: 'Notifications for new reviews',
+      importance: Importance.defaultImportance,
+      playSound: true,
+    );
+
+    // Create all channels
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(bookingRequestsChannel);
+
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(bookingUpdatesChannel);
+
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(messagesChannel);
+
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(reviewsChannel);
+
+    debugPrint('Android notification channels created');
+  }
+
   /// Initialize FCM and request permissions
   Future<void> initialize() async {
     try {
+      // Initialize local notifications and create Android channels
+      await _initializeLocalNotifications();
+
       // Request permission for notifications
       NotificationSettings settings = await _messaging.requestPermission(
         alert: true,
@@ -327,6 +428,50 @@ class NotificationService {
         'reviewerName': reviewerName,
         'rating': rating,
         'comment': comment,
+      },
+    );
+  }
+
+  /// Notify owner to confirm walk completion
+  Future<void> notifyOwnerToConfirmCompletion({
+    required String ownerId,
+    required String bookingId,
+    required String walkerName,
+    required String dogName,
+    required double amount,
+  }) async {
+    await createNotification(
+      userId: ownerId,
+      title: 'Walk Completed - Confirm Now',
+      message:
+          '$walkerName has completed the walk with $dogName. Please confirm to release payment of \$${amount.toStringAsFixed(2)}.',
+      type: 'completionConfirmation',
+      bookingId: bookingId,
+      data: {
+        'walkerName': walkerName,
+        'dogName': dogName,
+        'amount': amount,
+      },
+    );
+  }
+
+  /// Notify walker of payment received
+  Future<void> notifyWalkerPaymentReceived({
+    required String walkerId,
+    required String bookingId,
+    required double amount,
+    required String dogName,
+  }) async {
+    await createNotification(
+      userId: walkerId,
+      title: 'Payment Received!',
+      message:
+          'You received \$${amount.toStringAsFixed(2)} for your walk with $dogName. View your earnings in your wallet.',
+      type: 'paymentReceived',
+      bookingId: bookingId,
+      data: {
+        'amount': amount,
+        'dogName': dogName,
       },
     );
   }

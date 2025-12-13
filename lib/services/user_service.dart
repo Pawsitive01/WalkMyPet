@@ -37,6 +37,13 @@ class AppUser {
   final String? locationSuburb;
   final String? locationPostcode;
 
+  // Wallet fields (Walker-specific)
+  final double? walletBalance;
+  final double? totalEarnings;
+  final double? pendingEarnings;
+  final DateTime? lastPaymentAt;
+  final int? totalTransactions;
+
   AppUser({
     required this.id,
     required this.email,
@@ -66,6 +73,11 @@ class AppUser {
     this.locationCity,
     this.locationSuburb,
     this.locationPostcode,
+    this.walletBalance,
+    this.totalEarnings,
+    this.pendingEarnings,
+    this.lastPaymentAt,
+    this.totalTransactions,
   });
 
   factory AppUser.fromFirestore(DocumentSnapshot doc) {
@@ -107,6 +119,11 @@ class AppUser {
       locationCity: data['locationCity'],
       locationSuburb: data['locationSuburb'],
       locationPostcode: data['locationPostcode'],
+      walletBalance: data['walletBalance']?.toDouble() ?? 0.0,
+      totalEarnings: data['totalEarnings']?.toDouble() ?? 0.0,
+      pendingEarnings: data['pendingEarnings']?.toDouble() ?? 0.0,
+      lastPaymentAt: (data['lastPaymentAt'] as Timestamp?)?.toDate(),
+      totalTransactions: data['totalTransactions'] ?? 0,
     );
   }
 
@@ -139,6 +156,11 @@ class AppUser {
       'locationCity': locationCity,
       'locationSuburb': locationSuburb,
       'locationPostcode': locationPostcode,
+      'walletBalance': walletBalance,
+      'totalEarnings': totalEarnings,
+      'pendingEarnings': pendingEarnings,
+      'lastPaymentAt': lastPaymentAt != null ? Timestamp.fromDate(lastPaymentAt!) : null,
+      'totalTransactions': totalTransactions,
     };
   }
 }

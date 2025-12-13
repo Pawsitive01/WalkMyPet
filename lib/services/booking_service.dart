@@ -1,10 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 import 'package:walkmypet/models/booking_model.dart';
+import 'package:walkmypet/models/transaction_model.dart';
 import 'package:walkmypet/services/notification_service.dart';
+import 'package:walkmypet/services/payment_service.dart';
 
 class BookingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final NotificationService _notificationService = NotificationService();
+  final PaymentService _paymentService = PaymentService();
 
   /// Create a new booking
   Future<String> createBooking(Booking booking) async {
@@ -197,6 +200,115 @@ class BookingService {
       });
     } catch (e) {
       throw 'Failed to complete booking: $e';
+    }
+  }
+
+  /// Walker marks walk as complete
+  Future<void> markWalkComplete(String bookingId, String walkerId) async {
+    try {
+      // Get booking
+      final booking = await getBooking(bookingId);
+      if (booking == null) throw 'Booking not found';
+
+      // Validate walker
+      if (booking.walkerId != walkerId) {
+        throw 'Only the assigned walker can complete this walk';
+      }
+
+      // Validate status
+      if (booking.status != BookingStatus.confirmed) {
+        throw 'Booking must be confirmed to complete';
+      }
+
+      // Update status to awaitingConfirmation
+      await updateBooking(bookingId, {
+        'status': BookingStatus.awaitingConfirmation.toString().split('.').last,
+        'completedByWalkerAt': Timestamp.fromDate(DateTime.now()),
+      });
+
+      // Calculate pending earnings
+      final breakdown = _paymentService.calculatePaymentBreakdown(booking.price);
+
+      // Update walker's pending earnings
+      final walkerRef = _firestore.collection('walkers').doc(walkerId);
+      final walkerDoc = await walkerRef.get();
+      if (walkerDoc.exists) {
+        final currentPending =
+            (walkerDoc.data()?['pendingEarnings'] ?? 0.0).toDouble();
+        await walkerRef.update({
+          'pendingEarnings': currentPending + breakdown.walkerEarnings,
+        });
+      }
+
+      // Notify owner
+      await _notificationService.notifyOwnerToConfirmCompletion(
+        ownerId: booking.ownerId,
+        bookingId: bookingId,
+        walkerName: booking.walkerName,
+        dogName: booking.dogName,
+        amount: booking.price,
+      );
+
+      // Create in-app notification
+      await _notificationService.createNotification(
+        userId: booking.ownerId,
+        title: 'Walk Completed - Confirm Now',
+        message:
+            '${booking.walkerName} has completed the walk with ${booking.dogName}. Please confirm to release payment.',
+        type: 'completionConfirmation',
+        bookingId: bookingId,
+      );
+    } catch (e) {
+      throw 'Failed to mark walk complete: $e';
+    }
+  }
+
+  /// Owner confirms walk completion
+  Future<Transaction> confirmWalkCompletion(
+      String bookingId, String ownerId) async {
+    try {
+      // Get booking
+      final booking = await getBooking(bookingId);
+      if (booking == null) throw 'Booking not found';
+
+      // Validate owner
+      if (booking.ownerId != ownerId) {
+        throw 'Only the booking owner can confirm completion';
+      }
+
+      // Validate status
+      if (booking.status != BookingStatus.awaitingConfirmation) {
+        throw 'Booking is not awaiting confirmation';
+      }
+
+      // Process payment
+      final transaction = await _paymentService.processBookingPayment(
+        bookingId: bookingId,
+        walkerId: booking.walkerId,
+        ownerId: ownerId,
+      );
+
+      // Notify walker of payment
+      await _notificationService.notifyWalkerPaymentReceived(
+        walkerId: booking.walkerId,
+        bookingId: bookingId,
+        amount: transaction.amount,
+        dogName: booking.dogName,
+      );
+
+      // Create in-app notification
+      await _notificationService.createNotification(
+        userId: booking.walkerId,
+        title: 'Payment Received!',
+        message:
+            'You received \$${transaction.amount.toStringAsFixed(2)} for your walk with ${booking.dogName}.',
+        type: 'paymentReceived',
+        bookingId: bookingId,
+      );
+
+      return transaction;
+    } catch (e) {
+      throw 'Failed to confirm completion: $e';
     }
   }
 
