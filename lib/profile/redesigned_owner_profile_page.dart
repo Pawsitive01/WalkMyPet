@@ -9,6 +9,8 @@ import 'package:walkmypet/booking/my_bookings_page_redesigned.dart';
 import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
 import 'package:walkmypet/widgets/location_picker.dart';
 import 'package:walkmypet/onboarding/owner_onboarding_page.dart';
+import 'package:walkmypet/owner/owner_notifications_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RedesignedOwnerProfilePage extends StatefulWidget {
   const RedesignedOwnerProfilePage({super.key});
@@ -412,6 +414,75 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
     );
   }
 
+  Widget _buildNotificationButton() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const SizedBox.shrink();
+    }
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('notifications')
+          .where('userId', isEqualTo: user.uid)
+          .where('isRead', isEqualTo: false)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+
+        // Only show if there are notifications
+        if (count == 0) {
+          return const SizedBox.shrink();
+        }
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications_rounded, color: Colors.white),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const OwnerNotificationsPage(),
+                  ),
+                );
+              },
+            ),
+            if (count > 0)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+                    ),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  child: Center(
+                    child: Text(
+                      count > 99 ? '99+' : count.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildPinkSliverAppBar(bool isDark) {
     final canPop = Navigator.of(context).canPop();
 
@@ -453,12 +524,7 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
             ),
           ),
         ],
-        IconButton(
-          icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-          onPressed: () {
-            _showErrorSnackBar('Notifications coming soon!');
-          },
-        ),
+        _buildNotificationButton(),
         PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

@@ -19,6 +19,7 @@ import 'package:flutter/services.dart';
 import 'package:walkmypet/design_system.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:walkmypet/walker/walker_notifications_page.dart';
+import 'package:walkmypet/owner/owner_notifications_page.dart';
 
 import 'firebase_options.dart';
 
@@ -473,9 +474,9 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
           ),
           Column(
             children: [
-              // Hide main app bar only for walker profile (has custom header)
-              // Show it for all other tabs including owner profile
-              if (!(_selectedIndex == 3 && authProvider?.isWalker == true))
+              // Hide main app bar for profile tab (both walker and owner profiles have their own headers)
+              // Show it for all other tabs (walkers, owners, about)
+              if (_selectedIndex != 3)
                 _buildModernAppBar(context, themeProvider, authProvider, isDark),
               Expanded(
                 child: FadeTransition(
@@ -580,8 +581,8 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                   ),
                   Row(
                     children: [
-                      // Notification bell for walkers
-                      if (authProvider?.isWalker == true) ...[
+                      // Notification bell for all authenticated users
+                      if (authProvider != null && authProvider.isAuthenticated) ...[
                         _buildNotificationBellButton(authProvider, isDark),
                         const SizedBox(width: 8),
                       ],
@@ -751,6 +752,11 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
         }
         final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
 
+        // Only show the bell if there are notifications
+        if (count == 0) {
+          return const SizedBox.shrink();
+        }
+
         return Container(
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.25),
@@ -764,60 +770,63 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
             icon: Stack(
               clipBehavior: Clip.none,
               children: [
-                Icon(
-                  count > 0 ? Icons.notifications_active_rounded : Icons.notifications_none_rounded,
+                const Icon(
+                  Icons.notifications_active_rounded,
                   color: Colors.white,
                   size: 22,
                 ),
-                if (count > 0)
-                  Positioned(
-                    right: -4,
-                    top: -4,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF6366F1),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFEF4444).withValues(alpha: 0.5),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+                Positioned(
+                  right: -4,
+                  top: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      constraints: const BoxConstraints(
-                        minWidth: 18,
-                        minHeight: 18,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFF6366F1),
+                        width: 1.5,
                       ),
-                      child: Center(
-                        child: Text(
-                          count > 99 ? '99+' : count.toString(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w900,
-                            height: 1,
-                          ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFEF4444).withValues(alpha: 0.5),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 18,
+                      minHeight: 18,
+                    ),
+                    child: Center(
+                      child: Text(
+                        count > 99 ? '99+' : count.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          height: 1,
                         ),
                       ),
                     ),
                   ),
+                ),
               ],
             ),
             onPressed: () {
+              // Navigate to appropriate notifications page based on user type
+              final isWalker = authProvider?.isWalker ?? false;
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const WalkerNotificationsPage(),
+                  builder: (context) => isWalker
+                      ? const WalkerNotificationsPage()
+                      : const OwnerNotificationsPage(),
                 ),
               );
             },
