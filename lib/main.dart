@@ -17,6 +17,8 @@ import 'package:walkmypet/profile/redesigned_walker_profile_page.dart';
 import 'package:walkmypet/services/notification_service.dart';
 import 'package:flutter/services.dart';
 import 'package:walkmypet/design_system.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:walkmypet/walker/walker_notifications_page.dart';
 
 import 'firebase_options.dart';
 
@@ -576,141 +578,151 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                       ),
                     ],
                   ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.3),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: PopupMenuButton<String>(
-                      icon: const Icon(
-                        Icons.menu_rounded,
-                        color: Colors.white,
-                        size: 22,
-                      ),
-                      tooltip: 'Menu',
-                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      offset: const Offset(0, 50),
-                      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                        PopupMenuItem<String>(
-                          value: 'profile',
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.person_rounded,
-                                size: 20,
-                                color: isDark ? Colors.white : const Color(0xFF6366F1),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Profile',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem<String>(
-                          value: 'theme',
-                          child: Row(
-                            children: [
-                              Icon(
-                                themeProvider.themeMode == ThemeMode.light
-                                    ? Icons.dark_mode_rounded
-                                    : Icons.light_mode_rounded,
-                                size: 20,
-                                color: isDark ? Colors.white : const Color(0xFF6366F1),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                themeProvider.themeMode == ThemeMode.light
-                                    ? 'Dark Mode'
-                                    : 'Light Mode',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem<String>(
-                          value: (authProvider != null && authProvider.isAuthenticated) ? 'signout' : 'signin',
-                          child: Row(
-                            children: [
-                              Icon(
-                                (authProvider != null && authProvider.isAuthenticated)
-                                    ? Icons.logout_rounded
-                                    : Icons.login_rounded,
-                                size: 20,
-                                color: isDark ? Colors.white : const Color(0xFF6366F1),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                (authProvider != null && authProvider.isAuthenticated) ? 'Sign Out' : 'Sign In',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                  Row(
+                    children: [
+                      // Notification bell for walkers
+                      if (authProvider?.isWalker == true) ...[
+                        _buildNotificationBellButton(authProvider, isDark),
+                        const SizedBox(width: 8),
                       ],
-                      onSelected: (String value) async {
-                        if (value == 'theme') {
-                          themeProvider.toggleTheme();
-                        } else if (value == 'profile') {
-                          // Navigate to profile tab
-                          setState(() {
-                            _selectedIndex = 3;
-                          });
-                        } else if (value == 'signout') {
-                          // Sign out the user
-                          if (authProvider == null) return;
-                          try {
-                            await authProvider.signOut();
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Signed out successfully'),
-                                  backgroundColor: Color(0xFF10B981),
-                                ),
-                              );
-                              // Navigate to home tab
+                      // Menu button
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: PopupMenuButton<String>(
+                          icon: const Icon(
+                            Icons.menu_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                          tooltip: 'Menu',
+                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          offset: const Offset(0, 50),
+                          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                            PopupMenuItem<String>(
+                              value: 'profile',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.person_rounded,
+                                    size: 20,
+                                    color: isDark ? Colors.white : const Color(0xFF6366F1),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Profile',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem<String>(
+                              value: 'theme',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    themeProvider.themeMode == ThemeMode.light
+                                        ? Icons.dark_mode_rounded
+                                        : Icons.light_mode_rounded,
+                                    size: 20,
+                                    color: isDark ? Colors.white : const Color(0xFF6366F1),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    themeProvider.themeMode == ThemeMode.light
+                                        ? 'Dark Mode'
+                                        : 'Light Mode',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem<String>(
+                              value: (authProvider != null && authProvider.isAuthenticated) ? 'signout' : 'signin',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    (authProvider != null && authProvider.isAuthenticated)
+                                        ? Icons.logout_rounded
+                                        : Icons.login_rounded,
+                                    size: 20,
+                                    color: isDark ? Colors.white : const Color(0xFF6366F1),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    (authProvider != null && authProvider.isAuthenticated) ? 'Sign Out' : 'Sign In',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          onSelected: (String value) async {
+                            if (value == 'theme') {
+                              themeProvider.toggleTheme();
+                            } else if (value == 'profile') {
+                              // Navigate to profile tab
                               setState(() {
-                                _selectedIndex = 0;
+                                _selectedIndex = 3;
+                              });
+                            } else if (value == 'signout') {
+                              // Sign out the user
+                              if (authProvider == null) return;
+                              try {
+                                await authProvider.signOut();
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Signed out successfully'),
+                                      backgroundColor: Color(0xFF10B981),
+                                    ),
+                                  );
+                                  // Navigate to home tab
+                                  setState(() {
+                                    _selectedIndex = 0;
+                                  });
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Error signing out: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            } else if (value == 'signin') {
+                              // Navigate to register/sign in tab
+                              setState(() {
+                                _selectedIndex = 3;
                               });
                             }
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error signing out: $e'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          }
-                        } else if (value == 'signin') {
-                          // Navigate to register/sign in tab
-                          setState(() {
-                            _selectedIndex = 3;
-                          });
-                        }
-                      },
-                    ),
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -718,6 +730,101 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildNotificationBellButton(app_auth.AuthProvider? authProvider, bool isDark) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const SizedBox.shrink();
+    }
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('notifications')
+          .where('userId', isEqualTo: user.uid)
+          .where('isRead', isEqualTo: false)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          debugPrint('Error loading notification count: ${snapshot.error}');
+        }
+        final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.25),
+            borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.3),
+              width: 1.5,
+            ),
+          ),
+          child: IconButton(
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  count > 0 ? Icons.notifications_active_rounded : Icons.notifications_none_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+                if (count > 0)
+                  Positioned(
+                    right: -4,
+                    top: -4,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFF6366F1),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFEF4444).withValues(alpha: 0.5),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 18,
+                        minHeight: 18,
+                      ),
+                      child: Center(
+                        child: Text(
+                          count > 99 ? '99+' : count.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            height: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const WalkerNotificationsPage(),
+                ),
+              );
+            },
+            tooltip: 'Notifications',
+          ),
+        );
+      },
     );
   }
 
@@ -834,19 +941,29 @@ class _WalkerListState extends State<WalkerList> with SingleTickerProviderStateM
         return data['onboardingComplete'] == true;
       }).map((user) {
         final data = user.toFirestore();
+
+        // Convert servicePrices from Map<String, dynamic> with doubles to Map<String, int>
+        final rawServicePrices = data['servicePrices'] as Map<String, dynamic>? ?? {};
+        final servicePrices = <String, int>{};
+        rawServicePrices.forEach((key, value) {
+          servicePrices[key] = (value is int) ? value : (value as num).toInt();
+        });
+
         return Walker(
           userId: user.id,
           name: data['displayName'] ?? 'Unknown',
           rating: (data['rating'] ?? 5.0).toDouble(),
           reviews: data['reviews'] ?? 0,
-          hourlyRate: data['hourlyRate'] ?? 25,
+          hourlyRate: (data['hourlyRate'] ?? 25) is int
+              ? data['hourlyRate'] ?? 25
+              : (data['hourlyRate'] as num?)?.toInt() ?? 25,
           location: data['location'] ?? 'Unknown',
           completedWalks: data['completedWalks'] ?? 0,
           imageUrl: data['photoURL'] ?? 'assets/images/default_walker.jpg',
           bio: data['bio'] ?? 'No bio available',
           hasPoliceClearance: data['hasPoliceClearance'] ?? false,
           services: List<String>.from(data['services'] ?? ['Walking']),
-          servicePrices: Map<String, int>.from(data['servicePrices'] ?? {}),
+          servicePrices: servicePrices,
         );
       }).toList();
 
@@ -877,11 +994,12 @@ class _WalkerListState extends State<WalkerList> with SingleTickerProviderStateM
         }
       }
     } catch (e) {
+      debugPrint('Error loading walkers: $e');
       if (mounted) {
         setState(() {
           _walkers = [];
           _isLoading = false;
-          _errorMessage = 'Failed to load pet walkers. Please try again.';
+          _errorMessage = 'Failed to load pet walkers: ${e.toString()}';
         });
       }
     }
@@ -1102,11 +1220,12 @@ class _OwnerListState extends State<OwnerList> with SingleTickerProviderStateMix
         }
       }
     } catch (e) {
+      debugPrint('Error loading owners: $e');
       if (mounted) {
         setState(() {
           _owners = [];
           _isLoading = false;
-          _errorMessage = 'Failed to load pet owners. Please try again.';
+          _errorMessage = 'Failed to load pet owners: ${e.toString()}';
         });
       }
     }

@@ -210,6 +210,11 @@ class _BookingPageState extends State<BookingPage> with SingleTickerProviderStat
 
       final ownerData = ownerProfile.toFirestore();
 
+      // Verify walker has a valid user ID
+      if (widget.walker.userId == null || widget.walker.userId!.isEmpty) {
+        throw 'Walker user ID is missing. Please try selecting a different walker.';
+      }
+
       // Create service details map
       final serviceDetails = <String, dynamic>{};
       for (var service in _selectedServices) {
@@ -222,7 +227,7 @@ class _BookingPageState extends State<BookingPage> with SingleTickerProviderStat
       final booking = Booking(
         id: '',
         ownerId: user.uid,
-        walkerId: widget.walker.name,
+        walkerId: widget.walker.userId!,
         ownerName: ownerProfile.displayName ?? 'Unknown',
         walkerName: widget.walker.name,
         dogName: ownerData['dogName'] ?? 'My Dog',

@@ -24,26 +24,27 @@ export const onBookingCreated = functions.region(region).firestore
     }
 
     try {
-      // Get walker's FCM token from users collection
-      // Note: walkerId in the booking is the walker's name, we need to find the user by name
-      const usersSnapshot = await admin.firestore()
+      // Get walker's FCM token from users collection using walkerId
+      const walkerDoc = await admin.firestore()
         .collection("users")
-        .where("displayName", "==", booking.walkerName)
-        .where("userType", "==", "petWalker")
-        .limit(1)
+        .doc(booking.walkerId)
         .get();
 
-      if (usersSnapshot.empty) {
-        console.log(`Walker ${booking.walkerName} not found in users collection`);
+      if (!walkerDoc.exists) {
+        console.log(`Walker with ID ${booking.walkerId} not found in users collection`);
         return null;
       }
 
-      const walkerDoc = usersSnapshot.docs[0];
       const walkerData = walkerDoc.data();
+      if (!walkerData) {
+        console.log(`Walker data is empty for ID ${booking.walkerId}`);
+        return null;
+      }
+
       const fcmToken = walkerData.fcmToken;
 
       if (!fcmToken) {
-        console.log(`Walker ${booking.walkerName} does not have an FCM token`);
+        console.log(`Walker ${booking.walkerName} (ID: ${booking.walkerId}) does not have an FCM token`);
         return null;
       }
 

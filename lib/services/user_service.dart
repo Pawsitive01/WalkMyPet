@@ -378,32 +378,62 @@ class UserService {
     }
   }
 
-  // Get all pet walkers (from walkers collection)
+  // Get all pet walkers (from walkers collection, with fallback to users collection)
   Future<List<AppUser>> getPetWalkers() async {
     try {
-      final querySnapshot = await _firestore
+      // First, try the new walkers collection
+      var querySnapshot = await _firestore
           .collection('walkers')
           .get();
 
-      return querySnapshot.docs
+      List<AppUser> walkers = querySnapshot.docs
           .map((doc) => AppUser.fromFirestore(doc))
           .toList();
+
+      // If walkers collection is empty, fallback to users collection for backward compatibility
+      if (walkers.isEmpty) {
+        querySnapshot = await _firestore
+            .collection('users')
+            .where('userType', isEqualTo: 'petWalker')
+            .get();
+
+        walkers = querySnapshot.docs
+            .map((doc) => AppUser.fromFirestore(doc))
+            .toList();
+      }
+
+      return walkers;
     } catch (e) {
       throw 'Failed to fetch pet walkers: $e';
     }
   }
 
-  // Get all pet owners (from owners collection)
+  // Get all pet owners (from owners collection, with fallback to users collection)
   Future<List<AppUser>> getPetOwners() async {
     try {
-      final querySnapshot = await _firestore
+      // First, try the new owners collection
+      var querySnapshot = await _firestore
           .collection('owners')
           .where('onboardingComplete', isEqualTo: true)
           .get();
 
-      return querySnapshot.docs
+      List<AppUser> owners = querySnapshot.docs
           .map((doc) => AppUser.fromFirestore(doc))
           .toList();
+
+      // If owners collection is empty, fallback to users collection for backward compatibility
+      if (owners.isEmpty) {
+        querySnapshot = await _firestore
+            .collection('users')
+            .where('userType', isEqualTo: 'petOwner')
+            .get();
+
+        owners = querySnapshot.docs
+            .map((doc) => AppUser.fromFirestore(doc))
+            .toList();
+      }
+
+      return owners;
     } catch (e) {
       throw 'Failed to fetch pet owners: $e';
     }
