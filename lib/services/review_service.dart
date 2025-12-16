@@ -128,14 +128,42 @@ class ReviewService {
     }
   }
 
+  /// Helper method to get the correct collection for a user
+  Future<String?> _getUserCollection(String userId) async {
+    // Check walkers collection first
+    var doc = await _firestore.collection('walkers').doc(userId).get();
+    if (doc.exists) {
+      return 'walkers';
+    }
+
+    // Check owners collection
+    doc = await _firestore.collection('owners').doc(userId).get();
+    if (doc.exists) {
+      return 'owners';
+    }
+
+    // Fallback to users collection for backward compatibility
+    doc = await _firestore.collection('users').doc(userId).get();
+    if (doc.exists) {
+      return 'users';
+    }
+
+    return null;
+  }
+
   // Calculate and update user's average rating
   Future<void> _updateUserRating(String userId) async {
     try {
       final reviews = await getReviewsForUser(userId);
+      String? collection = await _getUserCollection(userId);
+
+      if (collection == null) {
+        throw Exception('User not found in any collection: $userId');
+      }
 
       if (reviews.isEmpty) {
         // No reviews yet - set default rating
-        await _firestore.collection('users').doc(userId).update({
+        await _firestore.collection(collection).doc(userId).update({
           'rating': 5.0,
           'reviews': 0,
         });
@@ -146,7 +174,7 @@ class ReviewService {
       final totalRating = reviews.fold<double>(0, (total, review) => total + review.rating);
       final averageRating = totalRating / reviews.length;
 
-      await _firestore.collection('users').doc(userId).update({
+      await _firestore.collection(collection).doc(userId).update({
         'rating': double.parse(averageRating.toStringAsFixed(1)),
         'reviews': reviews.length,
       });

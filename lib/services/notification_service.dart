@@ -261,16 +261,44 @@ class NotificationService {
     }
   }
 
+  /// Helper method to get the correct collection for a user
+  Future<String?> _getUserCollection(String userId) async {
+    // Check walkers collection first
+    var doc = await _firestore.collection('walkers').doc(userId).get();
+    if (doc.exists) {
+      return 'walkers';
+    }
+
+    // Check owners collection
+    doc = await _firestore.collection('owners').doc(userId).get();
+    if (doc.exists) {
+      return 'owners';
+    }
+
+    // Fallback to users collection for backward compatibility
+    doc = await _firestore.collection('users').doc(userId).get();
+    if (doc.exists) {
+      return 'users';
+    }
+
+    return null;
+  }
+
   /// Save FCM token to Firestore for a user
   Future<void> saveTokenToFirestore(String userId) async {
     try {
       String? token = await getToken();
       if (token != null) {
-        await _firestore.collection('users').doc(userId).update({
-          'fcmToken': token,
-          'fcmTokenUpdatedAt': Timestamp.now(),
-        });
-        debugPrint('FCM token saved for user: $userId');
+        String? collection = await _getUserCollection(userId);
+        if (collection != null) {
+          await _firestore.collection(collection).doc(userId).update({
+            'fcmToken': token,
+            'fcmTokenUpdatedAt': Timestamp.now(),
+          });
+          debugPrint('FCM token saved for user: $userId in collection: $collection');
+        } else {
+          debugPrint('User not found in any collection: $userId');
+        }
       }
     } catch (e) {
       debugPrint('Error saving FCM token: $e');
@@ -280,11 +308,14 @@ class NotificationService {
   /// Remove FCM token from Firestore (on logout)
   Future<void> removeTokenFromFirestore(String userId) async {
     try {
-      await _firestore.collection('users').doc(userId).update({
-        'fcmToken': FieldValue.delete(),
-        'fcmTokenUpdatedAt': FieldValue.delete(),
-      });
-      debugPrint('FCM token removed for user: $userId');
+      String? collection = await _getUserCollection(userId);
+      if (collection != null) {
+        await _firestore.collection(collection).doc(userId).update({
+          'fcmToken': FieldValue.delete(),
+          'fcmTokenUpdatedAt': FieldValue.delete(),
+        });
+        debugPrint('FCM token removed for user: $userId from collection: $collection');
+      }
     } catch (e) {
       debugPrint('Error removing FCM token: $e');
     }
@@ -293,10 +324,13 @@ class NotificationService {
   /// Get FCM token for a specific user (for sending notifications)
   Future<String?> getUserToken(String userId) async {
     try {
-      final doc = await _firestore.collection('users').doc(userId).get();
-      if (doc.exists) {
-        final data = doc.data();
-        return data?['fcmToken'] as String?;
+      String? collection = await _getUserCollection(userId);
+      if (collection != null) {
+        final doc = await _firestore.collection(collection).doc(userId).get();
+        if (doc.exists) {
+          final data = doc.data();
+          return data?['fcmToken'] as String?;
+        }
       }
       return null;
     } catch (e) {

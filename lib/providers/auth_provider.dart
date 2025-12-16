@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:walkmypet/services/user_service.dart';
 import 'package:walkmypet/services/notification_service.dart';
+import 'package:walkmypet/services/database_migration_service.dart';
 
 class AuthProvider with ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final UserService _userService = UserService();
   final NotificationService _notificationService = NotificationService();
+  final DatabaseMigrationService _migrationService = DatabaseMigrationService();
 
   User? _user;
   AppUser? _userProfile;
@@ -32,6 +34,9 @@ class AuthProvider with ChangeNotifier {
 
     if (user != null) {
       try {
+        // Migrate user from old 'users' collection if needed
+        await _migrationService.migrateCurrentUserIfNeeded();
+
         // Load user profile from Firestore
         _userProfile = await _userService.getUser(user.uid);
 
@@ -39,6 +44,7 @@ class AuthProvider with ChangeNotifier {
         await _notificationService.initialize();
         await _notificationService.saveTokenToFirestore(user.uid);
       } catch (e) {
+        debugPrint('Error in auth state change: $e');
         // Silent error handling
       }
     } else {
