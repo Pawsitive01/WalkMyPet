@@ -962,12 +962,50 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
                 );
               }
             } else {
-              // For sign-in, navigate to home page and remove all previous routes
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/',
-                (route) => false,
-              );
+              // For sign-in, check if user has completed onboarding
+              final user = FirebaseAuth.instance.currentUser;
+              if (user != null) {
+                final userDoc = await _userService.getUser(user.uid);
+                final needsOnboarding = userDoc?.toFirestore()['onboardingComplete'] != true;
+
+                if (needsOnboarding) {
+                  // User needs onboarding - navigate to appropriate onboarding page
+                  if (widget.isWalker) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const WalkerOnboardingPage(),
+                      ),
+                    );
+                  } else {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const OwnerOnboardingPage(),
+                      ),
+                    );
+                  }
+                } else {
+                  // User has completed onboarding - give AuthProvider time to update then navigate to home
+                  // This ensures the auth state is propagated before the home page renders
+                  await Future.delayed(const Duration(milliseconds: 1000));
+
+                  if (mounted) {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/',
+                      (route) => false,
+                    );
+                  }
+                }
+              } else {
+                // Fallback: navigate to home page
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/',
+                  (route) => false,
+                );
+              }
             }
           }
         }
@@ -1117,20 +1155,28 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
                   );
                 }
               } else {
-                // For existing users, navigate to home page and remove all previous routes
+                // User has completed onboarding - give AuthProvider time to update then navigate to home
+                await Future.delayed(const Duration(milliseconds: 1000));
+
+                if (mounted) {
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/',
+                    (route) => false,
+                  );
+                }
+              }
+            } else {
+              // Fallback: navigate to home page after delay to let auth propagate
+              await Future.delayed(const Duration(milliseconds: 1000));
+
+              if (mounted) {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   '/',
                   (route) => false,
                 );
               }
-            } else {
-              // Fallback: navigate to home page
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/',
-                (route) => false,
-              );
             }
           }
         }
