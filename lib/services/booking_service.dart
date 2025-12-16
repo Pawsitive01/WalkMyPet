@@ -22,20 +22,12 @@ class BookingService {
       final bookingId = docRef.id;
 
       // Send notification to walker about new booking request
+      // This method already creates the notification, no need to call createNotification separately
       await _notificationService.notifyWalkerOfBookingRequest(
         walkerId: booking.walkerId,
         bookingId: bookingId,
         ownerName: booking.ownerName,
         dogName: booking.dogName,
-      );
-
-      // Create in-app notification for walker
-      await _notificationService.createNotification(
-        userId: booking.walkerId,
-        title: 'New Booking Request',
-        message: '${booking.ownerName} wants to book a walk for ${booking.dogName}',
-        type: 'bookingRequest',
-        bookingId: bookingId,
       );
 
       return bookingId;
@@ -146,20 +138,12 @@ class BookingService {
       });
 
       // Send notification to the other party
+      // This method already creates the notification, no need to call createNotification separately
       final cancelledByName = cancelledBy ?? 'Walker';
       await _notificationService.notifyBookingCancelled(
         userId: booking.ownerId,
         bookingId: bookingId,
         cancelledBy: cancelledByName,
-      );
-
-      // Create in-app notification
-      await _notificationService.createNotification(
-        userId: booking.ownerId,
-        title: 'Booking Cancelled',
-        message: 'Your booking for ${booking.dogName} has been cancelled by $cancelledByName',
-        type: 'bookingCancelled',
-        bookingId: bookingId,
       );
     } catch (e) {
       throw 'Failed to cancel booking: $e';
@@ -179,19 +163,11 @@ class BookingService {
       });
 
       // Send notification to owner
+      // This method already creates the notification, no need to call createNotification separately
       await _notificationService.notifyBookingConfirmed(
         ownerId: booking.ownerId,
         bookingId: bookingId,
         walkerName: booking.walkerName,
-      );
-
-      // Create in-app notification
-      await _notificationService.createNotification(
-        userId: booking.ownerId,
-        title: 'Booking Confirmed!',
-        message: '${booking.walkerName} has confirmed your booking for ${booking.dogName}',
-        type: 'bookingConfirmed',
-        bookingId: bookingId,
       );
     } catch (e) {
       throw 'Failed to confirm booking: $e';

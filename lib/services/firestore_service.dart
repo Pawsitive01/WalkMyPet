@@ -1,7 +1,12 @@
+// DEPRECATED: This service uses the old 'users' collection and UserProfile model.
+// Please use UserService (user_service.dart) with the new 'walkers' and 'owners' collections instead.
+// This file is kept only for backward compatibility during migration.
+// TODO: Remove this file once all data is migrated to the new structure.
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:walkmypet/models/user_profile.dart';
 
+@Deprecated('Use UserService with walkers/owners collections instead')
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 

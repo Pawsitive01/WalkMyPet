@@ -15,6 +15,8 @@ class ActiveWalksPage extends StatefulWidget {
 }
 
 class _ActiveWalksPageState extends State<ActiveWalksPage> {
+  // Using a stream controller instead of setState to prevent flickering
+  final StreamController<DateTime> _timeController = StreamController<DateTime>.broadcast();
   Timer? _countdownTimer;
 
   @override
@@ -26,15 +28,18 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    _timeController.close();
     super.dispose();
   }
 
   void _startCountdownTimer() {
+    // Add initial value
+    _timeController.add(DateTime.now());
+
+    // Update time every second via stream (no setState needed)
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
-        setState(() {
-          // Timer triggers UI rebuild every second
-        });
+        _timeController.add(DateTime.now());
       }
     });
   }
@@ -328,8 +333,6 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
           .collection('bookings')
           .where('walkerId', isEqualTo: user.uid)
           .where('status', isEqualTo: 'confirmed')
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfToday))
-          .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfWeek))
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -349,9 +352,20 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
           );
         }
 
-        final bookings = snapshot.data?.docs
+        // Filter bookings by date range in-app to avoid needing composite index
+        final allBookings = snapshot.data?.docs
             .map((doc) => Booking.fromFirestore(doc))
             .toList() ?? [];
+
+        final bookings = allBookings.where((booking) {
+          final bookingDate = DateTime(
+            booking.date.year,
+            booking.date.month,
+            booking.date.day,
+          );
+          return bookingDate.isAfter(startOfToday.subtract(const Duration(days: 1))) &&
+                 bookingDate.isBefore(endOfWeek.add(const Duration(days: 1)));
+        }).toList();
 
         // Sort by date and time
         bookings.sort((a, b) {
@@ -382,10 +396,17 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
             itemCount: bookings.length,
             itemBuilder: (context, index) {
               final booking = bookings[index];
-              final countdown = _calculateCountdown(booking);
-              final canStart = _canStartWalk(countdown);
 
-              return _buildWalkCard(booking, countdown, canStart, isDark);
+              // Wrap each card with StreamBuilder to prevent full screen rebuilds
+              return StreamBuilder<DateTime>(
+                stream: _timeController.stream,
+                initialData: DateTime.now(),
+                builder: (context, snapshot) {
+                  final countdown = _calculateCountdown(booking);
+                  final canStart = _canStartWalk(countdown);
+                  return _buildWalkCard(booking, countdown, canStart, isDark);
+                },
+              );
             },
           ),
         );
