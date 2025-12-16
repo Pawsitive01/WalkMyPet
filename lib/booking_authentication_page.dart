@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import 'package:walkmypet/services/auth_service.dart';
 import 'package:walkmypet/services/user_service.dart';
 import 'package:walkmypet/onboarding/owner_onboarding_page.dart';
 import 'package:walkmypet/onboarding/walker_onboarding_page.dart';
+import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
 
 class BookingAuthenticationPage extends StatefulWidget {
   final String personName;
@@ -986,9 +988,32 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
                     );
                   }
                 } else {
-                  // User has completed onboarding - give AuthProvider time to update then navigate to home
-                  // This ensures the auth state is propagated before the home page renders
-                  await Future.delayed(const Duration(milliseconds: 1000));
+                  // User has completed onboarding - wait for AuthProvider to fully load
+                  debugPrint('⏳ Waiting for AuthProvider to update...');
+
+                  // Wait up to 5 seconds for auth state to propagate
+                  int attempts = 0;
+                  while (attempts < 50) {
+                    await Future.delayed(const Duration(milliseconds: 100));
+
+                    // Check if we can access AuthProvider through context
+                    try {
+                      final authProvider = Provider.of<app_auth.AuthProvider?>(context, listen: false);
+                      if (authProvider != null &&
+                          authProvider.isAuthenticated &&
+                          !authProvider.isLoading &&
+                          authProvider.userProfile != null) {
+                        debugPrint('✅ AuthProvider ready - authenticated');
+                        break;
+                      }
+                    } catch (e) {
+                      debugPrint('⚠️ AuthProvider not available yet: $e');
+                    }
+
+                    attempts++;
+                  }
+
+                  debugPrint('🚀 Navigating to home page after $attempts attempts');
 
                   if (mounted) {
                     Navigator.pushNamedAndRemoveUntil(
@@ -1155,8 +1180,32 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
                   );
                 }
               } else {
-                // User has completed onboarding - give AuthProvider time to update then navigate to home
-                await Future.delayed(const Duration(milliseconds: 1000));
+                // User has completed onboarding - wait for AuthProvider to fully load
+                debugPrint('⏳ (Google) Waiting for AuthProvider to update...');
+
+                // Wait up to 5 seconds for auth state to propagate
+                int attempts = 0;
+                while (attempts < 50) {
+                  await Future.delayed(const Duration(milliseconds: 100));
+
+                  // Check if we can access AuthProvider through context
+                  try {
+                    final authProvider = Provider.of<app_auth.AuthProvider?>(context, listen: false);
+                    if (authProvider != null &&
+                        authProvider.isAuthenticated &&
+                        !authProvider.isLoading &&
+                        authProvider.userProfile != null) {
+                      debugPrint('✅ (Google) AuthProvider ready - authenticated');
+                      break;
+                    }
+                  } catch (e) {
+                    debugPrint('⚠️ (Google) AuthProvider not available yet: $e');
+                  }
+
+                  attempts++;
+                }
+
+                debugPrint('🚀 (Google) Navigating to home page after $attempts attempts');
 
                 if (mounted) {
                   Navigator.pushNamedAndRemoveUntil(
@@ -1167,8 +1216,27 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
                 }
               }
             } else {
-              // Fallback: navigate to home page after delay to let auth propagate
-              await Future.delayed(const Duration(milliseconds: 1000));
+              // Fallback: wait for auth state then navigate
+              debugPrint('⏳ (Google Fallback) Waiting for AuthProvider...');
+
+              int attempts = 0;
+              while (attempts < 50) {
+                await Future.delayed(const Duration(milliseconds: 100));
+
+                try {
+                  final authProvider = Provider.of<app_auth.AuthProvider?>(context, listen: false);
+                  if (authProvider != null &&
+                      authProvider.isAuthenticated &&
+                      !authProvider.isLoading) {
+                    debugPrint('✅ (Google Fallback) AuthProvider ready');
+                    break;
+                  }
+                } catch (e) {
+                  debugPrint('⚠️ (Google Fallback) AuthProvider not available: $e');
+                }
+
+                attempts++;
+              }
 
               if (mounted) {
                 Navigator.pushNamedAndRemoveUntil(

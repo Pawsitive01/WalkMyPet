@@ -42,28 +42,36 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> _onAuthStateChanged(User? user) async {
+    debugPrint('🔐 Auth state changed: ${user?.uid ?? "null"}');
     _user = user;
 
     if (user != null) {
       try {
+        debugPrint('🔄 Starting user profile load for: ${user.uid}');
+
         // Migrate user from old 'users' collection if needed
         await _migrationService.migrateCurrentUserIfNeeded();
+        debugPrint('✅ Migration check complete');
 
         // Load user profile from Firestore
         _userProfile = await _userService.getUser(user.uid);
+        debugPrint('✅ User profile loaded: ${_userProfile?.toFirestore()['userType']}');
 
         // Initialize notifications and save FCM token
         await _notificationService.initialize();
         await _notificationService.saveTokenToFirestore(user.uid);
+        debugPrint('✅ Notifications initialized');
       } catch (e) {
-        debugPrint('Error in auth state change: $e');
+        debugPrint('❌ Error in auth state change: $e');
         // Silent error handling
       }
     } else {
+      debugPrint('🚪 User signed out');
       _userProfile = null;
     }
 
     _isLoading = false;
+    debugPrint('✅ Auth state update complete - isAuthenticated: $isAuthenticated');
     notifyListeners();
   }
 

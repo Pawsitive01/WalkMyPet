@@ -418,6 +418,8 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
     final Widget fourthTab;
 
     if (authProvider != null && authProvider.isAuthenticated) {
+      debugPrint('📱 MyHomePage: User authenticated - loading: ${authProvider.isLoading}, profile: ${authProvider.userProfile != null}');
+
       // Show profile page for all authenticated users
       // If user type is not set yet, default to owner profile
       if (authProvider.userProfile != null) {
@@ -426,12 +428,20 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
             : const RedesignedOwnerProfilePage();
       } else {
         // User is authenticated but profile not loaded yet
+        debugPrint('⏳ MyHomePage: Waiting for profile to load...');
         fourthTab = const Center(
           child: CircularProgressIndicator(color: Color(0xFF6366F1)),
         );
       }
+    } else if (authProvider != null && authProvider.isLoading) {
+      // AuthProvider is still loading - show loading indicator
+      debugPrint('⏳ MyHomePage: AuthProvider loading...');
+      fourthTab = const Center(
+        child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+      );
     } else {
       // Show register page for unauthenticated users
+      debugPrint('🚫 MyHomePage: User not authenticated - showing register page');
       fourthTab = const user_type.RegisterPage();
     }
 
