@@ -962,7 +962,12 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
                 );
               }
             } else {
-              Navigator.pop(context);
+              // For sign-in, navigate to home page and remove all previous routes
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/',
+                (route) => false,
+              );
             }
           }
         }
@@ -1112,10 +1117,20 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
                   );
                 }
               } else {
-                Navigator.pop(context);
+                // For existing users, navigate to home page and remove all previous routes
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/',
+                  (route) => false,
+                );
               }
             } else {
-              Navigator.pop(context);
+              // Fallback: navigate to home page
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/',
+                (route) => false,
+              );
             }
           }
         }
