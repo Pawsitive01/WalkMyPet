@@ -5,6 +5,8 @@ import 'package:walkmypet/services/auth_service.dart';
 import 'package:walkmypet/services/user_service.dart';
 import 'package:walkmypet/onboarding/owner_onboarding_page.dart';
 import 'package:walkmypet/onboarding/walker_onboarding_page.dart';
+import 'package:walkmypet/profile/redesigned_walker_profile_page.dart';
+import 'package:walkmypet/profile/redesigned_owner_profile_page.dart';
 import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
 
 class BookingAuthenticationPage extends StatefulWidget {
@@ -1013,14 +1015,25 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
                     attempts++;
                   }
 
-                  debugPrint('🚀 Navigating to home page after $attempts attempts');
+                  debugPrint('🚀 Navigating directly to profile after $attempts attempts');
 
                   if (mounted) {
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      '/',
-                      (route) => false,
-                    );
+                    // Navigate directly to profile page to avoid splash screen
+                    if (widget.isWalker) {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const RedesignedWalkerProfilePage(),
+                        ),
+                      );
+                    } else {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const RedesignedOwnerProfilePage(),
+                        ),
+                      );
+                    }
                   }
                 }
               } else {
@@ -1205,18 +1218,29 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
                   attempts++;
                 }
 
-                debugPrint('🚀 (Google) Navigating to home page after $attempts attempts');
+                debugPrint('🚀 (Google) Navigating directly to profile after $attempts attempts');
 
                 if (mounted) {
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/',
-                    (route) => false,
-                  );
+                  // Navigate directly to profile page to avoid splash screen
+                  if (widget.isWalker) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const RedesignedWalkerProfilePage(),
+                      ),
+                    );
+                  } else {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const RedesignedOwnerProfilePage(),
+                      ),
+                    );
+                  }
                 }
               }
             } else {
-              // Fallback: wait for auth state then navigate
+              // Fallback: wait for auth state then navigate to profile
               debugPrint('⏳ (Google Fallback) Waiting for AuthProvider...');
 
               int attempts = 0;
@@ -1239,11 +1263,22 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
               }
 
               if (mounted) {
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/',
-                  (route) => false,
-                );
+                // Navigate directly to profile page
+                if (widget.isWalker) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RedesignedWalkerProfilePage(),
+                    ),
+                  );
+                } else {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RedesignedOwnerProfilePage(),
+                    ),
+                  );
+                }
               }
             }
           }
