@@ -110,7 +110,11 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
         setState(() => _isEditing = false);
         _showSuccessSnackBar('Profile updated successfully');
         // Refresh AuthProvider to keep state in sync
-        Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
+        try {
+          Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
+        } catch (e) {
+          debugPrint('AuthProvider not available: $e');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -180,7 +184,11 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
 
       if (mounted) {
         _showSuccessSnackBar('Profile photo updated successfully');
-        Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
+        try {
+          Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
+        } catch (e) {
+          debugPrint('AuthProvider not available: $e');
+        }
       }
     } catch (e) {
       if (mounted) {

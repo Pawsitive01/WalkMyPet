@@ -5,9 +5,15 @@ import 'package:walkmypet/services/notification_service.dart';
 import 'package:walkmypet/services/payment_service.dart';
 
 class BookingService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final NotificationService _notificationService = NotificationService();
-  final PaymentService _paymentService = PaymentService();
+  late final FirebaseFirestore _firestore;
+  late final NotificationService _notificationService;
+  late final PaymentService _paymentService;
+
+  BookingService() {
+    _firestore = FirebaseFirestore.instance;
+    _notificationService = NotificationService();
+    _paymentService = PaymentService();
+  }
 
   /// Create a new booking
   Future<String> createBooking(Booking booking) async {

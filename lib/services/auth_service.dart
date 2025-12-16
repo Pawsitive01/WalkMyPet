@@ -2,12 +2,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    // Web client ID for walkmypet-47e03 project
-    // This enables Google Sign-In across all platforms including web
-    clientId: '885639863246-mqpmrq9j0ulgd0511tmp64ma1id9peck.apps.googleusercontent.com',
-  );
+  late final FirebaseAuth _auth;
+  late final GoogleSignIn _googleSignIn;
+
+  AuthService() {
+    _auth = FirebaseAuth.instance;
+    _googleSignIn = GoogleSignIn(
+      // Web client ID for walkmypet-47e03 project
+      // This enables Google Sign-In across all platforms including web
+      clientId: '885639863246-mqpmrq9j0ulgd0511tmp64ma1id9peck.apps.googleusercontent.com',
+    );
+  }
 
   // Get current user
   User? get currentUser => _auth.currentUser;

@@ -4,8 +4,13 @@ import 'package:flutter/material.dart';
 
 /// Service to migrate data from old 'users' collection to new 'walkers'/'owners' collections
 class DatabaseMigrationService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  late final FirebaseFirestore _firestore;
+  late final FirebaseAuth _auth;
+
+  DatabaseMigrationService() {
+    _firestore = FirebaseFirestore.instance;
+    _auth = FirebaseAuth.instance;
+  }
 
   /// Migrate a single user from 'users' collection to appropriate new collection
   Future<bool> migrateUser(String userId) async {

@@ -166,8 +166,13 @@ class AppUser {
 }
 
 class UserService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  late final FirebaseFirestore _firestore;
+  late final FirebaseAuth _auth;
+
+  UserService() {
+    _firestore = FirebaseFirestore.instance;
+    _auth = FirebaseAuth.instance;
+  }
 
   /// Determine the collection name based on user type
   String _getCollectionName(UserType userType) {

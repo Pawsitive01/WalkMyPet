@@ -17,10 +17,14 @@ class PaymentBreakdown {
 }
 
 class PaymentService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late final FirebaseFirestore _firestore;
 
   // Platform commission rate (15%)
   static const double platformFeePercent = 0.15;
+
+  PaymentService() {
+    _firestore = FirebaseFirestore.instance;
+  }
 
   /// Calculate payment breakdown
   PaymentBreakdown calculatePaymentBreakdown(double bookingPrice) {

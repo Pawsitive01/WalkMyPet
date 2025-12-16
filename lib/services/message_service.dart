@@ -5,8 +5,13 @@ import 'package:walkmypet/models/conversation_model.dart';
 import 'package:walkmypet/services/notification_service.dart';
 
 class MessageService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final NotificationService _notificationService = NotificationService();
+  late final FirebaseFirestore _firestore;
+  late final NotificationService _notificationService;
+
+  MessageService() {
+    _firestore = FirebaseFirestore.instance;
+    _notificationService = NotificationService();
+  }
 
   /// Get or create a conversation between two users
   Future<String> getOrCreateConversation({

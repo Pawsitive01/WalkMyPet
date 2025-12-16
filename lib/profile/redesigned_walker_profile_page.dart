@@ -131,7 +131,11 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
           _isSaving = false;
         });
         _showSuccessSnackBar('Profile updated successfully');
-        await Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
+        try {
+          await Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
+        } catch (e) {
+          debugPrint('AuthProvider not available: $e');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -179,7 +183,11 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
       if (mounted) {
         setState(() => _isUploadingImage = false);
         _showSuccessSnackBar('Profile photo updated successfully');
-        await Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
+        try {
+          await Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
+        } catch (e) {
+          debugPrint('AuthProvider not available: $e');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -2420,8 +2428,12 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
       if (mounted) {
         setState(() => _isSaving = false);
         _showSuccessSnackBar('Services updated successfully');
-        await Provider.of<app_auth.AuthProvider>(context, listen: false)
-            .refreshUserProfile();
+        try {
+          await Provider.of<app_auth.AuthProvider>(context, listen: false)
+              .refreshUserProfile();
+        } catch (e) {
+          debugPrint('AuthProvider not available: $e');
+        }
       }
     } catch (e) {
       if (mounted) {

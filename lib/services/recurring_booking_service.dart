@@ -5,9 +5,15 @@ import 'package:walkmypet/services/booking_service.dart';
 import 'package:walkmypet/services/notification_service.dart';
 
 class RecurringBookingService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final BookingService _bookingService = BookingService();
-  final NotificationService _notificationService = NotificationService();
+  late final FirebaseFirestore _firestore;
+  late final BookingService _bookingService;
+  late final NotificationService _notificationService;
+
+  RecurringBookingService() {
+    _firestore = FirebaseFirestore.instance;
+    _bookingService = BookingService();
+    _notificationService = NotificationService();
+  }
 
   /// Create a new recurring booking
   Future<String> createRecurringBooking(RecurringBooking recurringBooking) async {

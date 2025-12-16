@@ -14,9 +14,14 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 class NotificationService {
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late final FirebaseMessaging _messaging;
+  late final FirebaseFirestore _firestore;
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+
+  NotificationService() {
+    _messaging = FirebaseMessaging.instance;
+    _firestore = FirebaseFirestore.instance;
+  }
 
   // Navigation key to navigate from notification handlers
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();

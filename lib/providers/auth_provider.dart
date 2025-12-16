@@ -5,10 +5,10 @@ import 'package:walkmypet/services/notification_service.dart';
 import 'package:walkmypet/services/database_migration_service.dart';
 
 class AuthProvider with ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final UserService _userService = UserService();
-  final NotificationService _notificationService = NotificationService();
-  final DatabaseMigrationService _migrationService = DatabaseMigrationService();
+  late final FirebaseAuth _auth;
+  late final UserService _userService;
+  late final NotificationService _notificationService;
+  late final DatabaseMigrationService _migrationService;
 
   User? _user;
   AppUser? _userProfile;
@@ -25,8 +25,20 @@ class AuthProvider with ChangeNotifier {
   }
 
   void _init() {
-    // Listen to auth state changes
-    _auth.authStateChanges().listen(_onAuthStateChanged);
+    try {
+      // Initialize Firebase services
+      _auth = FirebaseAuth.instance;
+      _userService = UserService();
+      _notificationService = NotificationService();
+      _migrationService = DatabaseMigrationService();
+
+      // Listen to auth state changes
+      _auth.authStateChanges().listen(_onAuthStateChanged);
+    } catch (e) {
+      debugPrint('Error initializing AuthProvider: $e');
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _onAuthStateChanged(User? user) async {

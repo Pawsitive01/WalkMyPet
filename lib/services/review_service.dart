@@ -3,8 +3,13 @@ import 'package:walkmypet/models/review_model.dart';
 import 'package:walkmypet/services/notification_service.dart';
 
 class ReviewService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final NotificationService _notificationService = NotificationService();
+  late final FirebaseFirestore _firestore;
+  late final NotificationService _notificationService;
+
+  ReviewService() {
+    _firestore = FirebaseFirestore.instance;
+    _notificationService = NotificationService();
+  }
 
   // Create a new review
   Future<String> createReview(Review review) async {

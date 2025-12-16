@@ -7,9 +7,14 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ImageUploadService {
-  final FirebaseStorage _storage = FirebaseStorage.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  late final FirebaseStorage _storage;
+  late final FirebaseAuth _auth;
   final ImagePicker _picker = ImagePicker();
+
+  ImageUploadService() {
+    _storage = FirebaseStorage.instance;
+    _auth = FirebaseAuth.instance;
+  }
 
   /// Check if running on desktop platform
   bool get isDesktop {

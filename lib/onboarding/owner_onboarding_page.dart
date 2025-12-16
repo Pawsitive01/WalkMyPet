@@ -228,7 +228,11 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
 
       // Refresh AuthProvider to update the state
       if (mounted) {
-        await Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
+        try {
+          await Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
+        } catch (e) {
+          debugPrint('AuthProvider not available: $e');
+        }
       }
 
       if (mounted) {
