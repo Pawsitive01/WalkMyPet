@@ -207,7 +207,6 @@ class _ScheduledWalksPageState extends State<ScheduledWalksPage>
           .collection('bookings')
           .where('walkerId', isEqualTo: user.uid)
           .where('status', isEqualTo: status.toString().split('.').last)
-          .orderBy('date', descending: status == BookingStatus.completed)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -223,7 +222,19 @@ class _ScheduledWalksPageState extends State<ScheduledWalksPage>
           return _buildEmptyState('Error loading walks', isDark);
         }
 
-        final bookings = snapshot.data?.docs ?? [];
+        // Map and sort bookings in-app to avoid needing composite index
+        final bookings = snapshot.data?.docs
+            .map((doc) => Booking.fromFirestore(doc))
+            .toList() ?? [];
+
+        // Sort by date (descending for completed, ascending for pending)
+        bookings.sort((a, b) {
+          if (status == BookingStatus.completed) {
+            return b.date.compareTo(a.date); // descending
+          } else {
+            return a.date.compareTo(b.date); // ascending
+          }
+        });
 
         if (bookings.isEmpty) {
           return _buildEmptyState(
@@ -238,7 +249,7 @@ class _ScheduledWalksPageState extends State<ScheduledWalksPage>
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           itemCount: bookings.length,
           itemBuilder: (context, index) {
-            final booking = Booking.fromFirestore(bookings[index]);
+            final booking = bookings[index];
             return _buildModernWalkCard(booking, isDark);
           },
         );
@@ -260,8 +271,6 @@ class _ScheduledWalksPageState extends State<ScheduledWalksPage>
           .collection('bookings')
           .where('walkerId', isEqualTo: user.uid)
           .where('status', isEqualTo: 'confirmed')
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfToday))
-          .orderBy('date', descending: false)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -277,7 +286,22 @@ class _ScheduledWalksPageState extends State<ScheduledWalksPage>
           return _buildEmptyState('Error loading walks', isDark);
         }
 
-        final bookings = snapshot.data?.docs ?? [];
+        // Filter bookings by date range in-app to avoid needing composite index
+        final allBookings = snapshot.data?.docs
+            .map((doc) => Booking.fromFirestore(doc))
+            .toList() ?? [];
+
+        final bookings = allBookings.where((booking) {
+          final bookingDate = DateTime(
+            booking.date.year,
+            booking.date.month,
+            booking.date.day,
+          );
+          return bookingDate.isAfter(startOfToday.subtract(const Duration(days: 1)));
+        }).toList();
+
+        // Sort by date ascending
+        bookings.sort((a, b) => a.date.compareTo(b.date));
 
         if (bookings.isEmpty) {
           return _buildEmptyState('No upcoming walks', isDark);
@@ -287,7 +311,7 @@ class _ScheduledWalksPageState extends State<ScheduledWalksPage>
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           itemCount: bookings.length,
           itemBuilder: (context, index) {
-            final booking = Booking.fromFirestore(bookings[index]);
+            final booking = bookings[index];
             return _buildModernWalkCard(booking, isDark);
           },
         );
