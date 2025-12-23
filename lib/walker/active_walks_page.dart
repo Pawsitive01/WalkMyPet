@@ -5,7 +5,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:walkmypet/models/booking_model.dart';
+import 'package:walkmypet/models/walk_tracking_model.dart';
 import 'package:walkmypet/design_system.dart';
+import 'package:walkmypet/walker/walk_tracking_screen.dart';
+
+enum WalkFilter { today, upcoming, inProgress }
 
 class ActiveWalksPage extends StatefulWidget {
   const ActiveWalksPage({super.key});
@@ -14,34 +18,60 @@ class ActiveWalksPage extends StatefulWidget {
   State<ActiveWalksPage> createState() => _ActiveWalksPageState();
 }
 
-class _ActiveWalksPageState extends State<ActiveWalksPage> {
-  // Using a stream controller instead of setState to prevent flickering
-  final StreamController<DateTime> _timeController = StreamController<DateTime>.broadcast();
+class _ActiveWalksPageState extends State<ActiveWalksPage>
+    with SingleTickerProviderStateMixin {
+  final StreamController<DateTime> _timeController =
+      StreamController<DateTime>.broadcast();
   Timer? _countdownTimer;
+  late TabController _tabController;
+  Map<String, WalkTracking> _activeWalkTrackings = {};
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
     _startCountdownTimer();
+    _loadActiveWalkTrackings();
   }
 
   @override
   void dispose() {
     _countdownTimer?.cancel();
     _timeController.close();
+    _tabController.dispose();
     super.dispose();
   }
 
   void _startCountdownTimer() {
-    // Add initial value
     _timeController.add(DateTime.now());
-
-    // Update time every second via stream (no setState needed)
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         _timeController.add(DateTime.now());
       }
     });
+  }
+
+  Future<void> _loadActiveWalkTrackings() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Listen to active walk trackings
+    FirebaseFirestore.instance
+        .collection('walk_tracking')
+        .where('walkerId', isEqualTo: user.uid)
+        .where('status', whereIn: ['active', 'paused'])
+        .snapshots()
+        .listen((snapshot) {
+          if (mounted) {
+            setState(() {
+              _activeWalkTrackings = {
+                for (var doc in snapshot.docs)
+                  WalkTracking.fromFirestore(doc).bookingId:
+                      WalkTracking.fromFirestore(doc)
+              };
+            });
+          }
+        });
   }
 
   Duration _calculateCountdown(Booking booking) {
@@ -53,7 +83,6 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
 
   DateTime _parseScheduledDateTime(Booking booking) {
     try {
-      // Parse time string (e.g., "2:30 PM" or "14:30")
       final timeStr = booking.time.trim();
       DateTime scheduledDate = DateTime(
         booking.date.year,
@@ -61,7 +90,6 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
         booking.date.day,
       );
 
-      // Handle various time formats
       if (timeStr.contains('AM') || timeStr.contains('PM')) {
         final format = DateFormat('h:mm a');
         final parsedTime = format.parse(timeStr);
@@ -87,16 +115,8 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
 
       return scheduledDate;
     } catch (e) {
-      // Fallback to date only
       return booking.date;
     }
-  }
-
-  bool _canStartWalk(Duration countdown) {
-    // Allow starting walk if scheduled time is within 10 minutes
-    // or if the scheduled time has already passed (countdown is 0 or negative)
-    final totalMinutes = countdown.inMinutes;
-    return totalMinutes <= 10;
   }
 
   String _formatCountdown(Duration countdown) {
@@ -105,34 +125,39 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
     } else if (countdown.inHours > 0) {
       return '${countdown.inHours}h ${countdown.inMinutes % 60}m';
     } else if (countdown.inMinutes > 0) {
-      return '${countdown.inMinutes}m ${countdown.inSeconds % 60}s';
-    } else if (countdown.inSeconds > 0) {
-      return '${countdown.inSeconds}s';
+      return '${countdown.inMinutes}m';
     } else {
-      return 'Ready to start!';
+      return 'Now';
     }
   }
 
   Future<void> _startWalk(Booking booking) async {
     HapticFeedback.mediumImpact();
 
-    // Show confirmation dialog
+    // Check if there's already an active walk tracking
+    final walkTracking = _activeWalkTrackings[booking.id];
+    if (walkTracking != null) {
+      // Resume existing walk
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => WalkTrackingScreen(booking: booking),
+        ),
+      );
+      return;
+    }
+
+    // Show confirmation dialog for new walk
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => _buildStartWalkDialog(booking),
     );
 
     if (confirm == true && mounted) {
-      // Future enhancement: Navigate to walk tracking screen or update booking status
-      // Currently showing a success message to confirm walk started
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Started walk for ${booking.dogName}'),
-          backgroundColor: DesignSystem.success,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(DesignSystem.radiusSmall),
-          ),
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => WalkTrackingScreen(booking: booking),
         ),
       );
     }
@@ -142,7 +167,7 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
-      backgroundColor: isDark ? DesignSystem.surfaceDark : Colors.white,
+      backgroundColor: DesignSystem.getSurface(isDark),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(DesignSystem.radiusLarge),
       ),
@@ -193,7 +218,8 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
                         color: DesignSystem.getBorderColor(isDark, opacity: 0.2),
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(DesignSystem.radiusSmall),
+                        borderRadius:
+                            BorderRadius.circular(DesignSystem.radiusSmall),
                       ),
                     ),
                     child: Text(
@@ -210,14 +236,16 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
                   child: Container(
                     decoration: BoxDecoration(
                       gradient: DesignSystem.successGradient,
-                      borderRadius: BorderRadius.circular(DesignSystem.radiusSmall),
+                      borderRadius:
+                          BorderRadius.circular(DesignSystem.radiusSmall),
                       boxShadow: DesignSystem.shadowGlow(DesignSystem.success),
                     ),
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () => Navigator.pop(context, true),
-                        borderRadius: BorderRadius.circular(DesignSystem.radiusSmall),
+                        borderRadius:
+                            BorderRadius.circular(DesignSystem.radiusSmall),
                         child: const Padding(
                           padding: EdgeInsets.symmetric(vertical: 14),
                           child: Center(
@@ -251,7 +279,21 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
       backgroundColor: DesignSystem.getBackground(isDark),
       extendBodyBehindAppBar: false,
       appBar: _buildAppBar(isDark),
-      body: _buildBody(isDark),
+      body: Column(
+        children: [
+          _buildTabBar(isDark),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildTodayWalks(isDark),
+                _buildUpcomingWalks(isDark),
+                _buildInProgressWalks(isDark),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -259,7 +301,8 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
     return AppBar(
       elevation: 0,
       backgroundColor: isDark ? const Color(0xFF000000) : Colors.white,
-      systemOverlayStyle: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+      systemOverlayStyle:
+          isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       leading: Container(
         margin: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
         child: Material(
@@ -314,11 +357,48 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
     );
   }
 
-  Widget _buildBody(bool isDark) {
+  Widget _buildTabBar(bool isDark) {
+    return Container(
+      margin: const EdgeInsets.symmetric(
+        horizontal: DesignSystem.space2,
+        vertical: DesignSystem.space1_5,
+      ),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicator: BoxDecoration(
+          gradient: DesignSystem.successGradient,
+          borderRadius: BorderRadius.circular(DesignSystem.radiusSmall),
+          boxShadow: DesignSystem.shadowGlow(DesignSystem.success),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        labelColor: Colors.white,
+        unselectedLabelColor: DesignSystem.getTextSecondary(isDark),
+        labelStyle: const TextStyle(
+          fontSize: DesignSystem.caption,
+          fontWeight: FontWeight.w700,
+        ),
+        tabs: const [
+          Tab(text: 'Today'),
+          Tab(text: 'Upcoming'),
+          Tab(text: 'In Progress'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTodayWalks(bool isDark) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return _buildEmptyState(
-        'Please log in to view active walks',
+        'Please log in to view walks',
         Icons.login_rounded,
         isDark,
       );
@@ -326,7 +406,7 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
 
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);
-    final endOfWeek = startOfToday.add(const Duration(days: 7));
+    final endOfToday = startOfToday.add(const Duration(days: 1));
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -352,10 +432,10 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
           );
         }
 
-        // Filter bookings by date range in-app to avoid needing composite index
         final allBookings = snapshot.data?.docs
             .map((doc) => Booking.fromFirestore(doc))
-            .toList() ?? [];
+            .toList() ??
+            [];
 
         final bookings = allBookings.where((booking) {
           final bookingDate = DateTime(
@@ -363,11 +443,11 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
             booking.date.month,
             booking.date.day,
           );
-          return bookingDate.isAfter(startOfToday.subtract(const Duration(days: 1))) &&
-                 bookingDate.isBefore(endOfWeek.add(const Duration(days: 1)));
+          return bookingDate.isAtSameMomentAs(startOfToday) ||
+              (bookingDate.isAfter(startOfToday.subtract(const Duration(days: 1))) &&
+                  bookingDate.isBefore(endOfToday));
         }).toList();
 
-        // Sort by date and time
         bookings.sort((a, b) {
           final dateTimeA = _parseScheduledDateTime(a);
           final dateTimeB = _parseScheduledDateTime(b);
@@ -376,7 +456,7 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
 
         if (bookings.isEmpty) {
           return _buildEmptyState(
-            'No active walks scheduled',
+            'No walks scheduled for today',
             Icons.event_busy_rounded,
             isDark,
           );
@@ -384,27 +464,24 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
 
         return RefreshIndicator(
           onRefresh: () async {
-            // Refresh is handled by StreamBuilder automatically
             await Future.delayed(const Duration(milliseconds: 500));
           },
           color: DesignSystem.success,
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(
               horizontal: DesignSystem.space2,
-              vertical: DesignSystem.space2,
+              vertical: DesignSystem.space1,
             ),
             itemCount: bookings.length,
             itemBuilder: (context, index) {
               final booking = bookings[index];
-
-              // Wrap each card with StreamBuilder to prevent full screen rebuilds
               return StreamBuilder<DateTime>(
                 stream: _timeController.stream,
                 initialData: DateTime.now(),
                 builder: (context, snapshot) {
                   final countdown = _calculateCountdown(booking);
-                  final canStart = _canStartWalk(countdown);
-                  return _buildWalkCard(booking, countdown, canStart, isDark);
+                  final walkTracking = _activeWalkTrackings[booking.id];
+                  return _buildWalkCard(booking, countdown, walkTracking, isDark);
                 },
               );
             },
@@ -414,33 +491,191 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
     );
   }
 
+  Widget _buildUpcomingWalks(bool isDark) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return _buildEmptyState(
+        'Please log in to view walks',
+        Icons.login_rounded,
+        isDark,
+      );
+    }
+
+    final now = DateTime.now();
+    final tomorrow = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('bookings')
+          .where('walkerId', isEqualTo: user.uid)
+          .where('status', isEqualTo: 'confirmed')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(
+            child: CircularProgressIndicator(
+              color: DesignSystem.success,
+              strokeWidth: 2,
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return _buildEmptyState(
+            'Error loading walks',
+            Icons.error_outline_rounded,
+            isDark,
+          );
+        }
+
+        final allBookings = snapshot.data?.docs
+            .map((doc) => Booking.fromFirestore(doc))
+            .toList() ??
+            [];
+
+        final bookings = allBookings.where((booking) {
+          final bookingDate = DateTime(
+            booking.date.year,
+            booking.date.month,
+            booking.date.day,
+          );
+          return bookingDate.isAfter(tomorrow.subtract(const Duration(days: 1)));
+        }).toList();
+
+        bookings.sort((a, b) => a.date.compareTo(b.date));
+
+        if (bookings.isEmpty) {
+          return _buildEmptyState(
+            'No upcoming walks',
+            Icons.event_available_rounded,
+            isDark,
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(
+            horizontal: DesignSystem.space2,
+            vertical: DesignSystem.space1,
+          ),
+          itemCount: bookings.length,
+          itemBuilder: (context, index) {
+            final booking = bookings[index];
+            return StreamBuilder<DateTime>(
+              stream: _timeController.stream,
+              initialData: DateTime.now(),
+              builder: (context, snapshot) {
+                final countdown = _calculateCountdown(booking);
+                final walkTracking = _activeWalkTrackings[booking.id];
+                return _buildWalkCard(booking, countdown, walkTracking, isDark);
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildInProgressWalks(bool isDark) {
+    if (_activeWalkTrackings.isEmpty) {
+      return _buildEmptyState(
+        'No walks in progress',
+        Icons.pause_circle_outline_rounded,
+        isDark,
+      );
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return _buildEmptyState(
+        'Please log in to view walks',
+        Icons.login_rounded,
+        isDark,
+      );
+    }
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('bookings')
+          .where('walkerId', isEqualTo: user.uid)
+          .where('status', isEqualTo: 'confirmed')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(
+            child: CircularProgressIndicator(
+              color: DesignSystem.success,
+              strokeWidth: 2,
+            ),
+          );
+        }
+
+        final allBookings = snapshot.data?.docs
+            .map((doc) => Booking.fromFirestore(doc))
+            .toList() ??
+            [];
+
+        final inProgressBookings = allBookings
+            .where((booking) => _activeWalkTrackings.containsKey(booking.id))
+            .toList();
+
+        if (inProgressBookings.isEmpty) {
+          return _buildEmptyState(
+            'No walks in progress',
+            Icons.pause_circle_outline_rounded,
+            isDark,
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(
+            horizontal: DesignSystem.space2,
+            vertical: DesignSystem.space1,
+          ),
+          itemCount: inProgressBookings.length,
+          itemBuilder: (context, index) {
+            final booking = inProgressBookings[index];
+            final walkTracking = _activeWalkTrackings[booking.id];
+            return StreamBuilder<DateTime>(
+              stream: _timeController.stream,
+              initialData: DateTime.now(),
+              builder: (context, snapshot) {
+                final countdown = _calculateCountdown(booking);
+                return _buildWalkCard(booking, countdown, walkTracking, isDark);
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildWalkCard(
     Booking booking,
     Duration countdown,
-    bool canStart,
+    WalkTracking? walkTracking,
     bool isDark,
   ) {
     final dateStr = DateFormat('EEE, MMM dd').format(booking.date);
-    final isUrgent = countdown.inMinutes <= 5 && countdown.inMinutes > 0;
-    final isReady = countdown.inSeconds == 0;
+    final isInProgress = walkTracking != null;
+    final isPaused = walkTracking?.isPaused ?? false;
+    final isUrgent = countdown.inMinutes <= 30 && countdown.inMinutes > 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: DesignSystem.space2),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.white,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(DesignSystem.radiusLarge),
         border: Border.all(
-          color: canStart
-              ? (isReady ? DesignSystem.success : DesignSystem.warning)
-              : DesignSystem.getBorderColor(isDark, opacity: 0.1),
-          width: canStart ? 2 : 1,
+          color: isInProgress
+              ? (isPaused ? DesignSystem.warning : DesignSystem.success)
+              : (isUrgent
+                  ? DesignSystem.warning
+                  : DesignSystem.getBorderColor(isDark, opacity: 0.1)),
+          width: isInProgress ? 2 : 1,
         ),
-        boxShadow: canStart
+        boxShadow: isInProgress
             ? DesignSystem.shadowGlow(
-                isReady ? DesignSystem.success : DesignSystem.warning
-              )
+                isPaused ? DesignSystem.warning : DesignSystem.success)
             : DesignSystem.shadowCard(Colors.black),
       ),
       child: Padding(
@@ -448,59 +683,62 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with countdown
             Row(
               children: [
-                // Countdown circle
                 Container(
                   width: 70,
                   height: 70,
                   decoration: BoxDecoration(
-                    gradient: isReady
-                        ? DesignSystem.successGradient
+                    gradient: isInProgress
+                        ? (isPaused
+                            ? const LinearGradient(
+                                colors: [Color(0xFFF59E0B), Color(0xFFD97706)])
+                            : DesignSystem.successGradient)
                         : (isUrgent
                             ? const LinearGradient(
-                                colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
-                              )
+                                colors: [Color(0xFFF59E0B), Color(0xFFD97706)])
                             : DesignSystem.walkerGradient),
-                    borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
+                    borderRadius:
+                        BorderRadius.circular(DesignSystem.radiusMedium),
                     boxShadow: DesignSystem.shadowGlow(
-                      isReady
-                          ? DesignSystem.success
-                          : (isUrgent ? DesignSystem.warning : DesignSystem.walkerPrimary)
+                      isInProgress
+                          ? (isPaused
+                              ? DesignSystem.warning
+                              : DesignSystem.success)
+                          : (isUrgent
+                              ? DesignSystem.warning
+                              : DesignSystem.walkerPrimary),
                     ),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        isReady
-                            ? Icons.play_circle_filled_rounded
-                            : (isUrgent
-                                ? Icons.access_time_filled_rounded
-                                : Icons.schedule_rounded),
+                        isInProgress
+                            ? (isPaused
+                                ? Icons.pause_circle_filled_rounded
+                                : Icons.play_circle_filled_rounded)
+                            : Icons.schedule_rounded,
                         color: Colors.white,
-                        size: 24,
+                        size: 28,
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        countdown.inDays > 0
-                            ? '${countdown.inDays}d'
-                            : (countdown.inHours > 0
-                                ? '${countdown.inHours}h'
-                                : '${countdown.inMinutes}m'),
+                        isInProgress
+                            ? (isPaused ? 'PAUSED' : 'ACTIVE')
+                            : _formatCountdown(countdown),
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 11,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
                           height: 1,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: DesignSystem.space2),
-                // Pet and owner info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -510,8 +748,10 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
                           Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: DesignSystem.ownerPrimary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(DesignSystem.radiusTiny),
+                              color:
+                                  DesignSystem.ownerPrimary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(
+                                  DesignSystem.radiusTiny),
                             ),
                             child: const Icon(
                               Icons.pets,
@@ -555,7 +795,6 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
                     ],
                   ),
                 ),
-                // Price
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -563,7 +802,8 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
                   ),
                   decoration: BoxDecoration(
                     color: DesignSystem.success.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(DesignSystem.radiusCompact),
+                    borderRadius:
+                        BorderRadius.circular(DesignSystem.radiusCompact),
                   ),
                   child: Text(
                     '\$${booking.price.toStringAsFixed(0)}',
@@ -577,53 +817,7 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
                 ),
               ],
             ),
-            const SizedBox(height: DesignSystem.space2),
-
-            // Countdown text
-            Container(
-              padding: const EdgeInsets.all(DesignSystem.space1_5),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.05)
-                    : const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(DesignSystem.radiusCompact),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    isReady
-                        ? Icons.play_circle_outline_rounded
-                        : Icons.timer_outlined,
-                    size: 18,
-                    color: isReady
-                        ? DesignSystem.success
-                        : (isUrgent
-                            ? DesignSystem.warning
-                            : DesignSystem.getTextSecondary(isDark)),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    isReady
-                        ? 'Ready to start!'
-                        : 'Starts in ${_formatCountdown(countdown)}',
-                    style: TextStyle(
-                      fontSize: DesignSystem.caption,
-                      fontWeight: FontWeight.w700,
-                      color: isReady
-                          ? DesignSystem.success
-                          : (isUrgent
-                              ? DesignSystem.warning
-                              : DesignSystem.getTextSecondary(isDark)),
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             const SizedBox(height: DesignSystem.space1_5),
-
-            // Divider
             Container(
               height: 1,
               decoration: BoxDecoration(
@@ -636,10 +830,7 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
                 ),
               ),
             ),
-
             const SizedBox(height: DesignSystem.space1_5),
-
-            // Details
             Row(
               children: [
                 _buildInfoPill(
@@ -664,48 +855,68 @@ class _ActiveWalksPageState extends State<ActiveWalksPage> {
                 ),
               ],
             ),
+            const SizedBox(height: DesignSystem.space2),
+            _buildActionButton(booking, isInProgress, isPaused, isDark),
+          ],
+        ),
+      ),
+    );
+  }
 
-            // Start Walk Button (only show if within time window)
-            if (canStart) ...[
-              const SizedBox(height: DesignSystem.space2),
-              Container(
-                width: double.infinity,
-                height: 52,
-                decoration: BoxDecoration(
-                  gradient: DesignSystem.successGradient,
-                  borderRadius: BorderRadius.circular(DesignSystem.radiusSmall),
-                  boxShadow: DesignSystem.shadowGlow(DesignSystem.success),
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => _startWalk(booking),
-                    borderRadius: BorderRadius.circular(DesignSystem.radiusSmall),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.play_circle_filled_rounded,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          isReady ? 'Start Walk Now' : 'Start Walk',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: DesignSystem.body,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+  Widget _buildActionButton(
+    Booking booking,
+    bool isInProgress,
+    bool isPaused,
+    bool isDark,
+  ) {
+    return Container(
+      width: double.infinity,
+      height: 52,
+      decoration: BoxDecoration(
+        gradient: isInProgress
+            ? (isPaused
+                ? DesignSystem.successGradient
+                : const LinearGradient(
+                    colors: [Color(0xFFF59E0B), Color(0xFFD97706)]))
+            : DesignSystem.successGradient,
+        borderRadius: BorderRadius.circular(DesignSystem.radiusSmall),
+        boxShadow: DesignSystem.shadowGlow(
+          isInProgress
+              ? (isPaused ? DesignSystem.success : DesignSystem.warning)
+              : DesignSystem.success,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _startWalk(booking),
+          borderRadius: BorderRadius.circular(DesignSystem.radiusSmall),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isInProgress
+                    ? (isPaused
+                        ? Icons.play_arrow_rounded
+                        : Icons.visibility_rounded)
+                    : Icons.play_circle_filled_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isInProgress
+                    ? (isPaused ? 'Resume Walk' : 'View Walk')
+                    : 'Start Walk',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: DesignSystem.body,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
                 ),
               ),
             ],
-          ],
+          ),
         ),
       ),
     );
