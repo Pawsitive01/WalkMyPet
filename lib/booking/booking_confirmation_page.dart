@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:walkmypet/models/booking_model.dart';
 import 'package:walkmypet/services/booking_service.dart';
 import 'package:walkmypet/design_system.dart';
+import 'package:walkmypet/walker/scheduled_walks_page.dart';
 
 class BookingConfirmationPage extends StatefulWidget {
   final String bookingId;
@@ -48,7 +49,14 @@ class _BookingConfirmationPageState extends State<BookingConfirmationPage> {
         await Future.delayed(const Duration(seconds: 2));
 
         if (mounted) {
-          Navigator.pop(context, true);
+          // Navigate to Scheduled Walks page
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ScheduledWalksPage(),
+            ),
+            (route) => route.isFirst, // Keep only the first route
+          );
         }
       }
     } catch (e) {

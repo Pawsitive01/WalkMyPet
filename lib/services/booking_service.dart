@@ -145,6 +145,9 @@ class BookingService {
         bookingId: bookingId,
         cancelledBy: cancelledByName,
       );
+
+      // Cancel any scheduled walk reminder
+      await _notificationService.cancelWalkReminder(bookingId);
     } catch (e) {
       throw 'Failed to cancel booking: $e';
     }
@@ -168,6 +171,16 @@ class BookingService {
         ownerId: booking.ownerId,
         bookingId: bookingId,
         walkerName: booking.walkerName,
+      );
+
+      // Schedule a reminder notification for 10 minutes before the walk
+      await _notificationService.scheduleWalkReminder(
+        bookingId: bookingId,
+        walkDate: booking.date,
+        walkTime: booking.time,
+        dogName: booking.dogName,
+        ownerName: booking.ownerName,
+        location: booking.location,
       );
     } catch (e) {
       throw 'Failed to confirm booking: $e';

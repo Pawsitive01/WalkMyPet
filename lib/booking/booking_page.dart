@@ -237,6 +237,8 @@ class _BookingPageState extends State<BookingPage> with SingleTickerProviderStat
             ? _serviceDurations.values.reduce((a, b) => a > b ? a : b)
             : 60,
         location: _locationController.text.trim(),
+        latitude: _selectedLatitude,
+        longitude: _selectedLongitude,
         price: _totalPrice,
         status: BookingStatus.pending,
         notes: _notesController.text.trim(),

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:walkmypet/booking/booking_confirmation_page.dart';
 import 'package:walkmypet/booking/my_bookings_page_redesigned.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest_all.dart' as tz;
 
 // Top-level function to handle background messages
 @pragma('vm:entry-point')
@@ -21,6 +23,8 @@ class NotificationService {
   NotificationService() {
     _messaging = FirebaseMessaging.instance;
     _firestore = FirebaseFirestore.instance;
+    // Initialize timezone database
+    tz.initializeTimeZones();
   }
 
   // Navigation key to navigate from notification handlers
@@ -98,6 +102,17 @@ class NotificationService {
       playSound: true,
     );
 
+    // Walk reminders channel
+    const AndroidNotificationChannel walkRemindersChannel =
+        AndroidNotificationChannel(
+      'walk_reminders',
+      'Walk Reminders',
+      description: 'Notifications to remind you about upcoming walks',
+      importance: Importance.max,
+      playSound: true,
+      enableVibration: true,
+    );
+
     // Create all channels
     await _localNotifications
         .resolvePlatformSpecificImplementation<
@@ -118,6 +133,11 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(reviewsChannel);
+
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(walkRemindersChannel);
 
     debugPrint('Android notification channels created');
   }
@@ -513,5 +533,129 @@ class NotificationService {
         'dogName': dogName,
       },
     );
+  }
+
+  /// Parse time string (e.g., "10:00 AM") and combine with date
+  DateTime _parseTimeWithDate(DateTime date, String timeString) {
+    try {
+      // Remove any extra spaces
+      final cleanTime = timeString.trim();
+
+      // Parse time formats like "10:00 AM" or "14:30"
+      final timeParts = cleanTime.split(' ');
+      String time = timeParts[0];
+      String? period = timeParts.length > 1 ? timeParts[1].toUpperCase() : null;
+
+      final hourMinute = time.split(':');
+      int hour = int.parse(hourMinute[0]);
+      int minute = hourMinute.length > 1 ? int.parse(hourMinute[1]) : 0;
+
+      // Handle AM/PM
+      if (period != null) {
+        if (period == 'PM' && hour != 12) {
+          hour += 12;
+        } else if (period == 'AM' && hour == 12) {
+          hour = 0;
+        }
+      }
+
+      return DateTime(date.year, date.month, date.day, hour, minute);
+    } catch (e) {
+      debugPrint('Error parsing time: $e');
+      return date;
+    }
+  }
+
+  /// Schedule a notification for 10 minutes before a walk
+  Future<void> scheduleWalkReminder({
+    required String bookingId,
+    required DateTime walkDate,
+    required String walkTime,
+    required String dogName,
+    required String ownerName,
+    required String location,
+  }) async {
+    try {
+      // Parse the walk time
+      final walkDateTime = _parseTimeWithDate(walkDate, walkTime);
+
+      // Schedule notification 10 minutes before
+      final notificationTime = walkDateTime.subtract(const Duration(minutes: 10));
+
+      // Only schedule if the notification time is in the future
+      if (notificationTime.isAfter(DateTime.now())) {
+        // Convert to TZ DateTime
+        final scheduledDate = tz.TZDateTime.from(notificationTime, tz.local);
+
+        // Create notification details
+        const androidDetails = AndroidNotificationDetails(
+          'walk_reminders',
+          'Walk Reminders',
+          channelDescription: 'Notifications to remind you about upcoming walks',
+          importance: Importance.max,
+          priority: Priority.high,
+          enableVibration: true,
+          playSound: true,
+        );
+
+        const iosDetails = DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        );
+
+        const notificationDetails = NotificationDetails(
+          android: androidDetails,
+          iOS: iosDetails,
+        );
+
+        // Use booking ID hash as notification ID for easy cancellation
+        final notificationId = bookingId.hashCode;
+
+        await _localNotifications.zonedSchedule(
+          notificationId,
+          'Walk Starting Soon! 🐕',
+          'Your walk with $dogName is starting in 10 minutes at $location',
+          scheduledDate,
+          notificationDetails,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          payload: bookingId,
+        );
+
+        debugPrint('Scheduled walk reminder for $notificationTime (ID: $notificationId)');
+
+        // Also create a notification document in Firestore for screen notification
+        await _firestore.collection('scheduled_notifications').doc(bookingId).set({
+          'bookingId': bookingId,
+          'notificationTime': Timestamp.fromDate(notificationTime),
+          'walkTime': Timestamp.fromDate(walkDateTime),
+          'dogName': dogName,
+          'ownerName': ownerName,
+          'location': location,
+          'createdAt': Timestamp.now(),
+        });
+      } else {
+        debugPrint('Walk time is too soon, skipping notification scheduling');
+      }
+    } catch (e) {
+      debugPrint('Error scheduling walk reminder: $e');
+    }
+  }
+
+  /// Cancel a scheduled walk reminder
+  Future<void> cancelWalkReminder(String bookingId) async {
+    try {
+      final notificationId = bookingId.hashCode;
+      await _localNotifications.cancel(notificationId);
+
+      // Remove from Firestore
+      await _firestore.collection('scheduled_notifications').doc(bookingId).delete();
+
+      debugPrint('Cancelled walk reminder (ID: $notificationId)');
+    } catch (e) {
+      debugPrint('Error cancelling walk reminder: $e');
+    }
   }
 }

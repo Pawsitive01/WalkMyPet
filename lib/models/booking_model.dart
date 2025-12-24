@@ -19,6 +19,8 @@ class Booking {
   final String time;
   final int duration; // in minutes
   final String location;
+  final double? latitude;  // Pickup location latitude
+  final double? longitude; // Pickup location longitude
   final double price;
   final BookingStatus status;
   final String? notes;
@@ -44,6 +46,8 @@ class Booking {
     required this.time,
     required this.duration,
     required this.location,
+    this.latitude,
+    this.longitude,
     required this.price,
     required this.status,
     this.notes,
@@ -72,6 +76,8 @@ class Booking {
       time: data['time'] ?? '',
       duration: data['duration'] ?? 30,
       location: data['location'] ?? '',
+      latitude: data['latitude'] as double?,
+      longitude: data['longitude'] as double?,
       price: (data['price'] ?? 0).toDouble(),
       status: BookingStatus.values.firstWhere(
         (e) => e.toString() == 'BookingStatus.${data['status']}',
@@ -104,6 +110,8 @@ class Booking {
       'time': time,
       'duration': duration,
       'location': location,
+      'latitude': latitude,
+      'longitude': longitude,
       'price': price,
       'status': status.toString().split('.').last,
       'notes': notes,
@@ -131,6 +139,8 @@ class Booking {
     String? time,
     int? duration,
     String? location,
+    double? latitude,
+    double? longitude,
     double? price,
     BookingStatus? status,
     String? notes,
@@ -156,6 +166,8 @@ class Booking {
       time: time ?? this.time,
       duration: duration ?? this.duration,
       location: location ?? this.location,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       price: price ?? this.price,
       status: status ?? this.status,
       notes: notes ?? this.notes,

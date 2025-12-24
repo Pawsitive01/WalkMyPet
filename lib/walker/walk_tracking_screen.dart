@@ -170,25 +170,41 @@ class _WalkTrackingScreenState extends State<WalkTrackingScreen>
   Future<void> _onLocationUpdate(Position position) async {
     if (_walkTracking == null || !_walkTracking!.isActive) return;
 
+    // Filter out inaccurate GPS readings (accuracy > 50 meters)
+    if (position.accuracy > 50) {
+      debugPrint('Ignoring inaccurate location: ${position.accuracy}m');
+      return;
+    }
+
     final newLocation = WalkLocation(
       position: LatLng(position.latitude, position.longitude),
       timestamp: DateTime.now(),
       accuracy: position.accuracy,
     );
 
-    final updatedHistory = [..._walkTracking!.locationHistory, newLocation];
-
-    // Calculate distance
-    double distance = _walkTracking!.totalDistance ?? 0.0;
+    // Calculate distance from last location
+    double segmentDistance = 0.0;
     if (_walkTracking!.locationHistory.isNotEmpty) {
       final lastLoc = _walkTracking!.locationHistory.last;
-      distance += Geolocator.distanceBetween(
+      segmentDistance = Geolocator.distanceBetween(
         lastLoc.position.latitude,
         lastLoc.position.longitude,
         newLocation.position.latitude,
         newLocation.position.longitude,
       );
+
+      // Filter out unrealistic jumps (> 100m in 10 seconds suggests GPS error)
+      final timeDiff = newLocation.timestamp.difference(lastLoc.timestamp).inSeconds;
+      final speed = segmentDistance / timeDiff; // meters per second
+      if (speed > 30) {
+        // More than 30 m/s (108 km/h) is unrealistic for walking
+        debugPrint('Ignoring unrealistic GPS jump: ${speed}m/s');
+        return;
+      }
     }
+
+    final updatedHistory = [..._walkTracking!.locationHistory, newLocation];
+    final distance = (_walkTracking!.totalDistance ?? 0.0) + segmentDistance;
 
     setState(() {
       _walkTracking = _walkTracking!.copyWith(
@@ -202,7 +218,7 @@ class _WalkTrackingScreenState extends State<WalkTrackingScreen>
     _updatePolyline();
     _animateCamera(newLocation.position);
 
-    // Update Firestore
+    // Batch update Firestore (reduce writes)
     if (_walkTrackingId != null) {
       await FirebaseFirestore.instance
           .collection('walk_tracking')

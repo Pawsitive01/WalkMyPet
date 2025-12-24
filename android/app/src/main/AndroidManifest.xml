@@ -40,7 +40,7 @@
         <!-- Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyAgbBYJXUgUFOYd_zmFyKwnXGclUyZtNM8"/>
+            android:value="AIzaSyAKUW0Hlzwd6CqrJt57Gcf-LPgpPCC0z6A"/>
 
         <!-- Disable androidx.startup to avoid R$string error -->
         <provider
