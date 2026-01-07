@@ -1,17 +1,77 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // WARNING: For testing purposes only.
-    // These rules allow anyone to read and write images without authentication.
-    // This should be secured before going into production.
+    // ============================================================
+    // HELPER FUNCTIONS
+    // ============================================================
 
-    // FIXED: Match the actual upload path from the code
-    match /profile_images/{imageId} {
-      allow read, write: if true;
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
+    // Validate image file types
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // Validate file size (max 5MB for images)
+    function isValidSize() {
+      return request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // Check if user owns the image path
+    function ownsImage(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ============================================================
+    // PROFILE IMAGES
+    // ============================================================
+    // Path pattern: profile_images/{userId}.{extension}
+    // or profile_images/{userId}_{timestamp}.{extension}
+    match /profile_images/{imageId} {
+      // Anyone can read profile images (public)
+      allow read: if true;
+
+      // Only authenticated users can upload/update their own profile images
+      // The imageId should start with the user's UID
+      allow write: if isAuthenticated() &&
+                      isImage() &&
+                      isValidSize() &&
+                      imageId.matches(request.auth.uid + '.*');
+
+      // Only the owner can delete their profile images
+      allow delete: if isAuthenticated() &&
+                       imageId.matches(request.auth.uid + '.*');
+    }
+
+    // ============================================================
+    // PET IMAGES
+    // ============================================================
+    // Path pattern: pet_images/{userId}_{petName}.{extension}
+    // or pet_images/{userId}_{timestamp}.{extension}
     match /pet_images/{imageId} {
-      allow read, write: if true;
+      // Anyone can read pet images (public - needed for walker discovery)
+      allow read: if true;
+
+      // Only authenticated users can upload/update their own pet images
+      // The imageId should start with the user's UID
+      allow write: if isAuthenticated() &&
+                      isImage() &&
+                      isValidSize() &&
+                      imageId.matches(request.auth.uid + '.*');
+
+      // Only the owner can delete their pet images
+      allow delete: if isAuthenticated() &&
+                       imageId.matches(request.auth.uid + '.*');
+    }
+
+    // ============================================================
+    // DEFAULT DENY
+    // ============================================================
+    // Deny all other storage access by default
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }
