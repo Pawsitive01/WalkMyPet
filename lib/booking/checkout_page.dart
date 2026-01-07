@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:walkmypet/models.dart';
 import 'package:walkmypet/models/booking_model.dart';
 import 'package:walkmypet/services/booking_service.dart';
+import 'package:walkmypet/services/stripe_service.dart';
 import 'package:walkmypet/booking/my_bookings_page_redesigned.dart';
 import 'package:walkmypet/design_system.dart';
 import 'package:walkmypet/booking/payment_logos.dart';
@@ -31,6 +32,7 @@ class CheckoutPage extends StatefulWidget {
 
 class _CheckoutPageState extends State<CheckoutPage> with SingleTickerProviderStateMixin {
   final BookingService _bookingService = BookingService();
+  final StripeService _stripeService = StripeService();
   PaymentMethod? _selectedPaymentMethod;
   bool _isProcessing = false;
 
@@ -80,54 +82,75 @@ class _CheckoutPageState extends State<CheckoutPage> with SingleTickerProviderSt
       return;
     }
 
+    // Only Stripe is supported for MVP
+    if (_selectedPaymentMethod != PaymentMethod.stripe) {
+      _showSnackBar(
+        'This payment method is coming soon',
+        const Color(0xFFF59E0B),
+        Icons.info_outline_rounded,
+      );
+      return;
+    }
+
     setState(() => _isProcessing = true);
 
     try {
-      // Simulate payment processing
-      await Future.delayed(const Duration(seconds: 2));
+      // Prepare booking data for payment processing
+      final bookingDataMap = {
+        'walkerId': widget.bookingData.walkerId,
+        'price': widget.bookingData.price,
+        'ownerName': widget.bookingData.ownerName,
+        'dogName': widget.bookingData.dogName,
+        'serviceType': widget.bookingData.serviceType ?? 'Dog Walking',
+        'date': widget.bookingData.date,
+        'time': widget.bookingData.time,
+        'location': widget.bookingData.location,
+        'duration': widget.bookingData.duration.toString(),
+      };
 
-      // Here you would integrate actual payment processing
-      // For Stripe: Use stripe_flutter package
-      // For PayPal: Use paypal_flutter package
-      // For Google Pay: Use pay package
-      // For Apple Pay: Use pay package
+      // Process payment with Stripe
+      final result = await _stripeService.processPayment(
+        bookingData: bookingDataMap,
+        walkerName: widget.bookingData.walkerName,
+      );
 
-      bool paymentSuccessful = await _simulatePayment(_selectedPaymentMethod!);
+      if (result.success && mounted) {
+        _showSnackBar(
+          'Payment successful! Booking confirmed.',
+          const Color(0xFF10B981),
+          Icons.check_circle_rounded,
+        );
 
-      if (paymentSuccessful) {
-        // Create booking after successful payment
-        await _bookingService.createBooking(widget.bookingData);
+        await Future.delayed(const Duration(milliseconds: 1500));
 
         if (mounted) {
-          _showSnackBar(
-            'Payment successful! Booking confirmed.',
-            const Color(0xFF10B981),
-            Icons.check_circle_rounded,
+          // Navigate to My Bookings
+          Navigator.of(context).pop(); // Pop checkout page
+          Navigator.of(context).pop(); // Pop booking page
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const MyBookingsPageRedesigned(),
+            ),
           );
-
-          await Future.delayed(const Duration(milliseconds: 1500));
-
-          if (mounted) {
-            // Pop back to previous screens first, then navigate to My Bookings
-            Navigator.of(context).pop(); // Pop checkout page
-            Navigator.of(context).pop(); // Pop booking page
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) {
-                  return const MyBookingsPageRedesigned();
-                },
-              ),
-            );
-          } else {
-          }
         }
-      } else {
-        throw 'Payment failed';
+      } else if (mounted) {
+        throw result.errorMessage ?? 'Payment failed';
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = e.toString();
+
+        // User-friendly error messages
+        if (errorMessage.contains('cancelled') || errorMessage.contains('Canceled')) {
+          errorMessage = 'Payment cancelled';
+        } else if (errorMessage.contains('timeout')) {
+          errorMessage = 'Payment successful but booking is still processing. Check My Bookings in a moment.';
+        } else if (errorMessage.contains('not initialized')) {
+          errorMessage = 'Payment system not configured. Please contact support.';
+        }
+
         _showSnackBar(
-          'Payment failed: $e',
+          errorMessage,
           const Color(0xFFEF4444),
           Icons.error_outline_rounded,
         );
@@ -135,12 +158,6 @@ class _CheckoutPageState extends State<CheckoutPage> with SingleTickerProviderSt
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
-  }
-
-  Future<bool> _simulatePayment(PaymentMethod method) async {
-    // This is a placeholder for actual payment processing
-    // In production, you would integrate with actual payment providers
-    return true;
   }
 
   void _showSnackBar(String message, Color color, IconData icon) {

@@ -15,6 +15,7 @@ import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
 import 'package:walkmypet/profile/redesigned_owner_profile_page.dart';
 import 'package:walkmypet/profile/redesigned_walker_profile_page.dart';
 import 'package:walkmypet/services/notification_service.dart';
+import 'package:walkmypet/services/stripe_service.dart';
 import 'package:flutter/services.dart';
 import 'package:walkmypet/design_system.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -42,6 +43,16 @@ void main() async {
 
     // Connect to Firebase Emulators in debug mode
     await FirebaseEmulatorConfig.connectToEmulators();
+
+    // Initialize Stripe SDK
+    try {
+      final stripeService = StripeService();
+      await stripeService.initialize();
+      print('Stripe SDK initialized successfully');
+    } catch (e) {
+      print('Warning: Stripe SDK initialization failed: $e');
+      // Don't block app startup if Stripe fails to initialize
+    }
   } catch (e) {
     firebaseError = e.toString();
   }

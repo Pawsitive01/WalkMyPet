@@ -183,6 +183,32 @@ service cloud.firestore {
     }
 
     // ============================================================
+    // WITHDRAWAL REQUESTS COLLECTION
+    // ============================================================
+    match /withdrawal_requests/{requestId} {
+      // Only the walker can read their own withdrawal requests
+      allow read: if isAuthenticated() &&
+                     request.auth.uid == resource.data.walkerId;
+
+      // Only walkers can create withdrawal requests for themselves
+      allow create: if isAuthenticated() &&
+                       request.auth.uid == request.resource.data.walkerId &&
+                       request.resource.data.status == 'pending';
+
+      // Only the walker can update their own requests (e.g., cancel)
+      // Cannot change amount or bank details after creation
+      allow update: if isAuthenticated() &&
+                       request.auth.uid == resource.data.walkerId &&
+                       // Only status can change (to cancelled)
+                       request.resource.data.amount == resource.data.amount &&
+                       request.resource.data.walkerId == resource.data.walkerId;
+
+      // Only the walker can delete their own requests
+      allow delete: if isAuthenticated() &&
+                       request.auth.uid == resource.data.walkerId;
+    }
+
+    // ============================================================
     // WALK TRACKING COLLECTION
     // ============================================================
     match /walk_tracking/{trackingId} {

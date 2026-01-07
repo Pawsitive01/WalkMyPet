@@ -368,3 +368,14 @@ export const onMessageCreated = functions.region(region).firestore
       return null;
     }
   });
+
+// ============================================================
+// PAYMENT FUNCTIONS
+// ============================================================
+
+/**
+ * Export payment-related Cloud Functions
+ * - createPaymentIntent: Creates Stripe PaymentIntent for bookings
+ * - handleStripeWebhook: Processes Stripe webhook events
+ */
+export {createPaymentIntent, handleStripeWebhook} from "./payments";

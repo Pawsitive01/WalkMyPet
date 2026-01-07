@@ -34,6 +34,7 @@ class Booking {
   final DateTime? confirmedByOwnerAt; // When owner confirmed completion
   final bool? paymentProcessed; // Payment settlement completed
   final String? transactionId; // Reference to transaction record
+  final String? stripePaymentIntentId; // Stripe payment intent ID for tracking
 
   Booking({
     required this.id,
@@ -61,6 +62,7 @@ class Booking {
     this.confirmedByOwnerAt,
     this.paymentProcessed,
     this.transactionId,
+    this.stripePaymentIntentId,
   });
 
   factory Booking.fromFirestore(DocumentSnapshot doc) {
@@ -96,6 +98,7 @@ class Booking {
       confirmedByOwnerAt: (data['confirmedByOwnerAt'] as Timestamp?)?.toDate(),
       paymentProcessed: data['paymentProcessed'],
       transactionId: data['transactionId'],
+      stripePaymentIntentId: data['stripePaymentIntentId'],
     );
   }
 
@@ -125,6 +128,7 @@ class Booking {
       'confirmedByOwnerAt': confirmedByOwnerAt != null ? Timestamp.fromDate(confirmedByOwnerAt!) : null,
       'paymentProcessed': paymentProcessed,
       'transactionId': transactionId,
+      'stripePaymentIntentId': stripePaymentIntentId,
     };
   }
 
@@ -154,6 +158,7 @@ class Booking {
     DateTime? confirmedByOwnerAt,
     bool? paymentProcessed,
     String? transactionId,
+    String? stripePaymentIntentId,
   }) {
     return Booking(
       id: id ?? this.id,
@@ -181,6 +186,7 @@ class Booking {
       confirmedByOwnerAt: confirmedByOwnerAt ?? this.confirmedByOwnerAt,
       paymentProcessed: paymentProcessed ?? this.paymentProcessed,
       transactionId: transactionId ?? this.transactionId,
+      stripePaymentIntentId: stripePaymentIntentId ?? this.stripePaymentIntentId,
     );
   }
 }

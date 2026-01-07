@@ -31,6 +31,10 @@ class Transaction {
   final DateTime? completedAt;
   final Map<String, dynamic>? metadata; // Additional info
 
+  // Stripe integration fields
+  final String? stripePaymentIntentId; // Link to Stripe payment
+  final String? withdrawalRequestId; // Link to withdrawal request
+
   Transaction({
     required this.id,
     required this.userId,
@@ -47,6 +51,8 @@ class Transaction {
     required this.createdAt,
     this.completedAt,
     this.metadata,
+    this.stripePaymentIntentId,
+    this.withdrawalRequestId,
   });
 
   factory Transaction.fromFirestore(DocumentSnapshot doc) {
@@ -75,6 +81,8 @@ class Transaction {
       metadata: data['metadata'] != null
           ? Map<String, dynamic>.from(data['metadata'])
           : null,
+      stripePaymentIntentId: data['stripePaymentIntentId'],
+      withdrawalRequestId: data['withdrawalRequestId'],
     );
   }
 
@@ -94,6 +102,8 @@ class Transaction {
       'createdAt': Timestamp.fromDate(createdAt),
       'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
       'metadata': metadata,
+      'stripePaymentIntentId': stripePaymentIntentId,
+      'withdrawalRequestId': withdrawalRequestId,
     };
   }
 
@@ -113,6 +123,8 @@ class Transaction {
     DateTime? createdAt,
     DateTime? completedAt,
     Map<String, dynamic>? metadata,
+    String? stripePaymentIntentId,
+    String? withdrawalRequestId,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -130,6 +142,8 @@ class Transaction {
       createdAt: createdAt ?? this.createdAt,
       completedAt: completedAt ?? this.completedAt,
       metadata: metadata ?? this.metadata,
+      stripePaymentIntentId: stripePaymentIntentId ?? this.stripePaymentIntentId,
+      withdrawalRequestId: withdrawalRequestId ?? this.withdrawalRequestId,
     );
   }
 }
