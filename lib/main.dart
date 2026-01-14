@@ -25,9 +25,7 @@ import 'package:walkmypet/owner/owner_notifications_page.dart';
 import 'firebase_options.dart';
 
 void main() async {
-  print('====== MAIN() STARTED ======');
   WidgetsFlutterBinding.ensureInitialized();
-  print('====== WIDGETS BINDING INITIALIZED ======');
 
   bool firebaseInitialized = false;
   String? firebaseError;
@@ -44,23 +42,17 @@ void main() async {
     firebaseInitialized = true;
 
     // Connect to Firebase Emulators in debug mode
-    print('DEBUG: About to connect to emulators...');
     await FirebaseEmulatorConfig.connectToEmulators();
-    print('DEBUG: Emulators connected, now initializing Stripe...');
 
     // Initialize Stripe SDK
     try {
-      print('DEBUG: Creating StripeService instance...');
       final stripeService = StripeService();
-      print('DEBUG: Calling stripeService.initialize()...');
       await stripeService.initialize();
-      print('Stripe SDK initialized successfully');
     } catch (e) {
       print('Warning: Stripe SDK initialization failed: $e');
       // Don't block app startup if Stripe fails to initialize
     }
   } catch (e) {
-    print('DEBUG: Outer catch block hit with error: $e');
     firebaseError = e.toString();
   }
 

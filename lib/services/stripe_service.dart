@@ -54,49 +54,45 @@ class PaymentResult {
 class StripeService {
   // Singleton pattern
   static final StripeService _instance = StripeService._internal();
-  factory StripeService() {
-    print('StripeService factory called, isInitialized: ${_instance._isInitialized}');
-    return _instance;
-  }
-  StripeService._internal() {
-    print('StripeService._internal constructor called');
-  }
+  factory StripeService() => _instance;
+  StripeService._internal();
 
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   bool _isInitialized = false;
+  bool _platformSupported = true;
 
   /// Initialize Stripe SDK
   /// Call this once in your app's main() function
   Future<void> initialize() async {
-    print('StripeService.initialize() called, current _isInitialized: $_isInitialized');
     if (_isInitialized) {
-      print('Already initialized, returning early');
       return;
     }
 
     try {
-      print('Setting Stripe.publishableKey...');
+      // Test if platform is supported by trying to access Stripe
       Stripe.publishableKey = StripeConfig.publishableKey;
       Stripe.merchantIdentifier = StripeConfig.merchantDisplayName;
 
-      print('Calling Stripe.instance.applySettings()...');
-      // Initialize Stripe SDK
       try {
         await Stripe.instance.applySettings();
       } catch (e) {
-        // applySettings() may fail in emulator/cloud environments but
-        // payments can still work if the publishable key is set
-        print('Warning: applySettings() failed (may be OK in emulator): $e');
+        // applySettings() may fail in some environments
+        print('Warning: applySettings() failed: $e');
       }
 
       _isInitialized = true;
-      print('Stripe SDK initialized successfully, _isInitialized set to: $_isInitialized');
+      _platformSupported = true;
+      print('Stripe SDK initialized successfully');
     } catch (e) {
-      print('Error initializing Stripe SDK: $e');
-      throw Exception('Failed to initialize Stripe: $e');
+      print('Stripe SDK initialization failed: $e');
+      // Platform not supported (e.g., cloud IDE emulator)
+      // Mark as initialized but unsupported so we can use Cloud Functions fallback
+      _isInitialized = true;
+      _platformSupported = false;
+      print('Stripe will use server-side only mode');
     }
   }
 
@@ -192,8 +188,15 @@ class StripeService {
   }) async {
     // Auto-initialize if not already done
     if (!_isInitialized) {
-      print('StripeService: Auto-initializing before payment...');
       await initialize();
+    }
+
+    // Check if platform supports native Stripe SDK
+    if (!_platformSupported) {
+      return await _processPaymentViaCheckoutSession(
+        bookingData: bookingData,
+        walkerName: walkerName,
+      );
     }
 
     try {
@@ -257,6 +260,81 @@ class StripeService {
       );
     } catch (e) {
       print('Payment processing error: $e');
+      return PaymentResult.failure(e.toString());
+    }
+  }
+
+  /// Fallback payment flow for unsupported platforms (e.g., cloud IDE emulators)
+  /// This processes payment entirely server-side via Cloud Functions
+  Future<PaymentResult> _processPaymentViaCheckoutSession({
+    required Map<String, dynamic> bookingData,
+    required String walkerName,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        return PaymentResult.failure('User not authenticated');
+      }
+
+      print('Platform does not support native Stripe SDK');
+      print('Note: Native Stripe payments require a real device or local emulator.');
+      print('Using server-side payment processing...');
+
+      // Extract booking data
+      final walkerId = bookingData['walkerId'] as String;
+      final amount = (bookingData['price'] as num).toDouble();
+      final ownerName = bookingData['ownerName'] as String?;
+      final dogName = bookingData['dogName'] as String?;
+      final serviceType = bookingData['serviceType'] as String?;
+      final scheduledDate = bookingData['date']?.toString();
+      final time = bookingData['time'] as String?;
+      final location = bookingData['location'] as String?;
+      final duration = bookingData['duration'] as String?;
+
+      // Create booking metadata
+      final metadata = {
+        'ownerName': ownerName ?? 'Unknown',
+        'dogName': dogName ?? 'Unknown',
+        'serviceType': serviceType ?? 'Dog Walking',
+        'scheduledDate': scheduledDate ?? '',
+        'time': time ?? '',
+        'location': location ?? '',
+        'duration': duration ?? '',
+      };
+
+      // Call Cloud Function to process payment server-side
+      final callable = _functions.httpsCallable('processServerSidePayment');
+      final response = await callable.call({
+        'walkerId': walkerId,
+        'amount': amount,
+        'bookingMetadata': metadata,
+        'customerEmail': user.email,
+        'userId': user.uid,
+      });
+
+      final data = response.data;
+      if (data['success'] != true) {
+        throw Exception(data['error'] ?? 'Payment processing failed');
+      }
+
+      final bookingId = data['bookingId'] as String?;
+      final paymentIntentId = data['paymentIntentId'] as String?;
+
+      print('Server-side payment successful, booking: $bookingId');
+
+      return PaymentResult.success(
+        bookingId: bookingId,
+        paymentIntentId: paymentIntentId,
+      );
+    } catch (e) {
+      print('Server-side payment error: $e');
+      // Provide helpful message for development
+      if (e.toString().contains('not-found') || e.toString().contains('NOT_FOUND')) {
+        return PaymentResult.failure(
+          'Server-side payment not configured. '
+          'Please test on a real device or local emulator for Stripe payments.',
+        );
+      }
       return PaymentResult.failure(e.toString());
     }
   }
