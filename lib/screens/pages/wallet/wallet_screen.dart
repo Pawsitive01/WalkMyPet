@@ -130,7 +130,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       Text(
                         'Available Balance',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           fontSize: DesignSystem.body,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.3,
@@ -139,7 +139,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       Container(
                         padding: EdgeInsets.all(DesignSystem.space1),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -163,7 +163,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   ),
                   SizedBox(height: DesignSystem.space3),
                   Divider(
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withValues(alpha: 0.3),
                     height: 1,
                   ),
                   SizedBox(height: DesignSystem.space2),
@@ -180,7 +180,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       Container(
                         width: 1,
                         height: 40,
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withValues(alpha: 0.3),
                       ),
                       Expanded(
                         child: _buildBalanceItem(
@@ -212,13 +212,13 @@ class _WalletScreenState extends State<WalletScreen> {
               Icon(
                 icon,
                 size: 14,
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
               ),
               SizedBox(width: DesignSystem.space0_5),
               Text(
                 label,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   fontSize: DesignSystem.small,
                   fontWeight: FontWeight.w500,
                 ),
@@ -260,7 +260,7 @@ class _WalletScreenState extends State<WalletScreen> {
               foregroundColor: Colors.white,
               padding: EdgeInsets.symmetric(vertical: DesignSystem.space2),
               elevation: 4,
-              shadowColor: DesignSystem.success.withOpacity(0.3),
+              shadowColor: DesignSystem.success.withValues(alpha: 0.3),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
               ),
@@ -347,7 +347,7 @@ class _WalletScreenState extends State<WalletScreen> {
         color: DesignSystem.getSurface(isDark),
         borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
         border: Border.all(
-          color: statusColor.withOpacity(0.3),
+          color: statusColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -541,7 +541,7 @@ class _WalletScreenState extends State<WalletScreen> {
           Container(
             padding: EdgeInsets.all(DesignSystem.space1_5),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
