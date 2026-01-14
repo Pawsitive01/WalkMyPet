@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:walkmypet/design_system.dart';
-import 'package:walkmypet/services/payment_service.dart';
 import 'package:walkmypet/services/withdrawal_service.dart';
 
 /// Screen for walkers to request withdrawal of their earnings
@@ -19,7 +18,6 @@ class WithdrawalRequestScreen extends StatefulWidget {
 
 class _WithdrawalRequestScreenState extends State<WithdrawalRequestScreen> {
   final _formKey = GlobalKey<FormState>();
-  final PaymentService _paymentService = PaymentService();
   final WithdrawalService _withdrawalService = WithdrawalService();
 
   final _amountController = TextEditingController();
@@ -141,7 +139,7 @@ class _WithdrawalRequestScreenState extends State<WithdrawalRequestScreen> {
           Text(
             'Available for Withdrawal',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               fontSize: DesignSystem.body,
               fontWeight: FontWeight.w600,
             ),
@@ -165,10 +163,10 @@ class _WithdrawalRequestScreenState extends State<WithdrawalRequestScreen> {
     return Container(
       padding: EdgeInsets.all(DesignSystem.space2),
       decoration: BoxDecoration(
-        color: DesignSystem.walkerPrimary.withOpacity(0.1),
+        color: DesignSystem.walkerPrimary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
         border: Border.all(
-          color: DesignSystem.walkerPrimary.withOpacity(0.3),
+          color: DesignSystem.walkerPrimary.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -473,7 +471,7 @@ class _WithdrawalRequestScreenState extends State<WithdrawalRequestScreen> {
           foregroundColor: Colors.white,
           disabledBackgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
           elevation: 8,
-          shadowColor: DesignSystem.success.withOpacity(0.5),
+          shadowColor: DesignSystem.success.withValues(alpha: 0.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
           ),
