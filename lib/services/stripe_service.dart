@@ -52,6 +52,11 @@ class PaymentResult {
 
 /// Service for handling Stripe payment integration
 class StripeService {
+  // Singleton pattern
+  static final StripeService _instance = StripeService._internal();
+  factory StripeService() => _instance;
+  StripeService._internal();
+
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
