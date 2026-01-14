@@ -1,4 +1,4 @@
-import * as functions from "firebase-functions";
+import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import Stripe from "stripe";
 
@@ -9,7 +9,7 @@ if (!stripeSecretKey) {
   console.error("Stripe secret key not configured. Run: firebase functions:config:set stripe.secret_key=sk_test_...");
 }
 const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, {
-  apiVersion: "2024-12-18.acacia",
+  apiVersion: "2025-02-24.acacia",
 }) : null;
 
 const db = admin.firestore();
@@ -25,7 +25,7 @@ const db = admin.firestore();
  */
 export const createPaymentIntent = functions
   .region("australia-southeast1")
-  .https.onCall(async (data, context) => {
+  .https.onCall(async (data: any, context: functions.https.CallableContext) => {
     // Verify authentication
     if (!context.auth) {
       throw new functions.https.HttpsError(
@@ -148,7 +148,7 @@ export const createPaymentIntent = functions
  */
 export const handleStripeWebhook = functions
   .region("australia-southeast1")
-  .https.onRequest(async (req, res) => {
+  .https.onRequest(async (req: functions.https.Request, res: functions.Response) => {
     if (!stripe) {
       console.error("Stripe not configured");
       res.status(500).send("Stripe not configured");

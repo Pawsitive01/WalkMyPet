@@ -19,7 +19,7 @@ class StripeConfig {
   /// Replace this with your actual Stripe publishable key
   /// Development: pk_test_...
   /// Production: pk_live_...
-  static const String publishableKey = 'pk_test_YOUR_STRIPE_PUBLISHABLE_KEY_HERE';
+  static const String publishableKey = 'pk_live_51ShuhgDlJWxucYHsDR2d7jNmYS6AlEVJFojf1bpLYDPyfBEwZEDsDE116FJQocnWfi8dtoQ7sKhIFN8w0gYfeoZX00up5rq3BC';
 
   /// Whether we're in test mode
   /// This is automatically determined by the key prefix
