@@ -57,7 +57,8 @@ class StripeService {
   factory StripeService() => _instance;
   StripeService._internal();
 
-  final FirebaseFunctions _functions = FirebaseFunctions.instance;
+  // Use australia-southeast1 region to match Cloud Functions deployment
+  final FirebaseFunctions _functions = FirebaseFunctions.instanceFor(region: 'australia-southeast1');
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
