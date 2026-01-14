@@ -101,7 +101,9 @@ class _CheckoutPageState extends State<CheckoutPage> with SingleTickerProviderSt
         'price': widget.bookingData.price,
         'ownerName': widget.bookingData.ownerName,
         'dogName': widget.bookingData.dogName,
-        'serviceType': widget.bookingData.serviceType ?? 'Dog Walking',
+        'serviceType': widget.bookingData.services?.isNotEmpty == true
+            ? widget.bookingData.services!.first
+            : 'Dog Walking',
         'date': widget.bookingData.date,
         'time': widget.bookingData.time,
         'location': widget.bookingData.location,
