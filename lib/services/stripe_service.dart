@@ -184,6 +184,12 @@ class StripeService {
     required Map<String, dynamic> bookingData,
     required String walkerName,
   }) async {
+    // Auto-initialize if not already done
+    if (!_isInitialized) {
+      print('StripeService: Auto-initializing before payment...');
+      await initialize();
+    }
+
     try {
       final user = _auth.currentUser;
       if (user == null) {
