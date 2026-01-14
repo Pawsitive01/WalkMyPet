@@ -25,7 +25,9 @@ import 'package:walkmypet/owner/owner_notifications_page.dart';
 import 'firebase_options.dart';
 
 void main() async {
+  print('====== MAIN() STARTED ======');
   WidgetsFlutterBinding.ensureInitialized();
+  print('====== WIDGETS BINDING INITIALIZED ======');
 
   bool firebaseInitialized = false;
   String? firebaseError;
