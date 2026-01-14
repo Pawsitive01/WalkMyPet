@@ -348,14 +348,21 @@ class StripeService {
   }) async {
     final startTime = DateTime.now();
     const pollInterval = Duration(milliseconds: 500);
+    final userId = _auth.currentUser?.uid;
 
     print('Waiting for booking creation for payment intent: $paymentIntentId');
+
+    if (userId == null) {
+      throw Exception('User not authenticated');
+    }
 
     while (DateTime.now().difference(startTime) < timeout) {
       try {
         // Query bookings for one with this payment intent ID
+        // Include ownerId filter to satisfy Firestore security rules
         final querySnapshot = await _firestore
             .collection('bookings')
+            .where('ownerId', isEqualTo: userId)
             .where('stripePaymentIntentId', isEqualTo: paymentIntentId)
             .limit(1)
             .get();
