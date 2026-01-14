@@ -54,8 +54,13 @@ class PaymentResult {
 class StripeService {
   // Singleton pattern
   static final StripeService _instance = StripeService._internal();
-  factory StripeService() => _instance;
-  StripeService._internal();
+  factory StripeService() {
+    print('StripeService factory called, isInitialized: ${_instance._isInitialized}');
+    return _instance;
+  }
+  StripeService._internal() {
+    print('StripeService._internal constructor called');
+  }
 
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -66,19 +71,23 @@ class StripeService {
   /// Initialize Stripe SDK
   /// Call this once in your app's main() function
   Future<void> initialize() async {
+    print('StripeService.initialize() called, current _isInitialized: $_isInitialized');
     if (_isInitialized) {
+      print('Already initialized, returning early');
       return;
     }
 
     try {
+      print('Setting Stripe.publishableKey...');
       Stripe.publishableKey = StripeConfig.publishableKey;
       Stripe.merchantIdentifier = StripeConfig.merchantDisplayName;
 
+      print('Calling Stripe.instance.applySettings()...');
       // Initialize Stripe SDK
       await Stripe.instance.applySettings();
 
       _isInitialized = true;
-      print('Stripe SDK initialized successfully');
+      print('Stripe SDK initialized successfully, _isInitialized set to: $_isInitialized');
     } catch (e) {
       print('Error initializing Stripe SDK: $e');
       throw Exception('Failed to initialize Stripe: $e');
