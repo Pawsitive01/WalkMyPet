@@ -126,7 +126,8 @@ class ImageUploadService {
       // Check Firebase Storage instance
 
       // Create a reference to the storage location
-      final String fileName = 'profile_${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      // Filename must start with user.uid to match storage rules
+      final String fileName = '${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
       final Reference storageRef = _storage.ref().child('profile_images/$fileName');
 
