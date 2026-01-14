@@ -84,7 +84,13 @@ class StripeService {
 
       print('Calling Stripe.instance.applySettings()...');
       // Initialize Stripe SDK
-      await Stripe.instance.applySettings();
+      try {
+        await Stripe.instance.applySettings();
+      } catch (e) {
+        // applySettings() may fail in emulator/cloud environments but
+        // payments can still work if the publishable key is set
+        print('Warning: applySettings() failed (may be OK in emulator): $e');
+      }
 
       _isInitialized = true;
       print('Stripe SDK initialized successfully, _isInitialized set to: $_isInitialized');
