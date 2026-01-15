@@ -247,13 +247,26 @@ class StripeService {
 
       print('Payment sheet completed successfully');
 
-      // Step 3: Wait for webhook to create booking
-      final bookingId = await _waitForBookingCreation(
-        paymentIntentId: paymentIntentResponse.paymentIntentId,
-        timeout: const Duration(seconds: 30),
-      );
-
-      print('Booking created: $bookingId');
+      // Step 3: Create booking directly (don't rely solely on webhook)
+      // First check if webhook already created it
+      String? bookingId;
+      try {
+        bookingId = await _waitForBookingCreation(
+          paymentIntentId: paymentIntentResponse.paymentIntentId,
+          timeout: const Duration(seconds: 5), // Short timeout - webhook may not work
+        );
+        print('Booking found from webhook: $bookingId');
+      } catch (e) {
+        // Webhook didn't create booking, create it directly
+        print('Webhook booking not found, creating directly: $e');
+        bookingId = await _createBookingDirectly(
+          bookingData: bookingData,
+          paymentIntentId: paymentIntentResponse.paymentIntentId,
+          userId: user.uid,
+          walkerName: walkerName,
+        );
+        print('Booking created directly: $bookingId');
+      }
 
       return PaymentResult.success(
         bookingId: bookingId,
@@ -337,6 +350,82 @@ class StripeService {
         );
       }
       return PaymentResult.failure(e.toString());
+    }
+  }
+
+  /// Create booking directly in Firestore after payment success
+  /// This is a fallback when webhook doesn't create the booking
+  Future<String> _createBookingDirectly({
+    required Map<String, dynamic> bookingData,
+    required String paymentIntentId,
+    required String userId,
+    required String walkerName,
+  }) async {
+    try {
+      // Check if booking already exists (idempotency)
+      // Include ownerId filter to satisfy Firestore security rules
+      final existingQuery = await _firestore
+          .collection('bookings')
+          .where('ownerId', isEqualTo: userId)
+          .where('stripePaymentIntentId', isEqualTo: paymentIntentId)
+          .limit(1)
+          .get();
+
+      if (existingQuery.docs.isNotEmpty) {
+        print('Booking already exists for payment intent: $paymentIntentId');
+        return existingQuery.docs.first.id;
+      }
+
+      // Extract booking data
+      final walkerId = bookingData['walkerId'] as String;
+      final amount = (bookingData['price'] as num).toDouble();
+      final ownerName = bookingData['ownerName'] as String? ?? 'Unknown';
+      final dogName = bookingData['dogName'] as String? ?? 'Unknown';
+      final serviceType = bookingData['serviceType'] as String? ?? 'Dog Walking';
+      final time = bookingData['time'] as String? ?? '';
+      final location = bookingData['location'] as String? ?? '';
+      final durationStr = bookingData['duration'] as String? ?? '30';
+      final duration = int.tryParse(durationStr) ?? 30;
+
+      // Parse the date
+      DateTime bookingDate;
+      final dateValue = bookingData['date'];
+      if (dateValue is DateTime) {
+        bookingDate = dateValue;
+      } else if (dateValue is String) {
+        bookingDate = DateTime.tryParse(dateValue) ?? DateTime.now();
+      } else {
+        bookingDate = DateTime.now();
+      }
+
+      final now = DateTime.now();
+
+      // Create booking document
+      final bookingDoc = await _firestore.collection('bookings').add({
+        'ownerId': userId,
+        'walkerId': walkerId,
+        'walkerName': walkerName,
+        'ownerName': ownerName,
+        'dogName': dogName,
+        'services': [serviceType],
+        'date': Timestamp.fromDate(bookingDate),
+        'time': time,
+        'duration': duration,
+        'location': location,
+        'price': amount,
+        'status': 'pending',
+        'paymentProcessed': false,
+        'stripePaymentIntentId': paymentIntentId,
+        'isRecurring': false,
+        'createdAt': Timestamp.fromDate(now),
+        'updatedAt': Timestamp.fromDate(now),
+      });
+
+      print('Created booking directly: ${bookingDoc.id}');
+      return bookingDoc.id;
+    } catch (e) {
+      print('Error creating booking directly: $e');
+      throw Exception('Failed to create booking: $e');
     }
   }
 
