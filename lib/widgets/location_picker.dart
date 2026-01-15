@@ -38,8 +38,8 @@ class _LocationPickerState extends State<LocationPicker> {
   bool _isLoadingAddress = false;
   bool _isGettingCurrentLocation = false;
 
-  // Default to San Francisco if no initial location
-  static const _defaultLocation = LatLng(37.7749, -122.4194);
+  // Default to Adelaide, South Australia if no initial location
+  static const _defaultLocation = LatLng(-34.9285, 138.6007);
 
   @override
   void initState() {
