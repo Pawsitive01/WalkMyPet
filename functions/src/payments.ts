@@ -93,6 +93,7 @@ export const createPaymentIntent = functions
           dogName: bookingMetadata.dogName || "Unknown",
           serviceType: bookingMetadata.serviceType || "Dog Walking",
           scheduledDate: bookingMetadata.scheduledDate || "",
+          time: bookingMetadata.time || "",
           duration: bookingMetadata.duration || "",
           location: bookingMetadata.location || "",
           price: providedAmount.toString(),
@@ -241,9 +242,26 @@ async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
     const dogName = metadata.dogName;
     const serviceType = metadata.serviceType;
     const scheduledDate = metadata.scheduledDate;
-    const duration = metadata.duration;
+    const time = metadata.time || "";
+    const duration = parseInt(metadata.duration || "30", 10);
     const location = metadata.location;
     const price = parseFloat(metadata.price || "0");
+
+    // Parse the scheduled date string into a Firestore Timestamp
+    // The date comes in as an ISO string or "yyyy-MM-dd HH:mm:ss.SSS" format
+    let bookingDate: admin.firestore.Timestamp;
+    try {
+      const parsedDate = scheduledDate ? new Date(scheduledDate) : new Date();
+      if (isNaN(parsedDate.getTime())) {
+        console.error(`Invalid date format: ${scheduledDate}, using current date`);
+        bookingDate = admin.firestore.Timestamp.now();
+      } else {
+        bookingDate = admin.firestore.Timestamp.fromDate(parsedDate);
+      }
+    } catch (e) {
+      console.error(`Error parsing date: ${scheduledDate}`, e);
+      bookingDate = admin.firestore.Timestamp.now();
+    }
 
     if (!ownerId || !walkerId) {
       console.error("Missing required metadata in payment intent");
@@ -267,14 +285,16 @@ async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
         walkerName: walkerName,
         ownerName: ownerName,
         dogName: dogName,
-        serviceType: serviceType || "Dog Walking",
-        scheduledDate: scheduledDate,
-        duration: duration,
+        services: [serviceType || "Dog Walking"],
+        date: bookingDate, // Firestore Timestamp
+        time: time,
+        duration: duration, // Integer (minutes)
         location: location,
         price: price,
         status: "pending", // Walker needs to confirm
         paymentProcessed: false, // Will be true after walk completion and owner confirmation
         stripePaymentIntentId: paymentIntentId,
+        isRecurring: false,
         createdAt: now,
         updatedAt: now,
       };
