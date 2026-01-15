@@ -1246,13 +1246,18 @@ class _MyBookingsPageRedesignedState extends State<MyBookingsPageRedesigned>
             fontWeight: FontWeight.w500,
           ),
         ),
-        const Spacer(),
-        Text(
-          value,
-          style: TextStyle(
-            color: isDark ? Colors.white : const Color(0xFF0F172A),
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+            textAlign: TextAlign.end,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
