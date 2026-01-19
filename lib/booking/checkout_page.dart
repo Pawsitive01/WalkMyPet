@@ -4,7 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:walkmypet/models.dart';
 import 'package:walkmypet/models/booking_model.dart';
 import 'package:walkmypet/services/stripe_service.dart';
-import 'package:walkmypet/booking/my_bookings_page_redesigned.dart';
+import 'package:walkmypet/booking/my_bookings_page_v3.dart';
 import 'package:walkmypet/design_system.dart';
 import 'package:walkmypet/booking/payment_logos.dart';
 
@@ -129,7 +129,7 @@ class _CheckoutPageState extends State<CheckoutPage> with SingleTickerProviderSt
           Navigator.of(context).pop(); // Pop booking page
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => const MyBookingsPageRedesigned(),
+              builder: (context) => const MyBookingsPageV3(),
             ),
           );
         }

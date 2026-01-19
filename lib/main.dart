@@ -21,6 +21,7 @@ import 'package:walkmypet/design_system.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:walkmypet/walker/walker_notifications_page.dart';
 import 'package:walkmypet/owner/owner_notifications_page.dart';
+import 'package:walkmypet/booking/my_bookings_page_v3.dart';
 
 import 'firebase_options.dart';
 
@@ -650,6 +651,29 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                                 ],
                               ),
                             ),
+                            // My Bookings - only for authenticated owners
+                            if (authProvider != null && authProvider.isAuthenticated && authProvider.userType == 'owner')
+                              PopupMenuItem<String>(
+                                value: 'my_bookings',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_month_rounded,
+                                      size: 20,
+                                      color: isDark ? Colors.white : const Color(0xFFEC4899),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'My Bookings',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             PopupMenuItem<String>(
                               value: 'theme',
                               child: Row(
@@ -707,6 +731,14 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                               setState(() {
                                 _selectedIndex = 3;
                               });
+                            } else if (value == 'my_bookings') {
+                              // Navigate to My Bookings page
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const MyBookingsPageV3(),
+                                ),
+                              );
                             } else if (value == 'signout') {
                               // Sign out the user
                               if (authProvider == null) return;

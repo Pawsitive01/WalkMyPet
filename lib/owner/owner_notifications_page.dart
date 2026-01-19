@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:walkmypet/models/notification_model.dart';
-import 'package:walkmypet/booking/my_bookings_page_redesigned.dart';
+import 'package:walkmypet/booking/my_bookings_page_v3.dart';
 
 class OwnerNotificationsPage extends StatefulWidget {
   const OwnerNotificationsPage({super.key});
@@ -589,7 +589,7 @@ class _OwnerNotificationsPageState extends State<OwnerNotificationsPage>
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const MyBookingsPageRedesigned(),
+            builder: (context) => const MyBookingsPageV3(),
           ),
         );
       }
