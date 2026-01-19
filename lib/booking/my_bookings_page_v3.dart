@@ -8,6 +8,7 @@ import 'package:walkmypet/services/booking_service.dart';
 import 'package:walkmypet/services/review_service.dart';
 import 'package:walkmypet/widgets/review_dialog.dart';
 import 'package:walkmypet/design_system.dart';
+import 'package:walkmypet/main.dart';
 
 /// MyBookingsPageV3 - World-Class Booking Management Experience
 ///
@@ -987,8 +988,13 @@ class _MyBookingsPageV3State extends State<MyBookingsPageV3>
         child: FloatingActionButton.extended(
           onPressed: () {
             HapticFeedback.mediumImpact();
-            // Navigate to home page to select a walker and book
-            Navigator.of(context).popUntil((route) => route.isFirst);
+            // Navigate to walkers list page to select a walker and book
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (context) => const MyHomePage(initialIndex: 0),
+              ),
+              (route) => false,
+            );
           },
           backgroundColor: DesignSystem.ownerPrimary,
           elevation: 0,

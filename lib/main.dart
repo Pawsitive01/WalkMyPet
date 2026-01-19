@@ -392,19 +392,22 @@ class _InitializationWrapperState extends State<InitializationWrapper> {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
+  final int initialIndex;
+
+  const MyHomePage({super.key, this.initialIndex = 0});
 
   @override
   MyHomePageState createState() => MyHomePageState();
 }
 
 class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
   late AnimationController _animController;
 
   @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.initialIndex;
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
