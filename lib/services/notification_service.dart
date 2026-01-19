@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:walkmypet/booking/booking_confirmation_page.dart';
-import 'package:walkmypet/booking/my_bookings_page_redesigned.dart';
+import 'package:walkmypet/booking/my_bookings_page_v3.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
 
@@ -231,7 +231,7 @@ class NotificationService {
       // Navigate to my bookings page
       navigatorKey.currentState?.push(
         MaterialPageRoute(
-          builder: (context) => const MyBookingsPageRedesigned(),
+          builder: (context) => const MyBookingsPageV3(),
         ),
       );
     }

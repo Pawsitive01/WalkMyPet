@@ -5,7 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:walkmypet/services/user_service.dart';
 import 'package:walkmypet/services/auth_service.dart';
 import 'package:walkmypet/services/image_upload_service.dart';
-import 'package:walkmypet/booking/my_bookings_page_redesigned.dart';
+import 'package:walkmypet/booking/my_bookings_page_v3.dart';
 import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
 import 'package:walkmypet/widgets/location_picker.dart';
 import 'package:walkmypet/onboarding/owner_onboarding_page.dart';
@@ -1053,7 +1053,7 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const MyBookingsPageRedesigned()),
+              MaterialPageRoute(builder: (context) => const MyBookingsPageV3()),
             );
           },
           borderRadius: BorderRadius.circular(20),
