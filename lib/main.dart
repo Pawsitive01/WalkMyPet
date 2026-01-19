@@ -680,7 +680,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                               ),
                             ),
                             // My Bookings - only for authenticated owners
-                            if (authProvider != null && authProvider.isAuthenticated && authProvider.userType == 'owner')
+                            if (authProvider != null && authProvider.isAuthenticated && authProvider.isOwner)
                               PopupMenuItem<String>(
                                 value: 'my_bookings',
                                 child: Row(
