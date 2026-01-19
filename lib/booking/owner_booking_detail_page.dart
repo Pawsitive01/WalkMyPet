@@ -968,7 +968,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
     final hours = minutes ~/ 60;
     final mins = minutes % 60;
     if (mins == 0) return '$hours hour${hours > 1 ? 's' : ''}';
-    return '$hours hr ${mins} min';
+    return '$hours hr $mins min';
   }
 
   Color _getServiceColor(String service) {
@@ -1148,9 +1148,10 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
   Future<void> _cancelBooking() async {
     setState(() => _isLoading = true);
     try {
-      await _bookingService.updateBookingStatus(
+      final user = FirebaseAuth.instance.currentUser;
+      await _bookingService.cancelBooking(
         widget.booking.id,
-        BookingStatus.cancelled,
+        cancelledBy: user?.displayName ?? 'Owner',
       );
       if (mounted) {
         _showSnackBar('Booking cancelled successfully', DesignSystem.success);
@@ -1166,7 +1167,12 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
   Future<void> _confirmCompletion() async {
     setState(() => _isLoading = true);
     try {
-      await _bookingService.confirmBookingCompletion(widget.booking.id);
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        _showSnackBar('Please log in to confirm', DesignSystem.error);
+        return;
+      }
+      await _bookingService.confirmWalkCompletion(widget.booking.id, user.uid);
       if (mounted) {
         _showSnackBar('Booking confirmed as complete!', DesignSystem.success);
       }
