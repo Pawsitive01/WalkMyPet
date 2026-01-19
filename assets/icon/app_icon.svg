@@ -10,22 +10,28 @@
   <!-- Background -->
   <rect width="1024" height="1024" fill="url(#gradient)" rx="180"/>
 
-  <!-- Paw Print (White) -->
-  <g transform="translate(512, 512)" fill="#FFFFFF">
-    <!-- Main Pad (bottom, larger) -->
-    <ellipse cx="0" cy="80" rx="140" ry="120"/>
+  <!-- Paw Print (White) - Realistic design with separated pads -->
+  <g transform="translate(512, 532)" fill="#FFFFFF">
+    <!-- Main Pad (bottom, heart-like shape) -->
+    <path d="M0,180
+             C-80,180 -140,120 -140,50
+             C-140,-20 -80,-60 -40,-60
+             C-20,-60 0,-40 0,-20
+             C0,-40 20,-60 40,-60
+             C80,-60 140,-20 140,50
+             C140,120 80,180 0,180 Z"/>
 
-    <!-- Toe Pads (4 smaller ovals) -->
-    <!-- Left toe -->
-    <ellipse cx="-105" cy="-40" rx="55" ry="65" transform="rotate(-15 -105 -40)"/>
+    <!-- Toe Pads (4 separate ovals with clear gaps) -->
+    <!-- Left outer toe -->
+    <ellipse cx="-125" cy="-115" rx="45" ry="55" transform="rotate(-20 -125 -115)"/>
 
-    <!-- Left-center toe -->
-    <ellipse cx="-35" cy="-100" rx="55" ry="70" transform="rotate(-5 -35 -100)"/>
+    <!-- Left inner toe -->
+    <ellipse cx="-42" cy="-155" rx="42" ry="52" transform="rotate(-5 -42 -155)"/>
 
-    <!-- Right-center toe -->
-    <ellipse cx="35" cy="-100" rx="55" ry="70" transform="rotate(5 35 -100)"/>
+    <!-- Right inner toe -->
+    <ellipse cx="42" cy="-155" rx="42" ry="52" transform="rotate(5 42 -155)"/>
 
-    <!-- Right toe -->
-    <ellipse cx="105" cy="-40" rx="55" ry="65" transform="rotate(15 105 -40)"/>
+    <!-- Right outer toe -->
+    <ellipse cx="125" cy="-115" rx="45" ry="55" transform="rotate(20 125 -115)"/>
   </g>
 </svg>
