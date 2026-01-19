@@ -651,29 +651,6 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                                 ],
                               ),
                             ),
-                            // My Bookings - only for authenticated owners
-                            if (authProvider != null && authProvider.isAuthenticated && authProvider.userType == 'owner')
-                              PopupMenuItem<String>(
-                                value: 'my_bookings',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.calendar_month_rounded,
-                                      size: 20,
-                                      color: isDark ? Colors.white : const Color(0xFFEC4899),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      'My Bookings',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                        color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
                             PopupMenuItem<String>(
                               value: 'theme',
                               child: Row(
@@ -699,6 +676,29 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                                 ],
                               ),
                             ),
+                            // My Bookings - only for authenticated owners
+                            if (authProvider != null && authProvider.isAuthenticated && authProvider.userType == 'owner')
+                              PopupMenuItem<String>(
+                                value: 'my_bookings',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_month_rounded,
+                                      size: 20,
+                                      color: isDark ? Colors.white : const Color(0xFFEC4899),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'My Bookings',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             PopupMenuItem<String>(
                               value: (authProvider != null && authProvider.isAuthenticated) ? 'signout' : 'signin',
                               child: Row(

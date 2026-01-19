@@ -956,7 +956,8 @@ class _MyBookingsPageV3State extends State<MyBookingsPageV3>
                 color: DesignSystem.ownerPrimary,
                 onTap: () {
                   HapticFeedback.mediumImpact();
-                  // Navigate to booking page
+                  // Navigate to home page to select a walker and book
+                  Navigator.of(context).popUntil((route) => route.isFirst);
                 },
               ),
             ],
@@ -986,7 +987,8 @@ class _MyBookingsPageV3State extends State<MyBookingsPageV3>
         child: FloatingActionButton.extended(
           onPressed: () {
             HapticFeedback.mediumImpact();
-            // Navigate to book a walk
+            // Navigate to home page to select a walker and book
+            Navigator.of(context).popUntil((route) => route.isFirst);
           },
           backgroundColor: DesignSystem.ownerPrimary,
           elevation: 0,
