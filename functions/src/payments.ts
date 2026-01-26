@@ -518,11 +518,12 @@ export const createConnectedAccount = functions
       });
 
       // Store the connected account ID in the walker's profile
-      await db.collection("walkers").doc(walkerId).update({
+      // Use set with merge to create the document if it doesn't exist
+      await db.collection("walkers").doc(walkerId).set({
         stripeConnectedAccountId: account.id,
         stripeAccountStatus: "pending",
         stripeUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+      }, { merge: true });
 
       console.log(`Created Stripe Connect account ${account.id} for walker ${walkerId}`);
 
