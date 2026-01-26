@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:walkmypet/models/booking_model.dart';
 import 'package:walkmypet/booking/booking_confirmation_page.dart';
+import 'package:walkmypet/widgets/walker_review_dialog.dart';
+import 'package:walkmypet/services/review_service.dart';
 
 class ScheduledWalksPage extends StatefulWidget {
   const ScheduledWalksPage({super.key});
@@ -17,6 +19,7 @@ class _ScheduledWalksPageState extends State<ScheduledWalksPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int _selectedTab = 0;
+  final ReviewService _reviewService = ReviewService();
 
   @override
   void initState() {
@@ -606,6 +609,11 @@ class _ScheduledWalksPageState extends State<ScheduledWalksPage>
                     ),
                   ),
                 ],
+                // Review Button for Completed Walks
+                if (booking.status == BookingStatus.completed) ...[
+                  const SizedBox(height: 16),
+                  _buildReviewButton(booking, isDark),
+                ],
               ],
             ),
           ),
@@ -643,6 +651,127 @@ class _ScheduledWalksPageState extends State<ScheduledWalksPage>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildReviewButton(Booking booking, bool isDark) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const SizedBox.shrink();
+
+    return FutureBuilder<bool>(
+      future: _reviewService.hasUserReviewedBooking(booking.id, user.uid),
+      builder: (context, snapshot) {
+        final hasReviewed = snapshot.data ?? false;
+
+        if (hasReviewed) {
+          // Already reviewed - show completed badge
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF10B981).withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.check_circle_rounded,
+                  size: 18,
+                  color: Color(0xFF10B981),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Review Submitted',
+                  style: TextStyle(
+                    color: const Color(0xFF10B981),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Show review button
+        return Container(
+          width: double.infinity,
+          height: 48,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6366F1).withValues(alpha: 0.4),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () async {
+                HapticFeedback.mediumImpact();
+                final result = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => WalkerReviewDialog(
+                    bookingId: booking.id,
+                    ownerId: booking.ownerId,
+                    ownerName: booking.ownerName,
+                    dogName: booking.dogName,
+                  ),
+                );
+
+                if (result == true && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                          const SizedBox(width: 12),
+                          const Text('Review submitted successfully!'),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFF10B981),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
+                  setState(() {}); // Refresh to show "Review Submitted" badge
+                }
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.star_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Rate Pet Owner',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

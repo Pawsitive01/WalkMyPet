@@ -371,12 +371,12 @@ class _WalkTrackingScreenState extends State<WalkTrackingScreen>
       'completedAt': FieldValue.serverTimestamp(),
     });
 
-    // Update booking status
+    // Update booking status to awaitingConfirmation (owner needs to confirm and release funds)
     await FirebaseFirestore.instance
         .collection('bookings')
         .doc(widget.booking.id)
         .update({
-      'status': 'completed',
+      'status': 'awaitingConfirmation',
       'completedByWalkerAt': FieldValue.serverTimestamp(),
     });
 
@@ -384,9 +384,10 @@ class _WalkTrackingScreenState extends State<WalkTrackingScreen>
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Walk completed for ${widget.booking.dogName}!'),
+          content: Text('Walk completed for ${widget.booking.dogName}! Waiting for ${widget.booking.ownerName} to confirm.'),
           backgroundColor: DesignSystem.success,
           behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
         ),
       );
     }

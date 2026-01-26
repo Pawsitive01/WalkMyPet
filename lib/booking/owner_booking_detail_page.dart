@@ -1174,12 +1174,125 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
       }
       await _bookingService.confirmWalkCompletion(widget.booking.id, user.uid);
       if (mounted) {
-        _showSnackBar('Booking confirmed as complete!', DesignSystem.success);
+        _showSnackBar('Payment released to ${widget.booking.walkerName}!', DesignSystem.success);
+        // Automatically show review dialog after successful fund release
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          await _showReviewDialogAfterCompletion();
+        }
       }
     } catch (e) {
       _showSnackBar('Failed to confirm completion', DesignSystem.error);
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  /// Shows the review dialog automatically after confirming walk completion
+  /// This is triggered after funds are released to the walker
+  Future<void> _showReviewDialogAfterCompletion() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // First show a prompt asking if they'd like to leave a review
+    final wantsToReview = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isDismissible: true,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(DesignSystem.space3),
+        decoration: BoxDecoration(
+          color: DesignSystem.getSurface(isDark),
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(DesignSystem.radiusXL),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: DesignSystem.getTextTertiary(isDark),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: DesignSystem.space3),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFBBF24), Color(0xFFF59E0B)],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFBBF24).withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.star_rounded,
+                color: Colors.white,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: DesignSystem.space2),
+            Text(
+              'Walk Complete!',
+              style: TextStyle(
+                color: DesignSystem.getTextPrimary(isDark),
+                fontSize: DesignSystem.h2,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: DesignSystem.space1),
+            Text(
+              'Payment has been released to ${widget.booking.walkerName}.\nWould you like to leave a review?',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: DesignSystem.getTextSecondary(isDark),
+                fontSize: DesignSystem.body,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: DesignSystem.space3),
+            Row(
+              children: [
+                Expanded(
+                  child: _ActionButton(
+                    label: 'Maybe Later',
+                    icon: Icons.schedule_rounded,
+                    color: DesignSystem.getTextTertiary(isDark),
+                    isDark: isDark,
+                    isOutlined: true,
+                    onTap: () => Navigator.pop(context, false),
+                  ),
+                ),
+                const SizedBox(width: DesignSystem.space2),
+                Expanded(
+                  flex: 2,
+                  child: _ActionButton(
+                    label: 'Leave Review',
+                    icon: Icons.star_rounded,
+                    color: const Color(0xFFFBBF24),
+                    isDark: isDark,
+                    onTap: () => Navigator.pop(context, true),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: MediaQuery.of(context).padding.bottom),
+          ],
+        ),
+      ),
+    );
+
+    // If user wants to review, show the review dialog
+    if (wantsToReview == true && mounted) {
+      await _showReviewDialog();
     }
   }
 

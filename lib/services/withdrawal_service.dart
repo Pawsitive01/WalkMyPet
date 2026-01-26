@@ -1,11 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/withdrawal_request_model.dart';
+import 'stripe_connect_service.dart';
 
 /// Service for handling withdrawal requests
 class WithdrawalService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final StripeConnectService _stripeConnect = StripeConnectService();
 
   /// Minimum withdrawal amount in AUD
   static const double minimumWithdrawalAmount = 20.0;
@@ -280,6 +282,120 @@ class WithdrawalService {
     return cleaned.length >= 6 &&
         cleaned.length <= 9 &&
         RegExp(r'^\d+$').hasMatch(cleaned);
+  }
+
+  /// Check if walker has Stripe Connect account set up and ready for payouts
+  Future<bool> hasStripeAccountSetup(String walkerId) async {
+    try {
+      final walkerDoc = await _firestore.collection('walkers').doc(walkerId).get();
+      if (!walkerDoc.exists) return false;
+
+      final walkerData = walkerDoc.data();
+      return walkerData?['stripePayoutsEnabled'] == true;
+    } catch (e) {
+      print('Error checking Stripe account status: $e');
+      return false;
+    }
+  }
+
+  /// Request withdrawal with automatic Stripe payout
+  /// This creates the withdrawal request and immediately processes it via Stripe
+  Future<String> requestWithdrawalWithStripePayout({
+    required String walkerId,
+    required double amount,
+    String? notes,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('User not authenticated');
+    }
+
+    // Verify the user is requesting withdrawal for themselves
+    if (user.uid != walkerId) {
+      throw Exception('Cannot request withdrawal for another user');
+    }
+
+    // Validate amount
+    if (amount < minimumWithdrawalAmount) {
+      throw Exception(
+        'Minimum withdrawal amount is \$${minimumWithdrawalAmount.toStringAsFixed(2)}',
+      );
+    }
+
+    // Check if Stripe account is set up
+    final stripeResult = await _stripeConnect.getAccountStatus();
+    if (!stripeResult.success || !stripeResult.payoutsEnabled) {
+      throw Exception(
+        'Please set up your Stripe account before requesting a withdrawal. '
+        'Go to Wallet > Set up payouts to connect your bank account.',
+      );
+    }
+
+    // Get walker profile to check balance
+    final walkerDoc = await _firestore.collection('walkers').doc(walkerId).get();
+
+    if (!walkerDoc.exists) {
+      throw Exception('Walker profile not found');
+    }
+
+    final walkerData = walkerDoc.data()!;
+    final walkerName = walkerData['name'] ?? 'Unknown';
+    final walletBalance = (walkerData['walletBalance'] ?? 0.0).toDouble();
+
+    // Check if walker has sufficient balance
+    if (amount > walletBalance) {
+      throw Exception(
+        'Insufficient balance. Available: \$${walletBalance.toStringAsFixed(2)}',
+      );
+    }
+
+    // Check for pending withdrawal requests
+    final pendingWithdrawals = await getPendingWithdrawalAmount(walkerId);
+    final availableBalance = walletBalance - pendingWithdrawals;
+
+    if (amount > availableBalance) {
+      throw Exception(
+        'Insufficient balance after pending withdrawals. Available: \$${availableBalance.toStringAsFixed(2)}',
+      );
+    }
+
+    try {
+      // Create withdrawal request document
+      final withdrawalRef = _firestore.collection('withdrawal_requests').doc();
+
+      final withdrawalRequest = WithdrawalRequest(
+        id: withdrawalRef.id,
+        walkerId: walkerId,
+        walkerName: walkerName,
+        amount: amount,
+        status: WithdrawalStatus.pending,
+        notes: notes,
+        createdAt: DateTime.now(),
+      );
+
+      await withdrawalRef.set(withdrawalRequest.toFirestore());
+
+      print('Withdrawal request created: ${withdrawalRef.id}');
+
+      // Immediately process via Stripe
+      final payoutResult = await _stripeConnect.processWithdrawalPayout(withdrawalRef.id);
+
+      if (!payoutResult.success) {
+        // Payout failed - update withdrawal status
+        await withdrawalRef.update({
+          'status': WithdrawalStatus.rejected.toShortString(),
+          'rejectionReason': payoutResult.errorMessage ?? 'Stripe payout failed',
+          'processedAt': FieldValue.serverTimestamp(),
+        });
+        throw Exception(payoutResult.errorMessage ?? 'Failed to process payout');
+      }
+
+      print('Withdrawal processed via Stripe: ${payoutResult.transferId}');
+      return withdrawalRef.id;
+    } catch (e) {
+      print('Error creating withdrawal request with Stripe payout: $e');
+      throw Exception('Failed to process withdrawal: $e');
+    }
   }
 
   //

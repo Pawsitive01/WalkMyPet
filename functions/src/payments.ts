@@ -452,3 +452,476 @@ async function sendOwnerNotification(ownerId: string, notification: {
     console.error(`Error sending notification to owner ${ownerId}:`, error);
   }
 }
+
+// ============================================================
+// STRIPE CONNECT FUNCTIONS
+// ============================================================
+
+/**
+ * Create a Stripe Connect Express Account for a Walker
+ *
+ * Creates a connected account that allows the walker to receive payouts.
+ * Returns the account ID which should be stored in the walker's profile.
+ */
+export const createConnectedAccount = functions
+  .region("australia-southeast1")
+  .https.onCall(async (data: any, context: functions.https.CallableContext) => {
+    // Verify authentication
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated to create a connected account"
+      );
+    }
+
+    if (!stripe) {
+      throw new functions.https.HttpsError(
+        "failed-precondition",
+        "Stripe is not configured. Please contact support."
+      );
+    }
+
+    const {email, walkerName} = data;
+    const walkerId = context.auth.uid;
+
+    try {
+      // Check if walker already has a connected account
+      const walkerDoc = await db.collection("walkers").doc(walkerId).get();
+      if (walkerDoc.exists) {
+        const walkerData = walkerDoc.data();
+        if (walkerData?.stripeConnectedAccountId) {
+          // Return existing account info
+          const account = await stripe.accounts.retrieve(walkerData.stripeConnectedAccountId);
+          return {
+            success: true,
+            accountId: walkerData.stripeConnectedAccountId,
+            detailsSubmitted: account.details_submitted,
+            chargesEnabled: account.charges_enabled,
+            payoutsEnabled: account.payouts_enabled,
+          };
+        }
+      }
+
+      // Create a new Express connected account
+      const account = await stripe.accounts.create({
+        type: "express",
+        country: "AU",
+        email: email,
+        capabilities: {
+          transfers: {requested: true},
+        },
+        business_type: "individual",
+        metadata: {
+          walkerId: walkerId,
+          walkerName: walkerName || "Unknown",
+        },
+      });
+
+      // Store the connected account ID in the walker's profile
+      await db.collection("walkers").doc(walkerId).update({
+        stripeConnectedAccountId: account.id,
+        stripeAccountStatus: "pending",
+        stripeUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      console.log(`Created Stripe Connect account ${account.id} for walker ${walkerId}`);
+
+      return {
+        success: true,
+        accountId: account.id,
+        detailsSubmitted: account.details_submitted,
+        chargesEnabled: account.charges_enabled,
+        payoutsEnabled: account.payouts_enabled,
+      };
+    } catch (error: any) {
+      console.error("Error creating connected account:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        `Failed to create connected account: ${error.message || "Unknown error"}`
+      );
+    }
+  });
+
+/**
+ * Create Account Link for Stripe Connect Onboarding
+ *
+ * Creates a URL that redirects the walker to Stripe's hosted onboarding flow.
+ * After completing onboarding, they'll be redirected back to the app.
+ */
+export const createAccountLink = functions
+  .region("australia-southeast1")
+  .https.onCall(async (data: any, context: functions.https.CallableContext) => {
+    // Verify authentication
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated"
+      );
+    }
+
+    if (!stripe) {
+      throw new functions.https.HttpsError(
+        "failed-precondition",
+        "Stripe is not configured. Please contact support."
+      );
+    }
+
+    const {refreshUrl, returnUrl} = data;
+    const walkerId = context.auth.uid;
+
+    try {
+      // Get walker's connected account ID
+      const walkerDoc = await db.collection("walkers").doc(walkerId).get();
+      if (!walkerDoc.exists) {
+        throw new functions.https.HttpsError(
+          "not-found",
+          "Walker profile not found"
+        );
+      }
+
+      const walkerData = walkerDoc.data();
+      const accountId = walkerData?.stripeConnectedAccountId;
+
+      if (!accountId) {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          "No connected account found. Please create one first."
+        );
+      }
+
+      // Create an account link for onboarding
+      const accountLink = await stripe.accountLinks.create({
+        account: accountId,
+        refresh_url: refreshUrl || "https://walkmypet.app/stripe-refresh",
+        return_url: returnUrl || "https://walkmypet.app/stripe-return",
+        type: "account_onboarding",
+      });
+
+      console.log(`Created account link for walker ${walkerId}`);
+
+      return {
+        success: true,
+        url: accountLink.url,
+        expiresAt: accountLink.expires_at,
+      };
+    } catch (error: any) {
+      console.error("Error creating account link:", error);
+
+      if (error instanceof functions.https.HttpsError) {
+        throw error;
+      }
+
+      throw new functions.https.HttpsError(
+        "internal",
+        `Failed to create account link: ${error.message || "Unknown error"}`
+      );
+    }
+  });
+
+/**
+ * Get Stripe Connect Account Status
+ *
+ * Retrieves the current status of a walker's connected account.
+ */
+export const getConnectedAccountStatus = functions
+  .region("australia-southeast1")
+  .https.onCall(async (data: any, context: functions.https.CallableContext) => {
+    // Verify authentication
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated"
+      );
+    }
+
+    if (!stripe) {
+      throw new functions.https.HttpsError(
+        "failed-precondition",
+        "Stripe is not configured. Please contact support."
+      );
+    }
+
+    const walkerId = context.auth.uid;
+
+    try {
+      // Get walker's connected account ID
+      const walkerDoc = await db.collection("walkers").doc(walkerId).get();
+      if (!walkerDoc.exists) {
+        return {
+          success: true,
+          hasAccount: false,
+        };
+      }
+
+      const walkerData = walkerDoc.data();
+      const accountId = walkerData?.stripeConnectedAccountId;
+
+      if (!accountId) {
+        return {
+          success: true,
+          hasAccount: false,
+        };
+      }
+
+      // Retrieve account from Stripe
+      const account = await stripe.accounts.retrieve(accountId);
+
+      // Update local status
+      const status = account.payouts_enabled ? "active" : (account.details_submitted ? "pending_verification" : "pending");
+      await db.collection("walkers").doc(walkerId).update({
+        stripeAccountStatus: status,
+        stripeDetailsSubmitted: account.details_submitted,
+        stripeChargesEnabled: account.charges_enabled,
+        stripePayoutsEnabled: account.payouts_enabled,
+        stripeUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      return {
+        success: true,
+        hasAccount: true,
+        accountId: accountId,
+        detailsSubmitted: account.details_submitted,
+        chargesEnabled: account.charges_enabled,
+        payoutsEnabled: account.payouts_enabled,
+        status: status,
+      };
+    } catch (error: any) {
+      console.error("Error getting account status:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        `Failed to get account status: ${error.message || "Unknown error"}`
+      );
+    }
+  });
+
+/**
+ * Process Withdrawal Payout via Stripe Transfer
+ *
+ * Creates a Stripe Transfer from the platform account to the walker's connected account.
+ * This is called when a withdrawal request is approved.
+ */
+export const processWithdrawalPayout = functions
+  .region("australia-southeast1")
+  .https.onCall(async (data: any, context: functions.https.CallableContext) => {
+    // Verify authentication
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated"
+      );
+    }
+
+    if (!stripe) {
+      throw new functions.https.HttpsError(
+        "failed-precondition",
+        "Stripe is not configured. Please contact support."
+      );
+    }
+
+    const {withdrawalId} = data;
+    const walkerId = context.auth.uid;
+
+    try {
+      // Get the withdrawal request
+      const withdrawalDoc = await db.collection("withdrawal_requests").doc(withdrawalId).get();
+      if (!withdrawalDoc.exists) {
+        throw new functions.https.HttpsError(
+          "not-found",
+          "Withdrawal request not found"
+        );
+      }
+
+      const withdrawal = withdrawalDoc.data();
+
+      // Verify the withdrawal belongs to this walker
+      if (withdrawal?.walkerId !== walkerId) {
+        throw new functions.https.HttpsError(
+          "permission-denied",
+          "This withdrawal does not belong to you"
+        );
+      }
+
+      // Check withdrawal status
+      if (withdrawal?.status !== "approved" && withdrawal?.status !== "pending") {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          `Cannot process withdrawal with status: ${withdrawal?.status}`
+        );
+      }
+
+      // Get walker's connected account ID
+      const walkerDoc = await db.collection("walkers").doc(walkerId).get();
+      if (!walkerDoc.exists) {
+        throw new functions.https.HttpsError(
+          "not-found",
+          "Walker profile not found"
+        );
+      }
+
+      const walkerData = walkerDoc.data();
+      const connectedAccountId = walkerData?.stripeConnectedAccountId;
+
+      if (!connectedAccountId) {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          "No Stripe account connected. Please set up your payout account first."
+        );
+      }
+
+      // Verify connected account is ready for payouts
+      const account = await stripe.accounts.retrieve(connectedAccountId);
+      if (!account.payouts_enabled) {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          "Your Stripe account is not fully set up. Please complete the onboarding process."
+        );
+      }
+
+      const amount = withdrawal?.amount || 0;
+      const amountInCents = Math.round(amount * 100);
+
+      // Update withdrawal status to processing
+      await db.collection("withdrawal_requests").doc(withdrawalId).update({
+        status: "processing",
+        processedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // Create the transfer to the connected account
+      const transfer = await stripe.transfers.create({
+        amount: amountInCents,
+        currency: "aud",
+        destination: connectedAccountId,
+        metadata: {
+          withdrawalId: withdrawalId,
+          walkerId: walkerId,
+          walkerName: walkerData?.name || "Unknown",
+        },
+        description: `WalkMyPet withdrawal for ${walkerData?.name || "Walker"}`,
+      });
+
+      console.log(`Created transfer ${transfer.id} for withdrawal ${withdrawalId}`);
+
+      // Update withdrawal with transfer details
+      await db.collection("withdrawal_requests").doc(withdrawalId).update({
+        status: "completed",
+        stripeTransferId: transfer.id,
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // Deduct from walker's wallet balance
+      const currentBalance = (walkerData?.walletBalance || 0);
+      await db.collection("walkers").doc(walkerId).update({
+        walletBalance: Math.max(0, currentBalance - amount),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // Create transaction record
+      const txnRef = db.collection("transactions").doc();
+      await txnRef.set({
+        id: txnRef.id,
+        userId: walkerId,
+        type: "withdrawal",
+        status: "completed",
+        amount: -amount,
+        grossAmount: amount,
+        platformFee: 0,
+        platformFeePercent: 0,
+        withdrawalRequestId: withdrawalId,
+        stripeTransferId: transfer.id,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+        metadata: {
+          walkerName: walkerData?.name || "Unknown",
+          type: "stripe_transfer",
+        },
+      });
+
+      return {
+        success: true,
+        transferId: transfer.id,
+        amount: amount,
+        message: "Withdrawal processed successfully. Funds will arrive in your bank account within 1-2 business days.",
+      };
+    } catch (error: any) {
+      console.error("Error processing withdrawal payout:", error);
+
+      // If there was an error, revert the withdrawal status
+      if (withdrawalId) {
+        await db.collection("withdrawal_requests").doc(withdrawalId).update({
+          status: "approved",
+          errorMessage: error.message || "Unknown error",
+        }).catch((e) => console.error("Error reverting withdrawal status:", e));
+      }
+
+      if (error instanceof functions.https.HttpsError) {
+        throw error;
+      }
+
+      throw new functions.https.HttpsError(
+        "internal",
+        `Failed to process withdrawal: ${error.message || "Unknown error"}`
+      );
+    }
+  });
+
+/**
+ * Create Login Link for Stripe Dashboard
+ *
+ * Creates a URL that allows the walker to access their Stripe Express Dashboard
+ * to view payouts, update bank details, etc.
+ */
+export const createDashboardLink = functions
+  .region("australia-southeast1")
+  .https.onCall(async (data: any, context: functions.https.CallableContext) => {
+    // Verify authentication
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated"
+      );
+    }
+
+    if (!stripe) {
+      throw new functions.https.HttpsError(
+        "failed-precondition",
+        "Stripe is not configured. Please contact support."
+      );
+    }
+
+    const walkerId = context.auth.uid;
+
+    try {
+      // Get walker's connected account ID
+      const walkerDoc = await db.collection("walkers").doc(walkerId).get();
+      if (!walkerDoc.exists) {
+        throw new functions.https.HttpsError(
+          "not-found",
+          "Walker profile not found"
+        );
+      }
+
+      const walkerData = walkerDoc.data();
+      const accountId = walkerData?.stripeConnectedAccountId;
+
+      if (!accountId) {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          "No connected account found. Please set up your payout account first."
+        );
+      }
+
+      // Create a login link
+      const loginLink = await stripe.accounts.createLoginLink(accountId);
+
+      return {
+        success: true,
+        url: loginLink.url,
+      };
+    } catch (error: any) {
+      console.error("Error creating dashboard link:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        `Failed to create dashboard link: ${error.message || "Unknown error"}`
+      );
+    }
+  });

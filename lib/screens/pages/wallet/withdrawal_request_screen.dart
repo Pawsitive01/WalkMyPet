@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:walkmypet/design_system.dart';
 import 'package:walkmypet/services/withdrawal_service.dart';
+import 'package:walkmypet/services/stripe_connect_service.dart';
 
-/// Screen for walkers to request withdrawal of their earnings
+/// Screen for walkers to request withdrawal of their earnings via Stripe
 class WithdrawalRequestScreen extends StatefulWidget {
   final String walkerId;
 
@@ -19,37 +20,41 @@ class WithdrawalRequestScreen extends StatefulWidget {
 class _WithdrawalRequestScreenState extends State<WithdrawalRequestScreen> {
   final _formKey = GlobalKey<FormState>();
   final WithdrawalService _withdrawalService = WithdrawalService();
+  final StripeConnectService _stripeConnectService = StripeConnectService();
 
   final _amountController = TextEditingController();
-  final _accountNameController = TextEditingController();
-  final _bsbController = TextEditingController();
-  final _accountNumberController = TextEditingController();
   final _notesController = TextEditingController();
 
   bool _isSubmitting = false;
   double _availableBalance = 0.0;
+  bool _isStripeReady = false;
 
   @override
   void initState() {
     super.initState();
-    _loadAvailableBalance();
+    _loadData();
   }
 
   @override
   void dispose() {
     _amountController.dispose();
-    _accountNameController.dispose();
-    _bsbController.dispose();
-    _accountNumberController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadAvailableBalance() async {
-    final balance = await _withdrawalService.getAvailableBalance(widget.walkerId);
-    setState(() {
-      _availableBalance = balance;
-    });
+  Future<void> _loadData() async {
+    // Load balance and Stripe status in parallel
+    final results = await Future.wait([
+      _withdrawalService.getAvailableBalance(widget.walkerId),
+      _stripeConnectService.isReadyForPayouts(),
+    ]);
+
+    if (mounted) {
+      setState(() {
+        _availableBalance = results[0] as double;
+        _isStripeReady = results[1] as bool;
+      });
+    }
   }
 
   @override
@@ -105,13 +110,7 @@ class _WithdrawalRequestScreenState extends State<WithdrawalRequestScreen> {
                 SizedBox(height: DesignSystem.space4),
                 _buildAmountField(isDark),
                 SizedBox(height: DesignSystem.space3),
-                _buildSectionTitle('Bank Account Details', isDark),
-                SizedBox(height: DesignSystem.space2),
-                _buildAccountNameField(isDark),
-                SizedBox(height: DesignSystem.space2),
-                _buildBSBField(isDark),
-                SizedBox(height: DesignSystem.space2),
-                _buildAccountNumberField(isDark),
+                _buildQuickAmountButtons(isDark),
                 SizedBox(height: DesignSystem.space3),
                 _buildNotesField(isDark),
                 SizedBox(height: DesignSystem.space4),
@@ -136,13 +135,44 @@ class _WithdrawalRequestScreenState extends State<WithdrawalRequestScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Available for Withdrawal',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.9),
-              fontSize: DesignSystem.body,
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Available for Withdrawal',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  fontSize: DesignSystem.body,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (_isStripeReady)
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: DesignSystem.space1,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(DesignSystem.radiusSmall),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle_rounded, color: Colors.white, size: 14),
+                      SizedBox(width: 4),
+                      Text(
+                        'Stripe Ready',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: DesignSystem.small,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
           SizedBox(height: DesignSystem.space1),
           Text(
@@ -176,13 +206,13 @@ class _WithdrawalRequestScreenState extends State<WithdrawalRequestScreen> {
           Row(
             children: [
               Icon(
-                Icons.info_rounded,
+                Icons.bolt_rounded,
                 color: DesignSystem.walkerPrimary,
                 size: 18,
               ),
               SizedBox(width: DesignSystem.space1),
               Text(
-                'Processing Information',
+                'Instant Stripe Payouts',
                 style: TextStyle(
                   color: DesignSystem.walkerPrimary,
                   fontSize: DesignSystem.bodySmall,
@@ -193,9 +223,10 @@ class _WithdrawalRequestScreenState extends State<WithdrawalRequestScreen> {
           ),
           SizedBox(height: DesignSystem.space1),
           Text(
-            '• Withdrawals are processed manually within 1-2 business days\n'
-            '• A \$${WithdrawalService.processingFee.toStringAsFixed(2)} processing fee will be deducted\n'
-            '• Minimum withdrawal amount is \$${WithdrawalService.minimumWithdrawalAmount.toStringAsFixed(2)}',
+            '• Funds are transferred instantly to your connected bank account\n'
+            '• No additional fees - we cover Stripe processing costs\n'
+            '• Minimum withdrawal amount is \$${WithdrawalService.minimumWithdrawalAmount.toStringAsFixed(2)}\n'
+            '• Typically arrives in 1-2 business days',
             style: TextStyle(
               color: DesignSystem.getTextSecondary(isDark),
               fontSize: DesignSystem.small,
@@ -203,18 +234,6 @@ class _WithdrawalRequestScreenState extends State<WithdrawalRequestScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title, bool isDark) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: DesignSystem.h3,
-        fontWeight: FontWeight.w800,
-        letterSpacing: -0.5,
-        color: DesignSystem.getTextPrimary(isDark),
       ),
     );
   }
@@ -300,77 +319,51 @@ class _WithdrawalRequestScreenState extends State<WithdrawalRequestScreen> {
     );
   }
 
-  Widget _buildAccountNameField(bool isDark) {
-    return TextFormField(
-      controller: _accountNameController,
-      textCapitalization: TextCapitalization.words,
-      decoration: _buildInputDecoration(
-        'Account Holder Name',
-        'John Smith',
-        Icons.person_rounded,
-        isDark,
-      ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'Account name is required';
-        }
-        if (value.trim().length < 2) {
-          return 'Name must be at least 2 characters';
-        }
-        return null;
-      },
+  Widget _buildQuickAmountButtons(bool isDark) {
+    final amounts = [25.0, 50.0, 100.0];
+    // Add "All" option if balance is significant
+    final showAll = _availableBalance >= WithdrawalService.minimumWithdrawalAmount;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Quick Select',
+          style: TextStyle(
+            fontSize: DesignSystem.small,
+            fontWeight: FontWeight.w600,
+            color: DesignSystem.getTextSecondary(isDark),
+          ),
+        ),
+        SizedBox(height: DesignSystem.space1),
+        Wrap(
+          spacing: DesignSystem.space1,
+          runSpacing: DesignSystem.space1,
+          children: [
+            ...amounts
+                .where((a) => a <= _availableBalance)
+                .map((amount) => _buildQuickAmountChip(amount, isDark)),
+            if (showAll)
+              _buildQuickAmountChip(_availableBalance, isDark, label: 'All'),
+          ],
+        ),
+      ],
     );
   }
 
-  Widget _buildBSBField(bool isDark) {
-    return TextFormField(
-      controller: _bsbController,
-      keyboardType: TextInputType.number,
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
-        LengthLimitingTextInputFormatter(6),
-        _BSBFormatter(),
-      ],
-      decoration: _buildInputDecoration(
-        'BSB',
-        '123-456',
-        Icons.account_balance_rounded,
-        isDark,
+  Widget _buildQuickAmountChip(double amount, bool isDark, {String? label}) {
+    return ActionChip(
+      label: Text(label ?? '\$${amount.toStringAsFixed(0)}'),
+      labelStyle: TextStyle(
+        color: DesignSystem.walkerPrimary,
+        fontWeight: FontWeight.w600,
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'BSB is required';
-        }
-        if (!WithdrawalService.isValidBSB(value)) {
-          return 'BSB must be 6 digits';
-        }
-        return null;
-      },
-    );
-  }
-
-  Widget _buildAccountNumberField(bool isDark) {
-    return TextFormField(
-      controller: _accountNumberController,
-      keyboardType: TextInputType.number,
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
-        LengthLimitingTextInputFormatter(9),
-      ],
-      decoration: _buildInputDecoration(
-        'Account Number',
-        '123456789',
-        Icons.numbers_rounded,
-        isDark,
+      backgroundColor: DesignSystem.walkerPrimary.withValues(alpha: 0.1),
+      side: BorderSide(
+        color: DesignSystem.walkerPrimary.withValues(alpha: 0.3),
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Account number is required';
-        }
-        if (!WithdrawalService.isValidAccountNumber(value)) {
-          return 'Account number must be 6-9 digits';
-        }
-        return null;
+      onPressed: () {
+        _amountController.text = amount.toStringAsFixed(2);
       },
     );
   }
@@ -390,9 +383,9 @@ class _WithdrawalRequestScreenState extends State<WithdrawalRequestScreen> {
         SizedBox(height: DesignSystem.space1),
         TextFormField(
           controller: _notesController,
-          maxLines: 3,
+          maxLines: 2,
           decoration: InputDecoration(
-            hintText: 'Any special instructions...',
+            hintText: 'Any notes for this withdrawal...',
             filled: true,
             fillColor: DesignSystem.getSurface(isDark),
             border: OutlineInputBorder(
@@ -417,46 +410,6 @@ class _WithdrawalRequestScreenState extends State<WithdrawalRequestScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  InputDecoration _buildInputDecoration(
-    String label,
-    String hint,
-    IconData icon,
-    bool isDark,
-  ) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hint,
-      prefixIcon: Icon(icon, color: DesignSystem.getTextSecondary(isDark)),
-      filled: true,
-      fillColor: DesignSystem.getSurface(isDark),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
-        borderSide: BorderSide(
-          color: DesignSystem.getBorderColor(isDark),
-        ),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
-        borderSide: BorderSide(
-          color: DesignSystem.getBorderColor(isDark),
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
-        borderSide: BorderSide(
-          color: DesignSystem.success,
-          width: 2,
-        ),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
-        borderSide: BorderSide(
-          color: const Color(0xFFEF4444),
-        ),
-      ),
     );
   }
 
@@ -488,10 +441,10 @@ class _WithdrawalRequestScreenState extends State<WithdrawalRequestScreen> {
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.send_rounded, size: 20),
+                  Icon(Icons.bolt_rounded, size: 20),
                   SizedBox(width: DesignSystem.space1_5),
                   Text(
-                    'Submit Request',
+                    'Withdraw Now',
                     style: TextStyle(
                       fontSize: DesignSystem.body,
                       fontWeight: FontWeight.w700,
@@ -512,25 +465,36 @@ class _WithdrawalRequestScreenState extends State<WithdrawalRequestScreen> {
 
     try {
       final amount = double.parse(_amountController.text);
-      final accountName = _accountNameController.text.trim();
-      final bsb = _bsbController.text;
-      final accountNumber = _accountNumberController.text;
       final notes = _notesController.text.trim();
 
-      await _withdrawalService.requestWithdrawal(
+      // Use the new Stripe-based withdrawal
+      await _withdrawalService.requestWithdrawalWithStripePayout(
         walkerId: widget.walkerId,
         amount: amount,
-        accountName: accountName,
-        accountNumber: accountNumber,
-        bsb: bsb,
         notes: notes.isEmpty ? null : notes,
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Withdrawal request submitted successfully!'),
+            content: Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                SizedBox(width: DesignSystem.space1),
+                Expanded(
+                  child: Text(
+                    'Withdrawal processed! Funds will arrive in 1-2 business days.',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
             backgroundColor: DesignSystem.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
+            ),
+            duration: Duration(seconds: 4),
           ),
         );
         Navigator.pop(context); // Go back to wallet screen
@@ -539,8 +503,24 @@ class _WithdrawalRequestScreenState extends State<WithdrawalRequestScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to submit request: $e'),
+            content: Row(
+              children: [
+                Icon(Icons.error_rounded, color: Colors.white, size: 20),
+                SizedBox(width: DesignSystem.space1),
+                Expanded(
+                  child: Text(
+                    'Failed: ${e.toString().replaceAll('Exception: ', '')}',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
             backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(DesignSystem.radiusMedium),
+            ),
+            duration: Duration(seconds: 5),
           ),
         );
       }
@@ -549,30 +529,5 @@ class _WithdrawalRequestScreenState extends State<WithdrawalRequestScreen> {
         setState(() => _isSubmitting = false);
       }
     }
-  }
-}
-
-/// Text input formatter for BSB (XXX-XXX format)
-class _BSBFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final text = newValue.text;
-
-    if (text.length > 6) {
-      return oldValue;
-    }
-
-    String formatted = text;
-    if (text.length > 3) {
-      formatted = '${text.substring(0, 3)}-${text.substring(3)}';
-    }
-
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
   }
 }
