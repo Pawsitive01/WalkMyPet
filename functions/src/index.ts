@@ -379,3 +379,23 @@ export const onMessageCreated = functions.region(region).firestore
  * - handleStripeWebhook: Processes Stripe webhook events
  */
 export {createPaymentIntent, handleStripeWebhook} from "./payments";
+
+// ============================================================
+// STRIPE CONNECT FUNCTIONS
+// ============================================================
+
+/**
+ * Export Stripe Connect functions for walker payouts
+ * - createConnectedAccount: Creates Stripe Express account for walkers
+ * - createAccountLink: Creates onboarding URL for Stripe setup
+ * - getConnectedAccountStatus: Gets account status
+ * - processWithdrawalPayout: Transfers funds to walker's bank
+ * - createDashboardLink: Creates link to Stripe Express Dashboard
+ */
+export {
+  createConnectedAccount,
+  createAccountLink,
+  getConnectedAccountStatus,
+  processWithdrawalPayout,
+  createDashboardLink,
+} from "./payments";

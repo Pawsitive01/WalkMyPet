@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:walkmypet/models/booking_model.dart';
 import 'package:walkmypet/services/booking_service.dart';
+import 'package:walkmypet/services/message_service.dart';
 import 'package:walkmypet/design_system.dart';
 import 'package:walkmypet/walker/scheduled_walks_page.dart';
+import 'package:walkmypet/messaging/chat_page.dart';
 
 class BookingConfirmationPage extends StatefulWidget {
   final String bookingId;
@@ -19,7 +22,53 @@ class BookingConfirmationPage extends StatefulWidget {
 
 class _BookingConfirmationPageState extends State<BookingConfirmationPage> {
   final BookingService _bookingService = BookingService();
+  final MessageService _messageService = MessageService();
   bool _isProcessing = false;
+
+  Future<void> _messageOwner(Booking booking) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      _showSnackBar(
+        'Please log in to send messages',
+        const Color(0xFFEF4444),
+        Icons.error_outline_rounded,
+      );
+      return;
+    }
+
+    try {
+      final conversationId = await _messageService.getOrCreateConversation(
+        userId1: user.uid,
+        userName1: booking.walkerName,
+        userPhoto1: user.photoURL ?? '',
+        userId2: booking.ownerId,
+        userName2: booking.ownerName,
+        userPhoto2: '', // Owner photo not available in booking
+      );
+
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatPage(
+              conversationId: conversationId,
+              otherUserId: booking.ownerId,
+              otherUserName: booking.ownerName,
+              otherUserPhoto: '',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar(
+          'Failed to open chat: $e',
+          const Color(0xFFEF4444),
+          Icons.error_outline_rounded,
+        );
+      }
+    }
+  }
 
   Future<void> _confirmBooking(Booking booking) async {
     // Show confirmation dialog
@@ -444,6 +493,26 @@ class _BookingConfirmationPageState extends State<BookingConfirmationPage> {
             children: [
               _buildInfoRow(Icons.person, booking.ownerName, isDark),
               _buildInfoRow(Icons.pets, booking.dogName, isDark),
+              SizedBox(height: DesignSystem.space1),
+              // Message Owner Button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _messageOwner(booking),
+                  icon: const Icon(Icons.message_rounded, size: 18),
+                  label: const Text('Message Owner'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: DesignSystem.ownerPrimary,
+                    side: BorderSide(
+                      color: DesignSystem.ownerPrimary.withValues(alpha: 0.5),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(DesignSystem.radiusSmall),
+                    ),
+                    padding: EdgeInsets.symmetric(vertical: DesignSystem.space1_5),
+                  ),
+                ),
+              ),
             ],
           ),
           SizedBox(height: DesignSystem.space2),
