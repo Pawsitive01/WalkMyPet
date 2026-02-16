@@ -21,7 +21,7 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
-    avoid_print: false  # Disabled for debug logging
+    avoid_print: true
     use_build_context_synchronously: false  # Disabled for controlled async operations
     # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
 

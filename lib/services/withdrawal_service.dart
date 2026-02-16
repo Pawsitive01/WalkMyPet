@@ -96,10 +96,9 @@ class WithdrawalService {
 
       await withdrawalRef.set(withdrawalRequest.toFirestore());
 
-      print('Withdrawal request created: ${withdrawalRef.id}');
+      // Withdrawal request created
       return withdrawalRef.id;
     } catch (e) {
-      print('Error creating withdrawal request: $e');
       throw Exception('Failed to create withdrawal request: $e');
     }
   }
@@ -129,7 +128,7 @@ class WithdrawalService {
 
       return WithdrawalRequest.fromFirestore(doc);
     } catch (e) {
-      print('Error fetching withdrawal: $e');
+      // Error handled silently
       return null;
     }
   }
@@ -167,9 +166,7 @@ class WithdrawalService {
         'processedAt': FieldValue.serverTimestamp(),
       });
 
-      print('Withdrawal cancelled: $withdrawalId');
     } catch (e) {
-      print('Error cancelling withdrawal: $e');
       throw Exception('Failed to cancel withdrawal: $e');
     }
   }
@@ -196,7 +193,7 @@ class WithdrawalService {
 
       return total;
     } catch (e) {
-      print('Error calculating pending withdrawals: $e');
+      // Error handled silently
       return 0.0;
     }
   }
@@ -219,7 +216,7 @@ class WithdrawalService {
 
       return walletBalance - pendingAmount;
     } catch (e) {
-      print('Error getting available balance: $e');
+      // Error handled silently
       return 0.0;
     }
   }
@@ -293,7 +290,7 @@ class WithdrawalService {
       final walkerData = walkerDoc.data();
       return walkerData?['stripePayoutsEnabled'] == true;
     } catch (e) {
-      print('Error checking Stripe account status: $e');
+      // Error handled silently
       return false;
     }
   }
@@ -375,7 +372,7 @@ class WithdrawalService {
 
       await withdrawalRef.set(withdrawalRequest.toFirestore());
 
-      print('Withdrawal request created: ${withdrawalRef.id}');
+      // Withdrawal request created
 
       // Immediately process via Stripe
       final payoutResult = await _stripeConnect.processWithdrawalPayout(withdrawalRef.id);
@@ -390,10 +387,9 @@ class WithdrawalService {
         throw Exception(payoutResult.errorMessage ?? 'Failed to process payout');
       }
 
-      print('Withdrawal processed via Stripe: ${payoutResult.transferId}');
+      // Withdrawal processed via Stripe
       return withdrawalRef.id;
     } catch (e) {
-      print('Error creating withdrawal request with Stripe payout: $e');
       throw Exception('Failed to process withdrawal: $e');
     }
   }

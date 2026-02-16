@@ -642,7 +642,7 @@ class _AboutUsPageState extends State<AboutUsPage> with SingleTickerProviderStat
               ),
               const SizedBox(height: 4),
               const Text(
-                '1.0.0 (MVP)',
+                '1.0.0',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -664,7 +664,7 @@ class _AboutUsPageState extends State<AboutUsPage> with SingleTickerProviderStat
               ),
               const SizedBox(height: 4),
               Text(
-                'November 2024',
+                'February 2026',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,

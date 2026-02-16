@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter/material.dart';
 
 class AuthService {
   late final FirebaseAuth _auth;
@@ -11,7 +10,7 @@ class AuthService {
 
     // Ensure auth persistence is set to LOCAL (persists across app restarts)
     _auth.setPersistence(Persistence.LOCAL).catchError((error) {
-      debugPrint('Failed to set persistence: $error');
+      // Error handled silently
     });
 
     _googleSignIn = GoogleSignIn(

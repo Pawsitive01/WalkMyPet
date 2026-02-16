@@ -135,7 +135,7 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
         try {
           await Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
         } catch (e) {
-          debugPrint('AuthProvider not available: $e');
+          // Error handled silently
         }
       }
     } catch (e) {
@@ -187,7 +187,7 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
         try {
           await Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
         } catch (e) {
-          debugPrint('AuthProvider not available: $e');
+          // Error handled silently
         }
       }
     } catch (e) {
@@ -439,7 +439,7 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          debugPrint('Error loading notification count: ${snapshot.error}');
+          // Error handled silently
         }
         final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
 
@@ -2353,7 +2353,7 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
           await Provider.of<app_auth.AuthProvider>(context, listen: false)
               .refreshUserProfile();
         } catch (e) {
-          debugPrint('AuthProvider not available: $e');
+          // Error handled silently
         }
       }
     } catch (e) {

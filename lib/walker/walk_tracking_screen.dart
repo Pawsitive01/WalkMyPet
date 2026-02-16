@@ -172,7 +172,6 @@ class _WalkTrackingScreenState extends State<WalkTrackingScreen>
 
     // Filter out inaccurate GPS readings (accuracy > 50 meters)
     if (position.accuracy > 50) {
-      debugPrint('Ignoring inaccurate location: ${position.accuracy}m');
       return;
     }
 
@@ -198,7 +197,6 @@ class _WalkTrackingScreenState extends State<WalkTrackingScreen>
       final speed = segmentDistance / timeDiff; // meters per second
       if (speed > 30) {
         // More than 30 m/s (108 km/h) is unrealistic for walking
-        debugPrint('Ignoring unrealistic GPS jump: ${speed}m/s');
         return;
       }
     }

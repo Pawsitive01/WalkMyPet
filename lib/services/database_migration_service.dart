@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 
 /// Service to migrate data from old 'users' collection to new 'walkers'/'owners' collections
 class DatabaseMigrationService {
@@ -19,7 +18,6 @@ class DatabaseMigrationService {
       final userDoc = await _firestore.collection('users').doc(userId).get();
 
       if (!userDoc.exists) {
-        debugPrint('User $userId not found in users collection');
         return false;
       }
 
@@ -34,7 +32,7 @@ class DatabaseMigrationService {
         targetCollection = 'owners';
       } else {
         // Default to owners if userType is unclear
-        debugPrint('Unknown userType for user $userId: $userType. Defaulting to owners.');
+        // Unknown userType, defaulting to owners
         targetCollection = 'owners';
         userData['userType'] = 'petOwner';
       }
@@ -42,17 +40,15 @@ class DatabaseMigrationService {
       // Check if user already exists in target collection
       final targetDoc = await _firestore.collection(targetCollection).doc(userId).get();
       if (targetDoc.exists) {
-        debugPrint('User $userId already exists in $targetCollection collection. Skipping migration.');
         return false;
       }
 
       // Copy user to new collection
       await _firestore.collection(targetCollection).doc(userId).set(userData);
-      debugPrint('Successfully migrated user $userId to $targetCollection collection');
 
       return true;
     } catch (e) {
-      debugPrint('Error migrating user $userId: $e');
+      // Error handled silently
       return false;
     }
   }
@@ -61,7 +57,6 @@ class DatabaseMigrationService {
   Future<bool> migrateCurrentUser() async {
     final user = _auth.currentUser;
     if (user == null) {
-      debugPrint('No user logged in');
       return false;
     }
 
@@ -99,15 +94,13 @@ class DatabaseMigrationService {
         }
       }
 
-      debugPrint('Migration complete: $successCount successful, $failureCount failed, $skippedCount skipped');
-
       return {
         'success': successCount,
         'failure': failureCount,
         'skipped': skippedCount,
       };
     } catch (e) {
-      debugPrint('Error during bulk migration: $e');
+      // Error handled silently
       return {
         'success': successCount,
         'failure': failureCount,
@@ -147,13 +140,10 @@ class DatabaseMigrationService {
   Future<void> migrateCurrentUserIfNeeded() async {
     try {
       if (await currentUserNeedsMigration()) {
-        debugPrint('User needs migration. Migrating...');
         await migrateCurrentUser();
-      } else {
-        debugPrint('User does not need migration or already migrated');
       }
     } catch (e) {
-      debugPrint('Error checking/migrating user: $e');
+      // Error handled silently
     }
   }
 
@@ -168,16 +158,15 @@ class DatabaseMigrationService {
       }
 
       if (!newDoc.exists) {
-        debugPrint('User $userId not found in new collections. Cannot delete from old collection.');
+        // User not found in new collections, cannot delete from old collection
         return false;
       }
 
       // Delete from old collection
       await _firestore.collection('users').doc(userId).delete();
-      debugPrint('Successfully deleted user $userId from old users collection');
       return true;
     } catch (e) {
-      debugPrint('Error deleting user $userId from old collection: $e');
+      // Error handled silently
       return false;
     }
   }
@@ -200,14 +189,12 @@ class DatabaseMigrationService {
         }
       }
 
-      debugPrint('Cleanup complete: $deletedCount deleted, $failedCount failed');
-
       return {
         'deleted': deletedCount,
         'failed': failedCount,
       };
     } catch (e) {
-      debugPrint('Error during cleanup: $e');
+      // Error handled silently
       return {
         'deleted': deletedCount,
         'failed': failedCount,

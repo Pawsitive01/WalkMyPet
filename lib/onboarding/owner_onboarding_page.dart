@@ -231,7 +231,7 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
         try {
           await Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
         } catch (e) {
-          debugPrint('AuthProvider not available: $e');
+          // Error handled silently
         }
       }
 
@@ -269,13 +269,7 @@ class _OwnerOnboardingPageState extends State<OwnerOnboardingPage>
           );
         }
       }
-    } catch (e, stackTrace) {
-      // Print detailed error for debugging
-      print('🚨 Onboarding Save Error:');
-      print('Error Type: ${e.runtimeType}');
-      print('Error Message: $e');
-      print('Stack Trace: $stackTrace');
-
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
