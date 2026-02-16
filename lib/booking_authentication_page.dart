@@ -991,8 +991,6 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
                   }
                 } else {
                   // User has completed onboarding - wait for AuthProvider to fully load
-                  debugPrint('⏳ Waiting for AuthProvider to update...');
-
                   // Wait up to 5 seconds for auth state to propagate
                   int attempts = 0;
                   while (attempts < 50) {
@@ -1005,17 +1003,14 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
                           authProvider.isAuthenticated &&
                           !authProvider.isLoading &&
                           authProvider.userProfile != null) {
-                        debugPrint('✅ AuthProvider ready - authenticated');
                         break;
                       }
                     } catch (e) {
-                      debugPrint('⚠️ AuthProvider not available yet: $e');
+                      // Error handled silently
                     }
 
                     attempts++;
                   }
-
-                  debugPrint('🚀 Navigating directly to profile after $attempts attempts');
 
                   if (mounted) {
                     // Navigate directly to profile page to avoid splash screen
@@ -1047,13 +1042,7 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
             }
           }
         }
-      } catch (e, stackTrace) {
-        // Print detailed error to console for debugging
-        print('🚨 Authentication Error:');
-        print('Error Type: ${e.runtimeType}');
-        print('Error Message: $e');
-        print('Stack Trace: $stackTrace');
-
+      } catch (e) {
         if (mounted) {
           setState(() {
             _isLoading = false;
@@ -1194,8 +1183,6 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
                 }
               } else {
                 // User has completed onboarding - wait for AuthProvider to fully load
-                debugPrint('⏳ (Google) Waiting for AuthProvider to update...');
-
                 // Wait up to 5 seconds for auth state to propagate
                 int attempts = 0;
                 while (attempts < 50) {
@@ -1208,17 +1195,14 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
                         authProvider.isAuthenticated &&
                         !authProvider.isLoading &&
                         authProvider.userProfile != null) {
-                      debugPrint('✅ (Google) AuthProvider ready - authenticated');
                       break;
                     }
                   } catch (e) {
-                    debugPrint('⚠️ (Google) AuthProvider not available yet: $e');
+                    // Error handled silently
                   }
 
                   attempts++;
                 }
-
-                debugPrint('🚀 (Google) Navigating directly to profile after $attempts attempts');
 
                 if (mounted) {
                   // Navigate directly to profile page to avoid splash screen
@@ -1241,8 +1225,6 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
               }
             } else {
               // Fallback: wait for auth state then navigate to profile
-              debugPrint('⏳ (Google Fallback) Waiting for AuthProvider...');
-
               int attempts = 0;
               while (attempts < 50) {
                 await Future.delayed(const Duration(milliseconds: 100));
@@ -1252,11 +1234,10 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
                   if (authProvider != null &&
                       authProvider.isAuthenticated &&
                       !authProvider.isLoading) {
-                    debugPrint('✅ (Google Fallback) AuthProvider ready');
                     break;
                   }
                 } catch (e) {
-                  debugPrint('⚠️ (Google Fallback) AuthProvider not available: $e');
+                  // Error handled silently
                 }
 
                 attempts++;
@@ -1285,13 +1266,7 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
         }
       } else {
       }
-    } catch (e, stackTrace) {
-      // Print detailed error to console for debugging
-      print('🚨 Google Sign-In Error:');
-      print('Error Type: ${e.runtimeType}');
-      print('Error Message: $e');
-      print('Stack Trace: $stackTrace');
-
+    } catch (e) {
       if (mounted) {
         // More user-friendly error messages
         String errorMessage = 'Failed to sign in with Google';

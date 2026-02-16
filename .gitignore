@@ -58,3 +58,8 @@ firebase-emulator-data/
 **/*service-account*.json
 lib/services/*.json
 install.cmd
+
+# Release signing
+android/key.properties
+*.jks
+*.keystore

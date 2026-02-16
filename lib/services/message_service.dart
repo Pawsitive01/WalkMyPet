@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:walkmypet/models/message_model.dart';
 import 'package:walkmypet/models/conversation_model.dart';
 import 'package:walkmypet/services/notification_service.dart';
@@ -64,7 +63,7 @@ class MessageService {
 
       return docRef.id;
     } catch (e) {
-      debugPrint('Error getting or creating conversation: $e');
+      // Error handled silently
       throw Exception('Failed to create conversation: $e');
     }
   }
@@ -135,7 +134,7 @@ class MessageService {
 
       return docRef.id;
     } catch (e) {
-      debugPrint('Error sending message: $e');
+      // Error handled silently
       throw Exception('Failed to send message: $e');
     }
   }
@@ -199,7 +198,7 @@ class MessageService {
         });
       }
     } catch (e) {
-      debugPrint('Error marking messages as read: $e');
+      // Error handled silently
     }
   }
 
@@ -216,7 +215,7 @@ class MessageService {
       }
       return null;
     } catch (e) {
-      debugPrint('Error getting conversation: $e');
+      // Error handled silently
       return null;
     }
   }
@@ -241,7 +240,7 @@ class MessageService {
 
       await batch.commit();
     } catch (e) {
-      debugPrint('Error deleting conversation: $e');
+      // Error handled silently
       throw Exception('Failed to delete conversation: $e');
     }
   }
@@ -262,7 +261,7 @@ class MessageService {
 
       return totalUnread;
     } catch (e) {
-      debugPrint('Error getting total unread count: $e');
+      // Error handled silently
       return 0;
     }
   }

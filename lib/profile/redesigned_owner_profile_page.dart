@@ -113,7 +113,7 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
         try {
           Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
         } catch (e) {
-          debugPrint('AuthProvider not available: $e');
+          // Error handled silently
         }
       }
     } catch (e) {
@@ -187,7 +187,7 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
         try {
           Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
         } catch (e) {
-          debugPrint('AuthProvider not available: $e');
+          // Error handled silently
         }
       }
     } catch (e) {

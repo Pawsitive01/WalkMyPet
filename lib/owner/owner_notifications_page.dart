@@ -169,7 +169,6 @@ class _OwnerNotificationsPageState extends State<OwnerNotificationsPage>
         }
 
         if (snapshot.hasError) {
-          debugPrint('Error loading notifications: ${snapshot.error}');
           return _buildErrorState(
             'Error loading notifications',
             'Please check your connection and try again.\n\nIf the issue persists, the app may need to configure a Firestore index.',

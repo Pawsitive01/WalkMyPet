@@ -10,9 +10,7 @@ import 'package:timezone/data/latest_all.dart' as tz;
 // Top-level function to handle background messages
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  debugPrint('Handling background message: ${message.messageId}');
-  debugPrint('Message data: ${message.data}');
-  debugPrint('Message notification: ${message.notification?.title}');
+  // Background message handled silently
 }
 
 class NotificationService {
@@ -139,7 +137,7 @@ class NotificationService {
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(walkRemindersChannel);
 
-    debugPrint('Android notification channels created');
+    // Android notification channels created
   }
 
   /// Initialize FCM and request permissions
@@ -149,7 +147,7 @@ class NotificationService {
       await _initializeLocalNotifications();
 
       // Request permission for notifications
-      NotificationSettings settings = await _messaging.requestPermission(
+      await _messaging.requestPermission(
         alert: true,
         announcement: false,
         badge: true,
@@ -159,23 +157,14 @@ class NotificationService {
         sound: true,
       );
 
-      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        debugPrint('User granted notification permission');
-      } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
-        debugPrint('User granted provisional notification permission');
-      } else {
-        debugPrint('User declined or has not accepted notification permission');
-      }
+      // Permission status handled silently
 
       // Get the FCM token
-      String? token = await _messaging.getToken();
-      if (token != null) {
-        debugPrint('FCM Token: $token');
-      }
+      await _messaging.getToken();
 
       // Listen for token refresh
       _messaging.onTokenRefresh.listen((newToken) {
-        debugPrint('FCM Token refreshed: $newToken');
+        // Token refreshed silently
       });
 
       // Set up background message handler
@@ -193,18 +182,13 @@ class NotificationService {
         _handleNotificationTap(initialMessage);
       }
     } catch (e) {
-      debugPrint('Error initializing notifications: $e');
+      // Error handled silently
     }
   }
 
   /// Handle foreground messages
   void _handleForegroundMessage(RemoteMessage message) {
-    debugPrint('Received foreground message: ${message.messageId}');
-    debugPrint('Message data: ${message.data}');
-
     if (message.notification != null) {
-      debugPrint('Message also contained a notification: ${message.notification}');
-
       // Show a snackbar or dialog for foreground notifications
       _showForegroundNotification(message);
     }
@@ -212,9 +196,6 @@ class NotificationService {
 
   /// Handle notification tap
   void _handleNotificationTap(RemoteMessage message) {
-    debugPrint('Notification tapped: ${message.messageId}');
-    debugPrint('Message data: ${message.data}');
-
     final data = message.data;
     final type = data['type'];
 
@@ -281,7 +262,7 @@ class NotificationService {
     try {
       return await _messaging.getToken();
     } catch (e) {
-      debugPrint('Error getting FCM token: $e');
+      // Error handled silently
       return null;
     }
   }
@@ -320,13 +301,12 @@ class NotificationService {
             'fcmToken': token,
             'fcmTokenUpdatedAt': Timestamp.now(),
           });
-          debugPrint('FCM token saved for user: $userId in collection: $collection');
         } else {
-          debugPrint('User not found in any collection: $userId');
+          // User not found in any collection
         }
       }
     } catch (e) {
-      debugPrint('Error saving FCM token: $e');
+      // Error handled silently
     }
   }
 
@@ -339,10 +319,10 @@ class NotificationService {
           'fcmToken': FieldValue.delete(),
           'fcmTokenUpdatedAt': FieldValue.delete(),
         });
-        debugPrint('FCM token removed for user: $userId from collection: $collection');
+        // Token removed successfully
       }
     } catch (e) {
-      debugPrint('Error removing FCM token: $e');
+      // Error handled silently
     }
   }
 
@@ -359,7 +339,7 @@ class NotificationService {
       }
       return null;
     } catch (e) {
-      debugPrint('Error getting user FCM token: $e');
+      // Error handled silently
       return null;
     }
   }
@@ -368,9 +348,8 @@ class NotificationService {
   Future<void> subscribeToTopic(String topic) async {
     try {
       await _messaging.subscribeToTopic(topic);
-      debugPrint('Subscribed to topic: $topic');
     } catch (e) {
-      debugPrint('Error subscribing to topic: $e');
+      // Error handled silently
     }
   }
 
@@ -378,9 +357,8 @@ class NotificationService {
   Future<void> unsubscribeFromTopic(String topic) async {
     try {
       await _messaging.unsubscribeFromTopic(topic);
-      debugPrint('Unsubscribed from topic: $topic');
     } catch (e) {
-      debugPrint('Error unsubscribing from topic: $e');
+      // Error handled silently
     }
   }
 
@@ -404,9 +382,8 @@ class NotificationService {
         'createdAt': Timestamp.now(),
         'data': data,
       });
-      debugPrint('Notification created for user: $userId');
     } catch (e) {
-      debugPrint('Error creating notification: $e');
+      // Error handled silently
     }
   }
 
@@ -561,7 +538,7 @@ class NotificationService {
 
       return DateTime(date.year, date.month, date.day, hour, minute);
     } catch (e) {
-      debugPrint('Error parsing time: $e');
+      // Error handled silently
       return date;
     }
   }
@@ -624,8 +601,6 @@ class NotificationService {
           payload: bookingId,
         );
 
-        debugPrint('Scheduled walk reminder for $notificationTime (ID: $notificationId)');
-
         // Also create a notification document in Firestore for screen notification
         await _firestore.collection('scheduled_notifications').doc(bookingId).set({
           'bookingId': bookingId,
@@ -637,10 +612,10 @@ class NotificationService {
           'createdAt': Timestamp.now(),
         });
       } else {
-        debugPrint('Walk time is too soon, skipping notification scheduling');
+        // Walk time is too soon, skipping notification scheduling
       }
     } catch (e) {
-      debugPrint('Error scheduling walk reminder: $e');
+      // Error handled silently
     }
   }
 
@@ -653,9 +628,8 @@ class NotificationService {
       // Remove from Firestore
       await _firestore.collection('scheduled_notifications').doc(bookingId).delete();
 
-      debugPrint('Cancelled walk reminder (ID: $notificationId)');
     } catch (e) {
-      debugPrint('Error cancelling walk reminder: $e');
+      // Error handled silently
     }
   }
 }

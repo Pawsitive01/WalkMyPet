@@ -16,9 +16,14 @@ library;
 
 class StripeConfig {
   /// Stripe publishable key
-  /// Replace this with your actual Stripe publishable key
+  ///
+  /// WARNING: This is a TEST key. Before publishing to the Play Store,
+  /// you MUST replace this with your LIVE publishable key (pk_live_...).
+  /// Test keys will NOT process real payments.
+  ///
   /// Development: pk_test_...
   /// Production: pk_live_...
+  // TODO: Replace with live key before Play Store release
   static const String publishableKey = 'pk_test_51ShuhgDlJWxucYHsGLRG4vAKihAygkAxg1z4mI9kelzOjkeHLRqGoNsjKumkp6HcPZrvUjZ2bU7ftWlzoDKWNQsd00QpuF14Rs';
 
   /// Whether we're in test mode

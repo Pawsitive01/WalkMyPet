@@ -50,7 +50,7 @@ class _WalletScreenState extends State<WalletScreen> {
         });
       }
     } catch (e) {
-      print('Error loading Stripe status: $e');
+      // Error handled silently
       if (mounted) {
         setState(() => _isLoadingStripeStatus = false);
       }

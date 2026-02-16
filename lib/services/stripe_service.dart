@@ -81,19 +81,15 @@ class StripeService {
         await Stripe.instance.applySettings();
       } catch (e) {
         // applySettings() may fail in some environments
-        print('Warning: applySettings() failed: $e');
       }
 
       _isInitialized = true;
       _platformSupported = true;
-      print('Stripe SDK initialized successfully');
     } catch (e) {
-      print('Stripe SDK initialization failed: $e');
       // Platform not supported (e.g., cloud IDE emulator)
       // Mark as initialized but unsupported so we can use Cloud Functions fallback
       _isInitialized = true;
       _platformSupported = false;
-      print('Stripe will use server-side only mode');
     }
   }
 
@@ -126,7 +122,6 @@ class StripeService {
 
       return PaymentIntentResponse.fromMap(data);
     } catch (e) {
-      print('Error creating payment intent: $e');
       throw Exception('Failed to create payment intent: $e');
     }
   }
@@ -162,10 +157,8 @@ class StripeService {
       await Stripe.instance.presentPaymentSheet();
 
       // If we reach here, payment was successful
-      print('Payment completed successfully');
       return true;
     } on StripeException catch (e) {
-      print('Stripe error: ${e.error.localizedMessage}');
 
       // User cancelled payment
       if (e.error.code == FailureCode.Canceled) {
@@ -175,7 +168,6 @@ class StripeService {
       // Payment failed
       throw Exception(e.error.localizedMessage ?? 'Payment failed');
     } catch (e) {
-      print('Error presenting payment sheet: $e');
       throw Exception('Payment failed: $e');
     }
   }
@@ -228,8 +220,6 @@ class StripeService {
         'duration': duration ?? '',
       };
 
-      print('Creating payment intent for $amount AUD');
-
       // Step 1: Create payment intent
       final paymentIntentResponse = await createPaymentIntent(
         walkerId: walkerId,
@@ -237,15 +227,11 @@ class StripeService {
         bookingMetadata: metadata,
       );
 
-      print('Payment intent created: ${paymentIntentResponse.paymentIntentId}');
-
       // Step 2: Present payment sheet
       await presentPaymentSheet(
         clientSecret: paymentIntentResponse.clientSecret,
         customerEmail: user.email ?? '',
       );
-
-      print('Payment sheet completed successfully');
 
       // Step 3: Create booking directly (don't rely solely on webhook)
       // First check if webhook already created it
@@ -255,17 +241,15 @@ class StripeService {
           paymentIntentId: paymentIntentResponse.paymentIntentId,
           timeout: const Duration(seconds: 5), // Short timeout - webhook may not work
         );
-        print('Booking found from webhook: $bookingId');
       } catch (e) {
         // Webhook didn't create booking, create it directly
-        print('Webhook booking not found, creating directly: $e');
         bookingId = await _createBookingDirectly(
           bookingData: bookingData,
           paymentIntentId: paymentIntentResponse.paymentIntentId,
           userId: user.uid,
           walkerName: walkerName,
         );
-        print('Booking created directly: $bookingId');
+        // Booking created directly
       }
 
       return PaymentResult.success(
@@ -273,7 +257,7 @@ class StripeService {
         paymentIntentId: paymentIntentResponse.paymentIntentId,
       );
     } catch (e) {
-      print('Payment processing error: $e');
+      // Error handled silently
       return PaymentResult.failure(e.toString());
     }
   }
@@ -289,10 +273,6 @@ class StripeService {
       if (user == null) {
         return PaymentResult.failure('User not authenticated');
       }
-
-      print('Platform does not support native Stripe SDK');
-      print('Note: Native Stripe payments require a real device or local emulator.');
-      print('Using server-side payment processing...');
 
       // Extract booking data
       final walkerId = bookingData['walkerId'] as String;
@@ -334,14 +314,12 @@ class StripeService {
       final bookingId = data['bookingId'] as String?;
       final paymentIntentId = data['paymentIntentId'] as String?;
 
-      print('Server-side payment successful, booking: $bookingId');
-
       return PaymentResult.success(
         bookingId: bookingId,
         paymentIntentId: paymentIntentId,
       );
     } catch (e) {
-      print('Server-side payment error: $e');
+      // Error handled silently
       // Provide helpful message for development
       if (e.toString().contains('not-found') || e.toString().contains('NOT_FOUND')) {
         return PaymentResult.failure(
@@ -372,7 +350,6 @@ class StripeService {
           .get();
 
       if (existingQuery.docs.isNotEmpty) {
-        print('Booking already exists for payment intent: $paymentIntentId');
         return existingQuery.docs.first.id;
       }
 
@@ -421,10 +398,8 @@ class StripeService {
         'updatedAt': Timestamp.fromDate(now),
       });
 
-      print('Created booking directly: ${bookingDoc.id}');
       return bookingDoc.id;
     } catch (e) {
-      print('Error creating booking directly: $e');
       throw Exception('Failed to create booking: $e');
     }
   }
@@ -438,8 +413,6 @@ class StripeService {
     final startTime = DateTime.now();
     const pollInterval = Duration(milliseconds: 500);
     final userId = _auth.currentUser?.uid;
-
-    print('Waiting for booking creation for payment intent: $paymentIntentId');
 
     if (userId == null) {
       throw Exception('User not authenticated');
@@ -458,14 +431,13 @@ class StripeService {
 
         if (querySnapshot.docs.isNotEmpty) {
           final bookingId = querySnapshot.docs.first.id;
-          print('Found booking: $bookingId');
           return bookingId;
         }
 
         // Wait before polling again
         await Future.delayed(pollInterval);
       } catch (e) {
-        print('Error polling for booking: $e');
+        // Error handled silently
         // Continue polling even if one attempt fails
       }
     }

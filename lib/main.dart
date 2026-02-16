@@ -50,7 +50,7 @@ void main() async {
       final stripeService = StripeService();
       await stripeService.initialize();
     } catch (e) {
-      print('Warning: Stripe SDK initialization failed: $e');
+      // Error handled silently
       // Don't block app startup if Stripe fails to initialize
     }
   } catch (e) {
@@ -229,9 +229,8 @@ class _InitializationWrapperState extends State<InitializationWrapper> {
     if (widget.firebaseInitialized) {
       try {
         await NotificationService().initialize();
-        debugPrint('NotificationService initialized successfully');
       } catch (e) {
-        debugPrint('Error initializing NotificationService: $e');
+        // Error handled silently
       }
     }
 
@@ -432,8 +431,6 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
     final Widget fourthTab;
 
     if (authProvider != null && authProvider.isAuthenticated) {
-      debugPrint('📱 MyHomePage: User authenticated - loading: ${authProvider.isLoading}, profile: ${authProvider.userProfile != null}');
-
       // Show profile page for all authenticated users
       // If user type is not set yet, default to owner profile
       if (authProvider.userProfile != null) {
@@ -442,20 +439,17 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
             : const RedesignedOwnerProfilePage();
       } else {
         // User is authenticated but profile not loaded yet
-        debugPrint('⏳ MyHomePage: Waiting for profile to load...');
         fourthTab = const Center(
           child: CircularProgressIndicator(color: Color(0xFF6366F1)),
         );
       }
     } else if (authProvider != null && authProvider.isLoading) {
       // AuthProvider is still loading - show loading indicator
-      debugPrint('⏳ MyHomePage: AuthProvider loading...');
       fourthTab = const Center(
         child: CircularProgressIndicator(color: Color(0xFF6366F1)),
       );
     } else {
       // Show register page for unauthenticated users
-      debugPrint('🚫 MyHomePage: User not authenticated - showing register page');
       fourthTab = const user_type.RegisterPage();
     }
 
@@ -803,7 +797,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          debugPrint('Error loading notification count: ${snapshot.error}');
+          // Error handled silently
         }
         final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
 
@@ -1058,7 +1052,7 @@ class _WalkerListState extends State<WalkerList> with SingleTickerProviderStateM
         }
       }
     } catch (e) {
-      debugPrint('Error loading walkers: $e');
+      // Error handled silently
       if (mounted) {
         setState(() {
           _walkers = [];
@@ -1284,7 +1278,7 @@ class _OwnerListState extends State<OwnerList> with SingleTickerProviderStateMix
         }
       }
     } catch (e) {
-      debugPrint('Error loading owners: $e');
+      // Error handled silently
       if (mounted) {
         setState(() {
           _owners = [];

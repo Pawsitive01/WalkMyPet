@@ -139,7 +139,7 @@ class StripeConnectService {
         payoutsEnabled: data['payoutsEnabled'] ?? false,
       );
     } catch (e) {
-      print('Error creating connected account: $e');
+      // Error handled silently
       return StripeConnectResult.failure(_parseError(e));
     }
   }
@@ -170,7 +170,7 @@ class StripeConnectService {
 
       return StripeConnectResult.success(url: data['url']);
     } catch (e) {
-      print('Error getting onboarding URL: $e');
+      // Error handled silently
       return StripeConnectResult.failure(_parseError(e));
     }
   }
@@ -210,7 +210,7 @@ class StripeConnectService {
         payoutsEnabled: data['payoutsEnabled'] ?? false,
       );
     } catch (e) {
-      print('Error getting account status: $e');
+      // Error handled silently
       return StripeConnectResult.failure(_parseError(e));
     }
   }
@@ -227,7 +227,7 @@ class StripeConnectService {
       );
 
       if (!result.success || result.url == null) {
-        print('Failed to get onboarding URL: ${result.errorMessage}');
+        // Error handled silently
         return false;
       }
 
@@ -236,11 +236,11 @@ class StripeConnectService {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
         return true;
       } else {
-        print('Cannot launch URL: ${result.url}');
+        // Error handled silently
         return false;
       }
     } catch (e) {
-      print('Error opening onboarding flow: $e');
+      // Error handled silently
       return false;
     }
   }
@@ -258,7 +258,7 @@ class StripeConnectService {
 
       final data = response.data;
       if (data['success'] != true || data['url'] == null) {
-        print('Failed to get dashboard URL');
+        // Error handled silently
         return false;
       }
 
@@ -267,11 +267,11 @@ class StripeConnectService {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
         return true;
       } else {
-        print('Cannot launch URL: ${data['url']}');
+        // Error handled silently
         return false;
       }
     } catch (e) {
-      print('Error opening dashboard: $e');
+      // Error handled silently
       return false;
     }
   }
@@ -301,7 +301,7 @@ class StripeConnectService {
         message: data['message'],
       );
     } catch (e) {
-      print('Error processing withdrawal payout: $e');
+      // Error handled silently
       return PayoutResult.failure(_parseError(e));
     }
   }

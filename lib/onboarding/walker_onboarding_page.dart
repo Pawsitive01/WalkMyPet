@@ -266,7 +266,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
         try {
           await Provider.of<app_auth.AuthProvider>(context, listen: false).refreshUserProfile();
         } catch (e) {
-          debugPrint('AuthProvider not available: $e');
+          // Error handled silently
         }
       }
 
@@ -303,13 +303,7 @@ class _WalkerOnboardingPageState extends State<WalkerOnboardingPage>
           );
         }
       }
-    } catch (e, stackTrace) {
-      // Print detailed error for debugging
-      print('🚨 Walker Onboarding Save Error:');
-      print('Error Type: ${e.runtimeType}');
-      print('Error Message: $e');
-      print('Stack Trace: $stackTrace');
-
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
