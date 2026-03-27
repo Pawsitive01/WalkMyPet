@@ -73,3 +73,5 @@ secrets.json
 *api_keys*.dart
 lib/config/secrets.dart
 lib/config/api_keys.dart
+*.aab
+*.apk
