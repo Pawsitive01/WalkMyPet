@@ -5,6 +5,7 @@ import 'package:walkmypet/services/auth_service.dart';
 import 'package:walkmypet/services/user_service.dart';
 import 'package:walkmypet/onboarding/owner_onboarding_page.dart';
 import 'package:walkmypet/onboarding/walker_onboarding_page.dart';
+import 'package:walkmypet/email_verification_page.dart';
 import 'package:walkmypet/profile/redesigned_walker_profile_page.dart';
 import 'package:walkmypet/profile/redesigned_owner_profile_page.dart';
 import 'package:walkmypet/providers/auth_provider.dart' as app_auth;
@@ -950,21 +951,14 @@ class _BookingAuthenticationPageState extends State<BookingAuthenticationPage>
           if (mounted) {
             // Navigate to appropriate onboarding for new sign-ups
             if (_isSignUp) {
-              if (widget.isWalker) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const WalkerOnboardingPage(),
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EmailVerificationPage(
+                    isWalker: widget.isWalker,
                   ),
-                );
-              } else {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const OwnerOnboardingPage(),
-                  ),
-                );
-              }
+                ),
+              );
             } else {
               // For sign-in, check if user has completed onboarding
               final user = FirebaseAuth.instance.currentUser;
