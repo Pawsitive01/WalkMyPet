@@ -13,11 +13,7 @@ class AuthService {
       // Error handled silently
     });
 
-    _googleSignIn = GoogleSignIn(
-      // Web client ID for walkmypet-47e03 project
-      // This enables Google Sign-In across all platforms including web
-      clientId: '885639863246-mqpmrq9j0ulgd0511tmp64ma1id9peck.apps.googleusercontent.com',
-    );
+    _googleSignIn = GoogleSignIn();
   }
 
   // Get current user
@@ -38,9 +34,9 @@ class AuthService {
         password: password,
       );
 
-      // Send email verification
+      // Send email verification (non-blocking — failure should not abort signup)
       if (userCredential.user != null && !userCredential.user!.emailVerified) {
-        await userCredential.user!.sendEmailVerification();
+        userCredential.user!.sendEmailVerification().catchError((_) {});
       }
 
       return userCredential;

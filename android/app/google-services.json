@@ -31,10 +31,10 @@
               "client_type": 3
             },
             {
-              "client_id": "885639863246-o64nhevffrnvhcj103ffhtf1vcikq30j.apps.googleusercontent.com",
+              "client_id": "885639863246-mqpmrq9j0ulgd0511tmp64ma1id9peck.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.WalkMyPet.walkmypet"
+                "bundle_id": "com.walkmypet.walkmypet"
               }
             }
           ]
