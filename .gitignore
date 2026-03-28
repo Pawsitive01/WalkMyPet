@@ -63,3 +63,13 @@ install.cmd
 android/key.properties
 *.jks
 *.keystore
+
+# Environment & secrets (NEVER commit these!)
+.env
+.env.*
+*.env
+secrets.json
+*secrets*.json
+*api_keys*.dart
+lib/config/secrets.dart
+lib/config/api_keys.dart
