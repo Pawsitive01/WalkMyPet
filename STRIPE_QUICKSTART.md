@@ -8,8 +8,8 @@ Get your Stripe payment integration up and running in 10 minutes.
 
 1. Sign up at https://stripe.com (if you haven't already)
 2. Go to https://dashboard.stripe.com/test/apikeys
-3. Copy your **Publishable key** (`pk_test_51ShuhgDlJWxucYHsGLRG4vAKihAygkAxg1z4mI9kelzOjkeHLRqGoNsjKumkp6HcPZrvUjZ2bU7ftWlzoDKWNQsd00QpuF14Rs`)
-4. Copy your **Secret key** (`sk_test_51ShuhgDlJWxucYHsamIdrejUbPCp0gt5u5XWrDjb5jvFsvL6eEidte0gXhpAzdhUk8tjYxc3oQF9qC4gFplkBPii00JROIKcZj`)
+3. Copy your **Publishable key** (`pk_live_...`)
+4. Copy your **Secret key** (`sk_live_...`)
 
 ### Step 2: Run Setup Script (3 minutes)
 
