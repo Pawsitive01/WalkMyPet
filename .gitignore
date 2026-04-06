@@ -69,10 +69,6 @@ google-services.json
 android/app/google-services.json
 GoogleService-Info.plist
 
-# Release bundles
-*.aab
-*.apk
-
 # Environment & secrets (NEVER commit these!)
 .env
 .env.*
@@ -82,5 +78,3 @@ secrets.json
 *api_keys*.dart
 lib/config/secrets.dart
 lib/config/api_keys.dart
-*.aab
-*.apk
