@@ -1,0 +1,12 @@
+# Binary files — prevent git from corrupting them with line ending conversions
+*.aab binary
+*.apk binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.jar binary
+*.zip binary
+*.keystore binary
+*.jks binary
