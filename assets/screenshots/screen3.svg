@@ -1,0 +1,137 @@
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1"/>
+      <stop offset="100%" style="stop-color:#EC4899"/>
+    </linearGradient>
+    <linearGradient id="mapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#DBEAFE"/>
+      <stop offset="100%" style="stop-color:#EDE9FE"/>
+    </linearGradient>
+    <filter id="cardShadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+    <filter id="pinShadow">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#6366F1" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1920" fill="#F3F4F6"/>
+
+  <!-- Status bar -->
+  <rect width="1080" height="60" fill="url(#headerGrad)"/>
+  <text x="80" y="42" font-family="Arial" font-size="24" font-weight="600" fill="white">9:41</text>
+  <text x="920" y="42" font-family="Arial" font-size="22" fill="white">●●● WiFi 🔋</text>
+
+  <!-- Header -->
+  <rect width="1080" height="160" fill="url(#headerGrad)"/>
+  <text x="60" y="130" font-family="Arial" font-size="36" fill="white">←</text>
+  <text x="540" y="135" font-family="Arial" font-size="36" font-weight="700" fill="white" text-anchor="middle">Live Walk Tracking</text>
+
+  <!-- Map area -->
+  <rect x="0" y="160" width="1080" height="780" fill="url(#mapGrad)"/>
+
+  <!-- Map grid lines -->
+  <g stroke="#C7D2FE" stroke-width="1" opacity="0.6">
+    <line x1="0" y1="280" x2="1080" y2="280"/>
+    <line x1="0" y1="400" x2="1080" y2="400"/>
+    <line x1="0" y1="520" x2="1080" y2="520"/>
+    <line x1="0" y1="640" x2="1080" y2="640"/>
+    <line x1="0" y1="760" x2="1080" y2="760"/>
+    <line x1="200" y1="160" x2="200" y2="940"/>
+    <line x1="400" y1="160" x2="400" y2="940"/>
+    <line x1="600" y1="160" x2="600" y2="940"/>
+    <line x1="800" y1="160" x2="800" y2="940"/>
+    <line x1="1000" y1="160" x2="1000" y2="940"/>
+  </g>
+
+  <!-- Roads -->
+  <g stroke="#FFFFFF" stroke-width="18" fill="none" opacity="0.9">
+    <line x1="0" y1="490" x2="1080" y2="490"/>
+    <line x1="540" y1="160" x2="540" y2="940"/>
+    <line x1="0" y1="360" x2="700" y2="360"/>
+    <line x1="300" y1="160" x2="300" y2="940"/>
+    <line x1="0" y1="680" x2="1080" y2="680"/>
+  </g>
+  <g stroke="#E5E7EB" stroke-width="8" fill="none" opacity="0.9">
+    <line x1="0" y1="490" x2="1080" y2="490"/>
+    <line x1="540" y1="160" x2="540" y2="940"/>
+    <line x1="0" y1="360" x2="700" y2="360"/>
+    <line x1="300" y1="160" x2="300" y2="940"/>
+    <line x1="0" y1="680" x2="1080" y2="680"/>
+  </g>
+
+  <!-- Walk route path -->
+  <polyline points="200,800 220,760 260,720 310,680 370,640 420,600 460,555 490,510 510,490 540,490 580,470 620,450 650,420 670,390 680,360"
+    stroke="#6366F1" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1" opacity="0.9"/>
+
+  <!-- Start point -->
+  <circle cx="200" cy="800" r="20" fill="#10B981" opacity="0.9"/>
+  <circle cx="200" cy="800" r="10" fill="white"/>
+  <text x="230" y="790" font-family="Arial" font-size="22" fill="#10B981" font-weight="600">Start</text>
+
+  <!-- Walker location pin -->
+  <circle cx="680" cy="360" r="36" fill="#6366F1" filter="url(#pinShadow)"/>
+  <circle cx="680" cy="360" r="22" fill="white"/>
+  <!-- Paw in pin -->
+  <circle cx="680" cy="356" r="8" fill="#6366F1"/>
+  <circle cx="668" cy="346" r="5" fill="#6366F1"/>
+  <circle cx="678" cy="342" r="5" fill="#6366F1"/>
+  <circle cx="688" cy="342" r="5" fill="#6366F1"/>
+  <circle cx="698" cy="346" r="5" fill="#6366F1"/>
+  <polygon points="680,400 660,375 700,375" fill="#6366F1"/>
+
+  <!-- Walker info bubble -->
+  <rect x="580" y="280" width="280" height="60" rx="30" fill="white" filter="url(#cardShadow)"/>
+  <text x="720" y="317" font-family="Arial" font-size="24" font-weight="600" fill="#1F2937" text-anchor="middle">Sarah is here 🐾</text>
+
+  <!-- Pet location -->
+  <circle cx="540" cy="490" r="28" fill="#EC4899" filter="url(#pinShadow)"/>
+  <text x="540" y="500" font-family="Arial" font-size="28" text-anchor="middle">🐕</text>
+
+  <!-- Bottom tracking panel -->
+  <rect x="0" y="940" width="1080" height="980" fill="white" rx="40"/>
+
+  <!-- Live badge -->
+  <rect x="60" y="975" width="120" height="44" rx="22" fill="#FEE2E2"/>
+  <circle cx="85" cy="997" r="8" fill="#EF4444"/>
+  <text x="130" y="1004" font-family="Arial" font-size="22" font-weight="700" fill="#EF4444">LIVE</text>
+
+  <text x="540" y="1010" font-family="Arial" font-size="34" font-weight="800" fill="#1F2937" text-anchor="middle">Max is on his walk!</text>
+  <text x="540" y="1058" font-family="Arial" font-size="26" fill="#6B7280" text-anchor="middle">With Sarah Mitchell · Started 12 mins ago</text>
+
+  <!-- Stats row -->
+  <rect x="60" y="1090" width="290" height="130" rx="20" fill="#EEF2FF"/>
+  <text x="205" y="1148" font-family="Arial" font-size="44" font-weight="800" fill="#6366F1" text-anchor="middle">1.4</text>
+  <text x="205" y="1185" font-family="Arial" font-size="24" fill="#6B7280" text-anchor="middle">km walked</text>
+
+  <rect x="395" y="1090" width="290" height="130" rx="20" fill="#FDF2F8"/>
+  <text x="540" y="1148" font-family="Arial" font-size="44" font-weight="800" fill="#EC4899" text-anchor="middle">12:04</text>
+  <text x="540" y="1185" font-family="Arial" font-size="24" fill="#6B7280" text-anchor="middle">Duration</text>
+
+  <rect x="730" y="1090" width="290" height="130" rx="20" fill="#F0FDF4"/>
+  <text x="875" y="1148" font-family="Arial" font-size="44" font-weight="800" fill="#10B981" text-anchor="middle">~18</text>
+  <text x="875" y="1185" font-family="Arial" font-size="24" fill="#6B7280" text-anchor="middle">mins left</text>
+
+  <!-- Recent update -->
+  <text x="60" y="1290" font-family="Arial" font-size="32" font-weight="700" fill="#1F2937">Walker Updates</text>
+
+  <rect x="60" y="1320" width="960" height="140" rx="20" fill="#F9FAFB"/>
+  <circle cx="120" cy="1390" r="40" fill="#E0E7FF"/>
+  <text x="120" y="1398" font-family="Arial" font-size="22" fill="#6366F1" text-anchor="middle">SM</text>
+  <text x="185" y="1370" font-family="Arial" font-size="26" font-weight="600" fill="#1F2937">Sarah Mitchell</text>
+  <text x="185" y="1410" font-family="Arial" font-size="24" fill="#6B7280">"Max is doing great! He made a new friend 🐶"</text>
+  <text x="185" y="1446" font-family="Arial" font-size="22" fill="#9CA3AF">2 minutes ago</text>
+
+  <rect x="60" y="1475" width="960" height="140" rx="20" fill="#F9FAFB"/>
+  <circle cx="120" cy="1545" r="40" fill="#E0E7FF"/>
+  <text x="120" y="1553" font-family="Arial" font-size="22" fill="#6366F1" text-anchor="middle">SM</text>
+  <text x="185" y="1525" font-family="Arial" font-size="26" font-weight="600" fill="#1F2937">Sarah Mitchell</text>
+  <text x="185" y="1565" font-family="Arial" font-size="24" fill="#6B7280">"Walk started! Heading to the park now 🌳"</text>
+  <text x="185" y="1601" font-family="Arial" font-size="22" fill="#9CA3AF">12 minutes ago</text>
+
+  <!-- Contact walker button -->
+  <rect x="60" y="1650" width="960" height="90" rx="45" fill="url(#headerGrad)" filter="url(#cardShadow)"/>
+  <text x="540" y="1705" font-family="Arial" font-size="32" font-weight="700" fill="white" text-anchor="middle">💬 Message Sarah</text>
+</svg>

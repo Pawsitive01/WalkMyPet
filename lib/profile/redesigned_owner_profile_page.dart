@@ -542,6 +542,8 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
               setState(() => _isEditing = !_isEditing);
             } else if (value == 'logout') {
               _handleSignOut();
+            } else if (value == 'delete') {
+              _handleDeleteAccount();
             }
           },
           itemBuilder: (context) => [
@@ -567,6 +569,17 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
                   Icon(Icons.logout_rounded, size: 20, color: Color(0xFFEF4444)),
                   SizedBox(width: 12),
                   Text('Sign Out', style: TextStyle(color: Color(0xFFEF4444))),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem(
+              value: 'delete',
+              child: Row(
+                children: [
+                  Icon(Icons.delete_forever_rounded, size: 20, color: Color(0xFFEF4444)),
+                  SizedBox(width: 12),
+                  Text('Delete Account', style: TextStyle(color: Color(0xFFEF4444))),
                 ],
               ),
             ),
@@ -1372,6 +1385,57 @@ class _RedesignedOwnerProfilePageState extends State<RedesignedOwnerProfilePage>
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => _buildDeleteAccountDialog(),
+    );
+
+    if (confirm == true) {
+      try {
+        await _authService.deleteAccount();
+        if (mounted) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      } catch (e) {
+        if (mounted) {
+          _showErrorSnackBar(e.toString());
+        }
+      }
+    }
+  }
+
+  Widget _buildDeleteAccountDialog() {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: const Row(
+        children: [
+          Icon(Icons.delete_forever_rounded, color: Color(0xFFEF4444)),
+          SizedBox(width: 12),
+          Text('Delete Account'),
+        ],
+      ),
+      content: const Text(
+        'This will permanently delete your account and all your data including pets, bookings, and reviews. This action cannot be undone.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFEF4444),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          child: const Text('Delete Account'),
+        ),
+      ],
     );
   }
 

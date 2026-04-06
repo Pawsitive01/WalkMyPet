@@ -1,0 +1,106 @@
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1"/>
+      <stop offset="100%" style="stop-color:#EC4899"/>
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#F3F4F6"/>
+      <stop offset="100%" style="stop-color:#FFFFFF"/>
+    </linearGradient>
+    <linearGradient id="cardGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1"/>
+      <stop offset="100%" style="stop-color:#8B5CF6"/>
+    </linearGradient>
+    <filter id="cardShadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+    <clipPath id="avatarClip1"><circle cx="100" cy="100" r="50"/></clipPath>
+    <clipPath id="roundedCard"><rect width="980" height="200" rx="24"/></clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1920" fill="url(#bgGrad)"/>
+
+  <!-- Status bar -->
+  <rect width="1080" height="60" fill="url(#headerGrad)"/>
+  <text x="80" y="42" font-family="Arial" font-size="24" font-weight="600" fill="white">9:41</text>
+  <text x="920" y="42" font-family="Arial" font-size="22" fill="white">●●● WiFi 🔋</text>
+
+  <!-- Header -->
+  <rect width="1080" height="220" fill="url(#headerGrad)"/>
+  <text x="60" y="120" font-family="Arial" font-size="32" fill="white" opacity="0.85">Good morning, Alex 👋</text>
+  <text x="60" y="175" font-family="Arial" font-size="52" font-weight="800" fill="white">Find a Walker</text>
+
+  <!-- Search bar -->
+  <rect x="50" y="235" width="980" height="80" rx="40" fill="white" filter="url(#cardShadow)"/>
+  <text x="110" y="285" font-family="Arial" font-size="28" fill="#9CA3AF">🔍  Search by location or name...</text>
+
+  <!-- Section title -->
+  <text x="60" y="390" font-family="Arial" font-size="34" font-weight="700" fill="#1F2937">Walkers Near You</text>
+  <text x="860" y="390" font-family="Arial" font-size="28" fill="#6366F1">See all</text>
+
+  <!-- Walker Card 1 -->
+  <rect x="50" y="420" width="980" height="220" rx="24" fill="white" filter="url(#cardShadow)"/>
+  <!-- Avatar -->
+  <circle cx="150" cy="530" r="70" fill="#E0E7FF"/>
+  <circle cx="150" cy="505" r="32" fill="#6366F1"/>
+  <ellipse cx="150" cy="560" rx="50" ry="30" fill="#6366F1"/>
+  <!-- Info -->
+  <text x="250" y="490" font-family="Arial" font-size="34" font-weight="700" fill="#1F2937">Sarah Mitchell</text>
+  <text x="250" y="535" font-family="Arial" font-size="26" fill="#6B7280">Professional Dog Walker</text>
+  <text x="250" y="578" font-family="Arial" font-size="26" fill="#F59E0B">★★★★★  <tspan fill="#6B7280">4.9 (128 reviews)</tspan></text>
+  <text x="250" y="620" font-family="Arial" font-size="24" fill="#6B7280">📍 2.1 km away  ·  $25/walk</text>
+  <!-- Book button -->
+  <rect x="820" y="490" width="180" height="56" rx="28" fill="url(#headerGrad)"/>
+  <text x="910" y="524" font-family="Arial" font-size="24" font-weight="600" fill="white" text-anchor="middle">Book</text>
+
+  <!-- Walker Card 2 -->
+  <rect x="50" y="665" width="980" height="220" rx="24" fill="white" filter="url(#cardShadow)"/>
+  <circle cx="150" cy="775" r="70" fill="#FCE7F3"/>
+  <circle cx="150" cy="750" r="32" fill="#EC4899"/>
+  <ellipse cx="150" cy="805" rx="50" ry="30" fill="#EC4899"/>
+  <text x="250" y="735" font-family="Arial" font-size="34" font-weight="700" fill="#1F2937">James Cooper</text>
+  <text x="250" y="780" font-family="Arial" font-size="26" fill="#6B7280">Certified Pet Trainer</text>
+  <text x="250" y="823" font-family="Arial" font-size="26" fill="#F59E0B">★★★★★  <tspan fill="#6B7280">4.8 (96 reviews)</tspan></text>
+  <text x="250" y="865" font-family="Arial" font-size="24" fill="#6B7280">📍 3.4 km away  ·  $22/walk</text>
+  <rect x="820" y="735" width="180" height="56" rx="28" fill="url(#headerGrad)"/>
+  <text x="910" y="769" font-family="Arial" font-size="24" font-weight="600" fill="white" text-anchor="middle">Book</text>
+
+  <!-- Walker Card 3 -->
+  <rect x="50" y="910" width="980" height="220" rx="24" fill="white" filter="url(#cardShadow)"/>
+  <circle cx="150" cy="1020" r="70" fill="#D1FAE5"/>
+  <circle cx="150" cy="995" r="32" fill="#10B981"/>
+  <ellipse cx="150" cy="1050" rx="50" ry="30" fill="#10B981"/>
+  <text x="250" y="980" font-family="Arial" font-size="34" font-weight="700" fill="#1F2937">Emma Wilson</text>
+  <text x="250" y="1025" font-family="Arial" font-size="26" fill="#6B7280">Experienced Dog Walker</text>
+  <text x="250" y="1068" font-family="Arial" font-size="26" fill="#F59E0B">★★★★☆  <tspan fill="#6B7280">4.7 (74 reviews)</tspan></text>
+  <text x="250" y="1110" font-family="Arial" font-size="24" fill="#6B7280">📍 4.2 km away  ·  $20/walk</text>
+  <rect x="820" y="980" width="180" height="56" rx="28" fill="url(#headerGrad)"/>
+  <text x="910" y="1014" font-family="Arial" font-size="24" font-weight="600" fill="white" text-anchor="middle">Book</text>
+
+  <!-- Walker Card 4 -->
+  <rect x="50" y="1155" width="980" height="220" rx="24" fill="white" filter="url(#cardShadow)"/>
+  <circle cx="150" cy="1265" r="70" fill="#FEF3C7"/>
+  <circle cx="150" cy="1240" r="32" fill="#F59E0B"/>
+  <ellipse cx="150" cy="1295" rx="50" ry="30" fill="#F59E0B"/>
+  <text x="250" y="1225" font-family="Arial" font-size="34" font-weight="700" fill="#1F2937">Liam Torres</text>
+  <text x="250" y="1270" font-family="Arial" font-size="26" fill="#6B7280">Dog Walker &amp; Sitter</text>
+  <text x="250" y="1313" font-family="Arial" font-size="26" fill="#F59E0B">★★★★★  <tspan fill="#6B7280">5.0 (51 reviews)</tspan></text>
+  <text x="250" y="1355" font-family="Arial" font-size="24" fill="#6B7280">📍 1.8 km away  ·  $28/walk</text>
+  <rect x="820" y="1225" width="180" height="56" rx="28" fill="url(#headerGrad)"/>
+  <text x="910" y="1259" font-family="Arial" font-size="24" font-weight="600" fill="white" text-anchor="middle">Book</text>
+
+  <!-- Bottom nav -->
+  <rect x="0" y="1810" width="1080" height="110" fill="white" filter="url(#cardShadow)"/>
+  <text x="120" y="1875" font-family="Arial" font-size="22" fill="#6366F1" text-anchor="middle">🏠</text>
+  <text x="120" y="1900" font-family="Arial" font-size="20" fill="#6366F1" text-anchor="middle">Home</text>
+  <text x="340" y="1875" font-family="Arial" font-size="22" fill="#9CA3AF" text-anchor="middle">📅</text>
+  <text x="340" y="1900" font-family="Arial" font-size="20" fill="#9CA3AF" text-anchor="middle">Bookings</text>
+  <text x="560" y="1875" font-family="Arial" font-size="22" fill="#9CA3AF" text-anchor="middle">🗺</text>
+  <text x="560" y="1900" font-family="Arial" font-size="20" fill="#9CA3AF" text-anchor="middle">Tracking</text>
+  <text x="780" y="1875" font-family="Arial" font-size="22" fill="#9CA3AF" text-anchor="middle">💬</text>
+  <text x="780" y="1900" font-family="Arial" font-size="20" fill="#9CA3AF" text-anchor="middle">Messages</text>
+  <text x="960" y="1875" font-family="Arial" font-size="22" fill="#9CA3AF" text-anchor="middle">👤</text>
+  <text x="960" y="1900" font-family="Arial" font-size="20" fill="#9CA3AF" text-anchor="middle">Profile</text>
+</svg>

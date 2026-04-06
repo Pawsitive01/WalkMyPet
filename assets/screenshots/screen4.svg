@@ -1,0 +1,130 @@
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1"/>
+      <stop offset="100%" style="stop-color:#EC4899"/>
+    </linearGradient>
+    <filter id="cardShadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1920" fill="#F3F4F6"/>
+
+  <!-- Status bar -->
+  <rect width="1080" height="60" fill="url(#headerGrad)"/>
+  <text x="80" y="42" font-family="Arial" font-size="24" font-weight="600" fill="white">9:41</text>
+  <text x="920" y="42" font-family="Arial" font-size="22" fill="white">●●● WiFi 🔋</text>
+
+  <!-- Header -->
+  <rect width="1080" height="200" fill="url(#headerGrad)"/>
+  <text x="540" y="120" font-family="Arial" font-size="36" font-weight="700" fill="white" text-anchor="middle">Book a Walk</text>
+  <text x="540" y="170" font-family="Arial" font-size="26" fill="white" opacity="0.85" text-anchor="middle">with Sarah Mitchell</text>
+
+  <!-- Main card -->
+  <rect x="0" y="185" width="1080" height="1735" rx="40" fill="white"/>
+
+  <!-- Pet selection -->
+  <text x="60" y="270" font-family="Arial" font-size="34" font-weight="700" fill="#1F2937">Select Your Pet</text>
+
+  <rect x="60" y="295" width="280" height="160" rx="20" fill="#EEF2FF" filter="url(#cardShadow)"/>
+  <text x="200" y="365" font-family="Arial" font-size="52" text-anchor="middle">🐕</text>
+  <text x="200" y="415" font-family="Arial" font-size="26" font-weight="600" fill="#6366F1" text-anchor="middle">Max</text>
+  <text x="200" y="447" font-family="Arial" font-size="22" fill="#6B7280" text-anchor="middle">Labrador</text>
+  <!-- Selected indicator -->
+  <circle cx="310" cy="315" r="20" fill="#6366F1"/>
+  <text x="310" y="323" font-family="Arial" font-size="20" fill="white" text-anchor="middle">✓</text>
+
+  <rect x="360" y="295" width="280" height="160" rx="20" fill="#F9FAFB"/>
+  <text x="500" y="365" font-family="Arial" font-size="52" text-anchor="middle">🐈</text>
+  <text x="500" y="415" font-family="Arial" font-size="26" font-weight="600" fill="#6B7280" text-anchor="middle">Luna</text>
+  <text x="500" y="447" font-family="Arial" font-size="22" fill="#9CA3AF" text-anchor="middle">Siamese</text>
+
+  <!-- Walk type -->
+  <text x="60" y="510" font-family="Arial" font-size="34" font-weight="700" fill="#1F2937">Walk Type</text>
+
+  <rect x="60" y="535" width="300" height="100" rx="20" fill="#EEF2FF" filter="url(#cardShadow)"/>
+  <text x="100" y="580" font-family="Arial" font-size="28" fill="#6366F1">🚶 30 min walk</text>
+  <text x="100" y="618" font-family="Arial" font-size="24" fill="#6366F1" font-weight="600">$25</text>
+
+  <rect x="380" y="535" width="300" height="100" rx="20" fill="#F9FAFB"/>
+  <text x="420" y="580" font-family="Arial" font-size="28" fill="#6B7280">🏃 60 min walk</text>
+  <text x="420" y="618" font-family="Arial" font-size="24" fill="#6B7280">$40</text>
+
+  <rect x="700" y="535" width="320" height="100" rx="20" fill="#F9FAFB"/>
+  <text x="740" y="580" font-family="Arial" font-size="28" fill="#6B7280">🐾 Group walk</text>
+  <text x="740" y="618" font-family="Arial" font-size="24" fill="#6B7280">$15</text>
+
+  <!-- Date picker -->
+  <text x="60" y="710" font-family="Arial" font-size="34" font-weight="700" fill="#1F2937">Select Date</text>
+
+  <!-- Calendar -->
+  <rect x="60" y="735" width="960" height="320" rx="20" fill="#F9FAFB" filter="url(#cardShadow)"/>
+  <text x="540" y="785" font-family="Arial" font-size="28" font-weight="700" fill="#1F2937" text-anchor="middle">March 2026</text>
+  <text x="150" y="785" font-family="Arial" font-size="28" fill="#6B7280">←</text>
+  <text x="920" y="785" font-family="Arial" font-size="28" fill="#6B7280">→</text>
+
+  <!-- Day headers -->
+  <g font-family="Arial" font-size="22" fill="#9CA3AF" text-anchor="middle">
+    <text x="120" y="825">Su</text><text x="257" y="825">Mo</text><text x="394" y="825">Tu</text>
+    <text x="531" y="825">We</text><text x="668" y="825">Th</text><text x="805" y="825">Fr</text><text x="942" y="825">Sa</text>
+  </g>
+
+  <!-- Week 1 -->
+  <g font-family="Arial" font-size="26" text-anchor="middle">
+    <text x="120" y="880" fill="#D1D5DB">1</text><text x="257" y="880" fill="#1F2937">2</text>
+    <text x="394" y="880" fill="#1F2937">3</text><text x="531" y="880" fill="#1F2937">4</text>
+    <text x="668" y="880" fill="#1F2937">5</text><text x="805" y="880" fill="#1F2937">6</text>
+    <text x="942" y="880" fill="#1F2937">7</text>
+  </g>
+  <!-- Week 2 -->
+  <g font-family="Arial" font-size="26" text-anchor="middle">
+    <text x="120" y="940" fill="#1F2937">8</text><text x="257" y="940" fill="#1F2937">9</text>
+    <text x="394" y="940" fill="#1F2937">10</text>
+    <!-- Selected day -->
+    <circle cx="531" cy="926" r="30" fill="#6366F1"/>
+    <text x="531" y="940" fill="white">11</text>
+    <text x="668" y="940" fill="#1F2937">12</text><text x="805" y="940" fill="#1F2937">13</text>
+    <text x="942" y="940" fill="#1F2937">14</text>
+  </g>
+  <!-- Week 3 -->
+  <g font-family="Arial" font-size="26" text-anchor="middle" fill="#1F2937">
+    <text x="120" y="1000">15</text><text x="257" y="1000">16</text><text x="394" y="1000">17</text>
+    <text x="531" y="1000">18</text><text x="668" y="1000">19</text><text x="805" y="1000">20</text><text x="942" y="1000">21</text>
+  </g>
+
+  <!-- Time slots -->
+  <text x="60" y="1115" font-family="Arial" font-size="34" font-weight="700" fill="#1F2937">Select Time</text>
+
+  <g filter="url(#cardShadow)">
+    <rect x="60" y="1140" width="200" height="72" rx="36" fill="#6366F1"/>
+    <text x="160" y="1182" font-family="Arial" font-size="26" font-weight="600" fill="white" text-anchor="middle">8:00 AM</text>
+
+    <rect x="280" y="1140" width="200" height="72" rx="36" fill="#F3F4F6"/>
+    <text x="380" y="1182" font-family="Arial" font-size="26" fill="#6B7280" text-anchor="middle">10:00 AM</text>
+
+    <rect x="500" y="1140" width="200" height="72" rx="36" fill="#F3F4F6"/>
+    <text x="600" y="1182" font-family="Arial" font-size="26" fill="#6B7280" text-anchor="middle">12:00 PM</text>
+
+    <rect x="720" y="1140" width="200" height="72" rx="36" fill="#F3F4F6"/>
+    <text x="820" y="1182" font-family="Arial" font-size="26" fill="#6B7280" text-anchor="middle">2:00 PM</text>
+  </g>
+
+  <!-- Price summary -->
+  <rect x="60" y="1255" width="960" height="180" rx="20" fill="#EEF2FF"/>
+  <text x="100" y="1310" font-family="Arial" font-size="28" fill="#6B7280">Walk (30 min)</text>
+  <text x="980" y="1310" font-family="Arial" font-size="28" fill="#1F2937" text-anchor="end">$25.00</text>
+  <text x="100" y="1360" font-family="Arial" font-size="28" fill="#6B7280">Service fee</text>
+  <text x="980" y="1360" font-family="Arial" font-size="28" fill="#1F2937" text-anchor="end">$2.50</text>
+  <line x1="100" y1="1380" x2="980" y2="1380" stroke="#C7D2FE" stroke-width="1"/>
+  <text x="100" y="1418" font-family="Arial" font-size="30" font-weight="700" fill="#1F2937">Total</text>
+  <text x="980" y="1418" font-family="Arial" font-size="30" font-weight="700" fill="#6366F1" text-anchor="end">$27.50</text>
+
+  <!-- Confirm button -->
+  <rect x="60" y="1480" width="960" height="90" rx="45" fill="url(#headerGrad)" filter="url(#cardShadow)"/>
+  <text x="540" y="1535" font-family="Arial" font-size="34" font-weight="700" fill="white" text-anchor="middle">Confirm Booking · $27.50</text>
+
+  <!-- Secure payment note -->
+  <text x="540" y="1610" font-family="Arial" font-size="24" fill="#9CA3AF" text-anchor="middle">🔒 Secure payment powered by Stripe</text>
+</svg>

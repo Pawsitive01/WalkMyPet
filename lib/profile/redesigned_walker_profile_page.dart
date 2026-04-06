@@ -656,6 +656,8 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
                           _showAccountBalance();
                         } else if (value == 'logout') {
                           _handleSignOut();
+                        } else if (value == 'delete') {
+                          _handleDeleteAccount();
                         }
                       },
                       itemBuilder: (context) => [
@@ -751,6 +753,23 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
                               SizedBox(width: 12),
                               Text(
                                 'Sign Out',
+                                style: TextStyle(
+                                  color: Color(0xFFEF4444),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(height: 1),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_forever_rounded, size: 20, color: Color(0xFFEF4444)),
+                              SizedBox(width: 12),
+                              Text(
+                                'Delete Account',
                                 style: TextStyle(
                                   color: Color(0xFFEF4444),
                                   fontWeight: FontWeight.w500,
@@ -2362,6 +2381,98 @@ class _RedesignedWalkerProfilePageState extends State<RedesignedWalkerProfilePag
         _showErrorSnackBar('Failed to update services');
       }
     }
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => _buildDeleteAccountDialog(),
+    );
+
+    if (confirm == true) {
+      HapticFeedback.mediumImpact();
+      try {
+        await _authService.deleteAccount();
+        if (mounted) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      } catch (e) {
+        if (mounted) {
+          _showErrorSnackBar(e.toString());
+        }
+      }
+    }
+  }
+
+  Widget _buildDeleteAccountDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return AlertDialog(
+      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.delete_forever_rounded, color: Color(0xFFEF4444), size: 24),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'Delete Account',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : const Color(0xFF1F2937),
+            ),
+          ),
+        ],
+      ),
+      content: Text(
+        'This will permanently delete your account and all your data including bookings and reviews. This action cannot be undone.',
+        style: TextStyle(
+          fontSize: 15,
+          color: isDark ? Colors.white70 : const Color(0xFF6B7280),
+          height: 1.5,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            Navigator.pop(context, false);
+          },
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: Text(
+            'Cancel',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white70 : const Color(0xFF6B7280),
+            ),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            HapticFeedback.mediumImpact();
+            Navigator.pop(context, true);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFEF4444),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: const Text('Delete Account', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+        ),
+      ],
+    );
   }
 
   Widget _buildSignOutDialog() {

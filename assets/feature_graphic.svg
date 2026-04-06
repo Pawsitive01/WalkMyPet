@@ -1,0 +1,91 @@
+<svg width="1024" height="500" viewBox="0 0 1024 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#EC4899;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="circleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.15" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0.03" />
+    </linearGradient>
+    <filter id="softBlur">
+      <feGaussianBlur stdDeviation="1.5"/>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="500" fill="url(#bgGrad)"/>
+
+  <!-- Decorative circles -->
+  <circle cx="-60" cy="-60" r="220" fill="url(#circleGrad)"/>
+  <circle cx="1100" cy="560" r="300" fill="url(#circleGrad)"/>
+  <circle cx="900" cy="-80" r="180" fill="url(#circleGrad)"/>
+  <circle cx="150" cy="520" r="160" fill="url(#circleGrad)"/>
+
+  <!-- Subtle dot pattern -->
+  <g opacity="0.08">
+    <circle cx="80" cy="80" r="3" fill="white"/>
+    <circle cx="160" cy="80" r="3" fill="white"/>
+    <circle cx="240" cy="80" r="3" fill="white"/>
+    <circle cx="80" cy="160" r="3" fill="white"/>
+    <circle cx="160" cy="160" r="3" fill="white"/>
+    <circle cx="240" cy="160" r="3" fill="white"/>
+    <circle cx="80" cy="240" r="3" fill="white"/>
+    <circle cx="160" cy="240" r="3" fill="white"/>
+    <circle cx="240" cy="240" r="3" fill="white"/>
+    <circle cx="820" cy="320" r="3" fill="white"/>
+    <circle cx="900" cy="320" r="3" fill="white"/>
+    <circle cx="980" cy="320" r="3" fill="white"/>
+    <circle cx="820" cy="400" r="3" fill="white"/>
+    <circle cx="900" cy="400" r="3" fill="white"/>
+    <circle cx="980" cy="400" r="3" fill="white"/>
+  </g>
+
+  <!-- Icon background circle -->
+  <circle cx="220" cy="250" r="130" fill="white" opacity="0.12" filter="url(#shadow)"/>
+  <circle cx="220" cy="250" r="110" fill="white" opacity="0.10"/>
+
+  <!-- Paw icon (centered at 220, 250) -->
+  <!-- Main pad -->
+  <ellipse cx="220" cy="285" rx="52" ry="46" fill="white" filter="url(#shadow)"/>
+  <!-- Top left toe -->
+  <ellipse cx="163" cy="238" rx="20" ry="24" fill="white" transform="rotate(-15 163 238)"/>
+  <!-- Top center-left toe -->
+  <ellipse cx="198" cy="218" rx="20" ry="25" fill="white" transform="rotate(-5 198 218)"/>
+  <!-- Top center-right toe -->
+  <ellipse cx="238" cy="215" rx="20" ry="25" fill="white" transform="rotate(5 238 215)"/>
+  <!-- Top right toe -->
+  <ellipse cx="274" cy="232" rx="20" ry="24" fill="white" transform="rotate(15 274 232)"/>
+
+  <!-- Right side: Text content -->
+  <!-- App name -->
+  <text x="400" y="210" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="800" fill="white" letter-spacing="-1" filter="url(#shadow)">WalkMyPet</text>
+
+  <!-- Divider line -->
+  <rect x="400" y="230" width="480" height="3" rx="2" fill="white" opacity="0.4"/>
+
+  <!-- Tagline -->
+  <text x="402" y="285" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="white" opacity="0.92" letter-spacing="0.5">Find trusted dog walkers near you</text>
+
+  <!-- Feature pills -->
+  <g filter="url(#shadow)">
+    <!-- Pill 1 -->
+    <rect x="400" y="320" width="148" height="44" rx="22" fill="white" opacity="0.2"/>
+    <text x="474" y="348" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="600" fill="white" text-anchor="middle">📍 Book Walks</text>
+
+    <!-- Pill 2 -->
+    <rect x="562" y="320" width="148" height="44" rx="22" fill="white" opacity="0.2"/>
+    <text x="636" y="348" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="600" fill="white" text-anchor="middle">🗺 Live Tracking</text>
+
+    <!-- Pill 3 -->
+    <rect x="724" y="320" width="148" height="44" rx="22" fill="white" opacity="0.2"/>
+    <text x="798" y="348" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="600" fill="white" text-anchor="middle">⭐ Top Walkers</text>
+  </g>
+
+  <!-- Bottom tagline -->
+  <text x="400" y="430" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="300" fill="white" opacity="0.65" letter-spacing="2">TRUSTED PET CARE · AUSTRALIA</text>
+</svg>

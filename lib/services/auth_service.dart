@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -143,13 +144,49 @@ class AuthService {
     }
   }
 
-  // Delete account
+  // Delete account and all associated Firestore data
   Future<void> deleteAccount() async {
     try {
       final user = _auth.currentUser;
-      if (user != null) {
-        await user.delete();
+      if (user == null) return;
+
+      final uid = user.uid;
+      final db = FirebaseFirestore.instance;
+
+      // Delete user documents from all collections
+      await Future.wait([
+        db.collection('owners').doc(uid).delete().catchError((_) => null),
+        db.collection('walkers').doc(uid).delete().catchError((_) => null),
+        db.collection('users').doc(uid).delete().catchError((_) => null),
+      ]);
+
+      // Delete notifications
+      final notifications = await db
+          .collection('notifications')
+          .where('userId', isEqualTo: uid)
+          .get();
+      for (final doc in notifications.docs) {
+        await doc.reference.delete();
       }
+
+      // Delete reviews written by or about this user
+      final reviewsBy = await db
+          .collection('reviews')
+          .where('reviewerId', isEqualTo: uid)
+          .get();
+      final reviewsAbout = await db
+          .collection('reviews')
+          .where('reviewedId', isEqualTo: uid)
+          .get();
+      for (final doc in [...reviewsBy.docs, ...reviewsAbout.docs]) {
+        await doc.reference.delete();
+      }
+
+      // Sign out from Google if applicable
+      await _googleSignIn.signOut().catchError((_) => null);
+
+      // Delete Firebase Auth account (must be last)
+      await user.delete();
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
