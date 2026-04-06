@@ -64,6 +64,15 @@ android/key.properties
 *.jks
 *.keystore
 
+# Firebase config (contains OAuth client IDs — keep out of public repos)
+google-services.json
+android/app/google-services.json
+GoogleService-Info.plist
+
+# Release bundles
+*.aab
+*.apk
+
 # Environment & secrets (NEVER commit these!)
 .env
 .env.*

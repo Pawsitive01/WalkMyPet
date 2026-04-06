@@ -79,4 +79,7 @@ dependencies {
 
     // AndroidX Startup for Firebase initialization
     implementation("androidx.startup:startup-runtime:1.1.1")
+
+    // Edge-to-edge support for Android 15+
+    implementation("androidx.activity:activity-ktx:1.10.1")
 }

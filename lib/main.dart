@@ -139,7 +139,6 @@ class MyApp extends StatelessWidget {
           letterSpacing: -0.5,
         ),
         systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.light,
         ),
       ),
@@ -168,7 +167,6 @@ class MyApp extends StatelessWidget {
           letterSpacing: -0.5,
         ),
         systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.light,
         ),
       ),
