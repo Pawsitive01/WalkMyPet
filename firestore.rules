@@ -41,8 +41,7 @@ service cloud.firestore {
 
       // Only the walker can create their own profile
       allow create: if isAuthenticated() &&
-                       request.auth.uid == walkerId &&
-                       request.resource.data.id == walkerId;
+                       request.auth.uid == walkerId;
 
       // Only the walker can update their own profile
       // Protected fields (wallet, earnings, stats) cannot be modified directly
@@ -62,8 +61,7 @@ service cloud.firestore {
 
       // Only the owner can create their own profile
       allow create: if isAuthenticated() &&
-                       request.auth.uid == ownerId &&
-                       request.resource.data.id == ownerId;
+                       request.auth.uid == ownerId;
 
       // Only the owner can update their own profile
       allow update: if isOwner(ownerId);
