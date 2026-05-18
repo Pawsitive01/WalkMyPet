@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -49,6 +50,9 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
   final ReviewService _reviewService = ReviewService();
   final MessageService _messageService = MessageService();
 
+  late Booking _booking;
+  StreamSubscription<Booking?>? _bookingSubscription;
+
   late AnimationController _pageAnimationController;
   late AnimationController _pulseAnimationController;
   late Animation<double> _fadeAnimation;
@@ -61,6 +65,14 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
   @override
   void initState() {
     super.initState();
+    _booking = widget.booking;
+    _bookingSubscription = _bookingService
+        .getBookingStream(_booking.id)
+        .listen((updated) {
+      if (updated != null && mounted) {
+        setState(() => _booking = updated);
+      }
+    });
     _initAnimations();
   }
 
@@ -107,21 +119,22 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
     _pageAnimationController.forward();
 
     // Only pulse for active statuses
-    if (widget.booking.status == BookingStatus.pending ||
-        widget.booking.status == BookingStatus.confirmed) {
+    if (_booking.status == BookingStatus.pending ||
+        _booking.status == BookingStatus.confirmed) {
       _pulseAnimationController.repeat(reverse: true);
     }
   }
 
   @override
   void dispose() {
+    _bookingSubscription?.cancel();
     _pageAnimationController.dispose();
     _pulseAnimationController.dispose();
     super.dispose();
   }
 
   Color get _statusColor {
-    switch (widget.booking.status) {
+    switch (_booking.status) {
       case BookingStatus.pending:
         return DesignSystem.warning;
       case BookingStatus.confirmed:
@@ -136,7 +149,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
   }
 
   IconData get _statusIcon {
-    switch (widget.booking.status) {
+    switch (_booking.status) {
       case BookingStatus.pending:
         return Icons.schedule_rounded;
       case BookingStatus.confirmed:
@@ -151,7 +164,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
   }
 
   String get _statusLabel {
-    switch (widget.booking.status) {
+    switch (_booking.status) {
       case BookingStatus.pending:
         return 'Pending Confirmation';
       case BookingStatus.confirmed:
@@ -166,11 +179,11 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
   }
 
   String get _statusDescription {
-    switch (widget.booking.status) {
+    switch (_booking.status) {
       case BookingStatus.pending:
-        return 'Waiting for ${widget.booking.walkerName} to confirm your booking request.';
+        return 'Waiting for ${_booking.walkerName} to confirm your booking request.';
       case BookingStatus.confirmed:
-        return 'Your booking is confirmed! ${widget.booking.walkerName} will arrive at the scheduled time.';
+        return 'Your booking is confirmed! ${_booking.walkerName} will arrive at the scheduled time.';
       case BookingStatus.awaitingConfirmation:
         return 'Please confirm the booking completion to release payment.';
       case BookingStatus.completed:
@@ -228,15 +241,15 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
                         const SizedBox(height: DesignSystem.space3),
                         _buildBookingDetailsCard(isDark),
                         const SizedBox(height: DesignSystem.space3),
-                        if (widget.booking.services != null &&
-                            widget.booking.services!.isNotEmpty)
+                        if (_booking.services != null &&
+                            _booking.services!.isNotEmpty)
                           _buildServicesCard(isDark),
-                        if (widget.booking.services != null &&
-                            widget.booking.services!.isNotEmpty)
+                        if (_booking.services != null &&
+                            _booking.services!.isNotEmpty)
                           const SizedBox(height: DesignSystem.space3),
                         _buildPricingCard(isDark),
-                        if (widget.booking.notes != null &&
-                            widget.booking.notes!.isNotEmpty) ...[
+                        if (_booking.notes != null &&
+                            _booking.notes!.isNotEmpty) ...[
                           const SizedBox(height: DesignSystem.space3),
                           _buildNotesCard(isDark),
                         ],
@@ -349,7 +362,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Booking #${widget.booking.id.substring(0, 8).toUpperCase()}',
+                              'Booking #${_booking.id.substring(0, 8).toUpperCase()}',
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.8),
                                 fontSize: DesignSystem.caption,
@@ -414,7 +427,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
         children: [
           // Walker avatar
           Hero(
-            tag: 'walker_${widget.booking.walkerId}',
+            tag: 'walker_${_booking.walkerId}',
             child: Container(
               width: 70,
               height: 70,
@@ -460,7 +473,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.booking.walkerName,
+                  _booking.walkerName,
                   style: TextStyle(
                     color: DesignSystem.getTextPrimary(isDark),
                     fontSize: DesignSystem.h3,
@@ -489,7 +502,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Walking ${widget.booking.dogName}',
+                  'Walking ${_booking.dogName}',
                   style: TextStyle(
                     color: DesignSystem.getTextSecondary(isDark),
                     fontSize: DesignSystem.caption,
@@ -596,7 +609,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
             isDark: isDark,
             icon: Icons.calendar_today_rounded,
             label: 'Date',
-            value: DateFormat('EEEE, MMMM d, yyyy').format(widget.booking.date),
+            value: DateFormat('EEEE, MMMM d, yyyy').format(_booking.date),
             color: DesignSystem.walkerPrimary,
           ),
           const SizedBox(height: DesignSystem.space2),
@@ -604,7 +617,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
             isDark: isDark,
             icon: Icons.access_time_rounded,
             label: 'Time',
-            value: widget.booking.time,
+            value: _booking.time,
             color: DesignSystem.ownerPrimary,
           ),
           const SizedBox(height: DesignSystem.space2),
@@ -612,7 +625,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
             isDark: isDark,
             icon: Icons.timer_outlined,
             label: 'Duration',
-            value: _formatDuration(widget.booking.duration),
+            value: _formatDuration(_booking.duration),
             color: DesignSystem.walkerSecondary,
           ),
           const SizedBox(height: DesignSystem.space2),
@@ -620,7 +633,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
             isDark: isDark,
             icon: Icons.location_on_rounded,
             label: 'Location',
-            value: widget.booking.location,
+            value: _booking.location,
             color: DesignSystem.success,
             isExpandable: true,
           ),
@@ -629,7 +642,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
             isDark: isDark,
             icon: Icons.pets_rounded,
             label: 'Pet',
-            value: widget.booking.dogName,
+            value: _booking.dogName,
             color: DesignSystem.ownerPrimary,
           ),
         ],
@@ -646,7 +659,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
       child: Wrap(
         spacing: DesignSystem.space1_5,
         runSpacing: DesignSystem.space1_5,
-        children: widget.booking.services!.map((service) {
+        children: _booking.services!.map((service) {
           final color = _getServiceColor(service);
           final icon = _getServiceIcon(service);
           return Container(
@@ -707,7 +720,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
                 ),
               ),
               Text(
-                '\$${widget.booking.price.toStringAsFixed(2)}',
+                '\$${_booking.price.toStringAsFixed(2)}',
                 style: TextStyle(
                   color: DesignSystem.getTextPrimary(isDark),
                   fontSize: DesignSystem.body,
@@ -744,7 +757,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
                   boxShadow: DesignSystem.shadowGlow(DesignSystem.success),
                 ),
                 child: Text(
-                  '\$${widget.booking.price.toStringAsFixed(2)}',
+                  '\$${_booking.price.toStringAsFixed(2)}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: DesignSystem.h3,
@@ -767,7 +780,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
       icon: Icons.notes_rounded,
       iconColor: DesignSystem.info,
       child: Text(
-        widget.booking.notes!,
+        _booking.notes!,
         style: TextStyle(
           color: DesignSystem.getTextSecondary(isDark),
           fontSize: DesignSystem.body,
@@ -790,49 +803,49 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
           _TimelineItem(
             isDark: isDark,
             title: 'Booking Created',
-            subtitle: DateFormat('MMM d, yyyy • h:mm a').format(widget.booking.createdAt),
+            subtitle: DateFormat('MMM d, yyyy • h:mm a').format(_booking.createdAt),
             icon: Icons.add_circle_outline_rounded,
             color: DesignSystem.walkerPrimary,
             isCompleted: true,
             isFirst: true,
           ),
-          if (widget.booking.status != BookingStatus.pending)
+          if (_booking.status != BookingStatus.pending)
             _TimelineItem(
               isDark: isDark,
-              title: widget.booking.status == BookingStatus.cancelled
+              title: _booking.status == BookingStatus.cancelled
                   ? 'Booking Cancelled'
                   : 'Walker Confirmed',
-              subtitle: widget.booking.updatedAt != null
-                  ? DateFormat('MMM d, yyyy • h:mm a').format(widget.booking.updatedAt!)
+              subtitle: _booking.updatedAt != null
+                  ? DateFormat('MMM d, yyyy • h:mm a').format(_booking.updatedAt!)
                   : 'Confirmed',
-              icon: widget.booking.status == BookingStatus.cancelled
+              icon: _booking.status == BookingStatus.cancelled
                   ? Icons.cancel_rounded
                   : Icons.check_circle_rounded,
-              color: widget.booking.status == BookingStatus.cancelled
+              color: _booking.status == BookingStatus.cancelled
                   ? DesignSystem.error
                   : DesignSystem.success,
               isCompleted: true,
             ),
-          if (widget.booking.status == BookingStatus.completed)
+          if (_booking.status == BookingStatus.completed)
             _TimelineItem(
               isDark: isDark,
               title: 'Service Completed',
-              subtitle: widget.booking.completedByWalkerAt != null
+              subtitle: _booking.completedByWalkerAt != null
                   ? DateFormat('MMM d, yyyy • h:mm a')
-                      .format(widget.booking.completedByWalkerAt!)
+                      .format(_booking.completedByWalkerAt!)
                   : 'Completed',
               icon: Icons.verified_rounded,
               color: DesignSystem.success,
               isCompleted: true,
               isLast: true,
             ),
-          if (widget.booking.status == BookingStatus.confirmed ||
-              widget.booking.status == BookingStatus.pending)
+          if (_booking.status == BookingStatus.confirmed ||
+              _booking.status == BookingStatus.pending)
             _TimelineItem(
               isDark: isDark,
               title: 'Scheduled Walk',
-              subtitle: DateFormat('MMM d, yyyy • ').format(widget.booking.date) +
-                  widget.booking.time,
+              subtitle: DateFormat('MMM d, yyyy • ').format(_booking.date) +
+                  _booking.time,
               icon: Icons.directions_walk_rounded,
               color: DesignSystem.walkerPrimary,
               isCompleted: false,
@@ -884,7 +897,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
   }
 
   Widget _buildActionButton(bool isDark) {
-    switch (widget.booking.status) {
+    switch (_booking.status) {
       case BookingStatus.pending:
         return _ActionButton(
           label: 'Cancel Booking',
@@ -934,7 +947,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
       case BookingStatus.completed:
         return FutureBuilder<bool>(
           future: _reviewService.hasUserReviewedBooking(
-            widget.booking.id,
+            _booking.id,
             FirebaseAuth.instance.currentUser?.uid ?? '',
           ),
           builder: (context, snapshot) {
@@ -1018,8 +1031,8 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
         userId1: user.uid,
         userName1: user.displayName ?? 'Pet Owner',
         userPhoto1: user.photoURL ?? '',
-        userId2: widget.booking.walkerId,
-        userName2: widget.booking.walkerName,
+        userId2: _booking.walkerId,
+        userName2: _booking.walkerName,
         userPhoto2: widget.walkerPhotoUrl ?? '',
       );
 
@@ -1029,8 +1042,8 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
           MaterialPageRoute(
             builder: (context) => ChatPage(
               conversationId: conversationId,
-              otherUserId: widget.booking.walkerId,
-              otherUserName: widget.booking.walkerName,
+              otherUserId: _booking.walkerId,
+              otherUserName: _booking.walkerName,
               otherUserPhoto: widget.walkerPhotoUrl ?? '',
             ),
           ),
@@ -1150,7 +1163,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
     try {
       final user = FirebaseAuth.instance.currentUser;
       await _bookingService.cancelBooking(
-        widget.booking.id,
+        _booking.id,
         cancelledBy: user?.displayName ?? 'Owner',
       );
       if (mounted) {
@@ -1172,9 +1185,9 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
         _showSnackBar('Please log in to confirm', DesignSystem.error);
         return;
       }
-      await _bookingService.confirmWalkCompletion(widget.booking.id, user.uid);
+      await _bookingService.confirmWalkCompletion(_booking.id, user.uid);
       if (mounted) {
-        _showSnackBar('Payment released to ${widget.booking.walkerName}!', DesignSystem.success);
+        _showSnackBar('Payment released to ${_booking.walkerName}!', DesignSystem.success);
         // Automatically show review dialog after successful fund release
         await Future.delayed(const Duration(milliseconds: 500));
         if (mounted) {
@@ -1250,7 +1263,7 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
             ),
             const SizedBox(height: DesignSystem.space1),
             Text(
-              'Payment has been released to ${widget.booking.walkerName}.\nWould you like to leave a review?',
+              'Payment has been released to ${_booking.walkerName}.\nWould you like to leave a review?',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: DesignSystem.getTextSecondary(isDark),
@@ -1301,10 +1314,10 @@ class _OwnerBookingDetailPageState extends State<OwnerBookingDetailPage>
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => ReviewDialog(
-        bookingId: widget.booking.id,
-        walkerId: widget.booking.walkerId,
-        walkerName: widget.booking.walkerName,
-        dogName: widget.booking.dogName,
+        bookingId: _booking.id,
+        walkerId: _booking.walkerId,
+        walkerName: _booking.walkerName,
+        dogName: _booking.dogName,
       ),
     );
 

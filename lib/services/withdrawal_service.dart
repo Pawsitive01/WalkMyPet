@@ -57,7 +57,7 @@ class WithdrawalService {
     }
 
     final walkerData = walkerDoc.data()!;
-    final walkerName = walkerData['name'] ?? 'Unknown';
+    final walkerName = walkerData['displayName'] ?? 'Unknown';
     final walletBalance = (walkerData['walletBalance'] ?? 0.0).toDouble();
 
     // Check if walker has sufficient balance
@@ -336,7 +336,7 @@ class WithdrawalService {
     }
 
     final walkerData = walkerDoc.data()!;
-    final walkerName = walkerData['name'] ?? 'Unknown';
+    final walkerName = walkerData['displayName'] ?? 'Unknown';
     final walletBalance = (walkerData['walletBalance'] ?? 0.0).toDouble();
 
     // Check if walker has sufficient balance

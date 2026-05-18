@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:walkmypet/models/booking_model.dart';
 import 'package:walkmypet/models/walk_tracking_model.dart';
+import 'package:walkmypet/services/booking_service.dart';
 import 'package:walkmypet/design_system.dart';
 
 class WalkTrackingScreen extends StatefulWidget {
@@ -360,7 +361,7 @@ class _WalkTrackingScreenState extends State<WalkTrackingScreen>
     await _positionSubscription?.cancel();
     _updateTimer?.cancel();
 
-    // Update walk tracking
+    // Update walk tracking document status
     await FirebaseFirestore.instance
         .collection('walk_tracking')
         .doc(_walkTrackingId)
@@ -369,14 +370,8 @@ class _WalkTrackingScreenState extends State<WalkTrackingScreen>
       'completedAt': FieldValue.serverTimestamp(),
     });
 
-    // Update booking status to awaitingConfirmation (owner needs to confirm and release funds)
-    await FirebaseFirestore.instance
-        .collection('bookings')
-        .doc(widget.booking.id)
-        .update({
-      'status': 'awaitingConfirmation',
-      'completedByWalkerAt': FieldValue.serverTimestamp(),
-    });
+    // Update booking status, pending earnings, and notify owner via service
+    await BookingService().markWalkComplete(widget.booking.id, widget.booking.walkerId);
 
     if (mounted) {
       Navigator.pop(context);

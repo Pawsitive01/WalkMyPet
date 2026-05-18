@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 import 'package:walkmypet/models/booking_model.dart';
 import 'package:walkmypet/models/transaction_model.dart';
@@ -107,7 +108,7 @@ class PaymentService {
       transaction.update(walkerRef, {
         'walletBalance': currentBalance + breakdown.walkerEarnings,
         'totalEarnings': totalEarnings + breakdown.walkerEarnings,
-        'pendingEarnings': pendingEarnings - breakdown.walkerEarnings,
+        'pendingEarnings': math.max(0.0, pendingEarnings - breakdown.walkerEarnings),
         'lastPaymentAt': Timestamp.fromDate(DateTime.now()),
         'totalTransactions': totalTxns + 1,
         'updatedAt': Timestamp.fromDate(DateTime.now()),
@@ -198,7 +199,7 @@ class PaymentService {
       }
 
       final walkerData = walkerSnap.data()!;
-      final walkerName = walkerData['name'] ?? 'Unknown';
+      final walkerName = walkerData['displayName'] ?? 'Unknown';
       final currentBalance = (walkerData['walletBalance'] ?? 0.0).toDouble();
       final totalTxns = (walkerData['totalTransactions'] ?? 0) as int;
 
